@@ -1,0 +1,10 @@
+# secrets — phish.net API key
+.env
+
+node_modules/
+
+# cached phish.net API responses + derived analysis (regenerate with npm run fetch && npm run analyze)
+data/*.json
+
+# user accounts, password hashes, sessions, predictions — never publish
+data/db.json

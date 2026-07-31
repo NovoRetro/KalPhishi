@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalphishi — Phish Setlist Predictor</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a;
+    --accent-wash: rgba(42,120,214,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19;
+      --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+      --accent-wash: rgba(57,135,229,0.15);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px; line-height: 1.5; padding: 24px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  header .sub { color: var(--ink-2); margin-top: 2px; }
+  .tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--grid); flex-wrap: wrap; }
+  .tab { background: none; border: none; font: inherit; color: var(--ink-2); padding: 8px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab:hover { color: var(--ink); background: var(--accent-wash); border-radius: 6px 6px 0 0; }
+  .tab.active { color: var(--ink); font-weight: 600; border-bottom-color: var(--series-1); }
+  .pill { display: inline-block; padding: 1px 8px; border: 1px solid var(--border); border-radius: 99px; font-size: 12px; color: var(--ink-2); background: var(--surface); margin-left: 6px; }
+  .grid { display: grid; gap: 16px; margin-top: 20px; }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 900px) { .cols-2, .cols-3 { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; overflow-x: auto; }
+  .card.card-overflow { overflow: visible; }
+  .card h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); margin-bottom: 10px; }
+  .card h2 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 500; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--grid); }
+  td { padding: 4px 10px 4px 0; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .filter-row th { padding: 3px 10px 5px 0; }
+  .th-controls { display: flex; gap: 3px; align-items: center; }
+  .th-sort { background: none; border: 1px solid var(--grid); border-radius: 6px; color: var(--muted); cursor: pointer; font: inherit; font-size: 11px; padding: 1px 5px; flex-shrink: 0; }
+  .th-sort:hover { color: var(--ink); }
+  .th-sort.active { color: var(--series-1); border-color: var(--series-1); }
+  .th-filter { width: 100%; min-width: 44px; box-sizing: border-box; font: inherit; font-size: 11px; padding: 2px 6px; border: 1px solid var(--grid); border-radius: 6px; background: var(--surface); color: var(--ink); }
+  .th-filter:focus { outline: none; border-color: var(--series-1); }
+  .th-filter::placeholder { color: var(--muted); }
+  tr:hover td { background: var(--accent-wash); }
+  .song { font-weight: 500; }
+  .setlist { display: flex; flex-wrap: wrap; gap: 4px 0; align-items: baseline; }
+  .setlist .s { padding: 2px 6px; border-radius: 6px; cursor: default; position: relative; }
+  .setlist .s:hover { background: var(--accent-wash); }
+  .setlist .t { color: var(--muted); padding: 0 2px; }
+  .setlabel { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 10px 0 4px; }
+  .marquee { border-left: 3px solid var(--series-1); }
+  .why { color: var(--muted); font-size: 12px; }
+  .venue-show { margin-bottom: 14px; }
+  .venue-show .date { font-weight: 600; }
+  .venue-show .tour { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  .overlap { text-decoration: underline; text-decoration-color: var(--series-2); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .bars { display: flex; align-items: flex-end; gap: 6px; height: 120px; padding-top: 8px; }
+  .bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; }
+  .bar .fill { width: 100%; max-width: 42px; background: var(--series-1); border-radius: 4px 4px 0 0; min-height: 2px; }
+  .bar .x { font-size: 11px; color: var(--muted); }
+  .bar .v { font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .legend-note { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .score { color: var(--series-1); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .sharebar { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  .sharebar i { display: inline-block; height: 8px; background: var(--series-1); border-radius: 4px; }
+  #tooltip { position: fixed; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; max-width: 300px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); display: none; z-index: 10; }
+  #tooltip .tt-name { font-weight: 600; margin-bottom: 2px; }
+  #tooltip .tt-why { color: var(--ink-2); }
+  /* predictor */
+  .p-login, .p-topbar { margin-bottom: 12px; }
+  .p-row { display: flex; gap: 8px; margin-top: 8px; }
+  .p-topbar { display: flex; flex-direction: column; gap: 8px; }
+  .p-modes { display: flex; gap: 6px; flex-wrap: wrap; }
+  .p-mode { background: var(--surface); border: 1px solid var(--border); border-radius: 99px; color: var(--ink-2); font: inherit; font-size: 13px; padding: 4px 12px; cursor: pointer; }
+  .p-mode.active { color: var(--ink); border-color: var(--series-1); font-weight: 600; }
+  .p-btn { background: var(--series-1); color: #fff; border: none; border-radius: 8px; font: inherit; font-weight: 600; padding: 8px 16px; cursor: pointer; margin-top: 10px; }
+  .ta-wrap { position: relative; margin-top: 6px; }
+  .ta-input { width: 100%; max-width: 280px; font: inherit; padding: 6px 10px; border: 1px solid var(--baseline); border-radius: 8px; background: var(--surface); color: var(--ink); }
+  .p-date { max-width: 130px; margin: 0 6px; }
+  .ta-list { position: absolute; top: 100%; left: 0; z-index: 5; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-width: 280px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+  .ta-item { padding: 6px 10px; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; }
+  .ta-item.sel, .ta-item:hover { background: var(--accent-wash); }
+  .ta-plays { color: var(--muted); font-size: 12px; }
+  .p-sets { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 900px) { .p-sets { grid-template-columns: 1fr; } }
+  .p-songrow { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--grid); }
+  .p-songmain { display: flex; flex-direction: column; gap: 1px; }
+  .p-songmeta { color: var(--muted); font-size: 11px; }
+  .p-bust { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; border-radius: 4px; padding: 1px 4px; color: #fff; vertical-align: 1px; }
+  .p-bust.minor { background: var(--series-3); }
+  .p-bust.major { background: var(--series-2); }
+  .p-bust.mega { background: #e34948; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .p-bust.mega { background: #e66767; } }
+  .p-drag { cursor: grab; color: var(--muted); user-select: none; font-size: 11px; letter-spacing: -1px; padding: 0 2px; }
+  .p-drag:hover { color: var(--ink); }
+  .p-songrow.dragging { opacity: 0.45; }
+  .p-songrow.drop-above { box-shadow: 0 -2px 0 var(--series-1); }
+  .p-songrow.drop-below { box-shadow: 0 2px 0 var(--series-1); }
+  .p-stress { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--series-2); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; }
+  .p-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; margin-left: auto; }
+  .p-x:hover { color: var(--ink); }
+  .p-grid { display: grid; grid-template-columns: 28px repeat(5, minmax(90px, 130px)); gap: 4px; margin-top: 12px; }
+  .p-head, .p-corner { display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--ink-2); }
+  .p-cell { position: relative; aspect-ratio: 1; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px; font-size: 12px; line-height: 1.25; cursor: pointer; }
+  .p-cell.empty { color: var(--muted); border-style: dashed; }
+  .p-cell.empty:hover, .p-cell.filled:hover { background: var(--accent-wash); }
+  .p-cell.free { font-size: 22px; cursor: default; }
+  .p-cell.checked { background: var(--accent-wash); border-color: var(--series-1); box-shadow: inset 0 0 0 2px var(--series-1); }
+  .p-cell .p-x { position: absolute; top: 0; right: 2px; }
+  .p-cell .p-lock { position: absolute; top: 1px; left: 3px; background: none; border: none; cursor: pointer; font-size: 11px; opacity: 0.35; padding: 1px; }
+  .p-cell .p-lock:hover { opacity: 1; }
+  .p-cell.locked .p-lock { opacity: 1; }
+  .p-cell.locked { border-color: var(--series-2); box-shadow: inset 0 0 0 1px var(--series-2); }
+  .p-btn-alt { background: var(--surface); color: var(--ink); border: 1px solid var(--baseline); font-weight: 500; }
+  .p-cellname { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+  .p-bingo-banner { margin: 12px 0; padding: 12px; border: 2px solid var(--series-2); border-radius: 10px; text-align: center; font-size: 16px; }
+  .p-histrow { padding: 5px 0; border-bottom: 1px solid var(--grid); }
+  .p-flash { margin-top: 8px; color: var(--series-3); font-weight: 600; }
+  .p-flash.err { color: var(--series-2); }
+  .p-picker { margin-top: 10px; }
+  .vs-controls { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+  .vs-panel { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin: 6px 0; columns: 4; }
+  @media (max-width: 900px) { .vs-panel { columns: 2; } }
+  .vs-panel label { display: block; font-size: 12px; padding: 2px 0; break-inside: avoid; cursor: pointer; }
+  .p-avatar { font-size: 15px; }
+  .p-field { display: inline-block; margin: 6px 14px 6px 0; font-size: 12px; color: var(--ink-2); }
+  .p-bio { display: block; min-width: 280px; min-height: 60px; resize: vertical; font: inherit; }
+  .p-profilecard { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  .p-boardrow { cursor: pointer; }
+  .p-boardrow:hover { background: var(--accent-wash); }
+  .footer { margin-top: 28px; padding: 14px 0 6px; border-top: 1px solid var(--grid); color: var(--muted); font-size: 12px; text-align: center; }
+  .footer .nr { font-weight: 700; color: var(--ink-2); letter-spacing: 0.02em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Kalphishi <span class="pill" id="asof"></span></h1>
+    <div class="sub" id="nextshow"></div>
+  </header>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="grid" id="app"></div>
+  <footer class="footer">Powered by <span class="nr">NovoRetro</span></footer>
+</div>
+<div id="tooltip"></div>
+<script src="/web/predictor.js"></script>
+<script>
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const tooltip = document.getElementById('tooltip');
+function bindTip(node, name, why) {
+  node.addEventListener('mousemove', ev => {
+    tooltip.style.display = 'block';
+    tooltip.innerHTML = `<div class="tt-name">${esc(name)}</div><div class="tt-why">${esc(why)}</div>`;
+    const x = Math.min(ev.clientX + 14, window.innerWidth - 320);
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = (ev.clientY + 14) + 'px';
+  });
+  node.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+}
+
+fetch('/data/analysis.json').then(r => r.json()).then(A => {
+  document.getElementById('asof').textContent = 'data through ' + A.asOf;
+  document.getElementById('nextshow').textContent =
+    `Next show: ${A.nextShow.date} — ${A.nextShow.venue}, ${A.nextShow.city} · ` +
+    `${A.tour.name}: ${A.tour.shows.length} shows played, ${A.tour.songCount} unique songs · ` +
+    `era window ${A.eraWindow.from} → ${A.eraWindow.to} (${A.eraWindow.totalShows} shows)`;
+
+  const app = document.getElementById('app');
+
+  // ---- predicted setlist marquee
+  const pred = el('div', 'card marquee');
+  pred.appendChild(el('h2', null, `Predicted setlist — ${esc(A.nextShow.date)} ${esc(A.nextShow.venue)} <span class="hint">(hover a song for reasoning)</span>`));
+  for (const [label, list] of [['Set 1', A.prediction.set1], ['Set 2', A.prediction.set2], ['Encore', A.prediction.encore]]) {
+    pred.appendChild(el('div', 'setlabel', label));
+    const row = el('div', 'setlist');
+    const albumBySong = new Map((A.albums?.predictionMix || []).map(m => [m.song, m]));
+    list.forEach((s, i) => {
+      const sp = el('span', 's song', esc(s.name));
+      const am = albumBySong.get(s.name);
+      const albumNote = am && am.album ? ` · ${am.album} (${am.year})` : '';
+      bindTip(sp, `${s.name} — score ${s.score}`, (s.why.join('; ') || 'rotation strength') + albumNote);
+      row.appendChild(sp);
+      if (i < list.length - 1) row.appendChild(el('span', 't', label === 'Encore' ? ',' : '&gt;'));
+    });
+    pred.appendChild(row);
+  }
+  pred.dataset.section = 'Prediction';
+  app.appendChild(pred);
+
+  // ---- user predictor
+  const up = el('div', 'card card-overflow');
+  up.dataset.section = 'Prediction';
+  app.appendChild(up);
+  initPredictor(up, A);
+
+  // ---- horizontal slice
+  const h = el('div', 'grid cols-2');
+  h.dataset.section = 'Rotation';
+
+  const due = el('div', 'card');
+  due.appendChild(el('h2', null, 'Due back up <span class="hint">— in tour rotation, repeat window open</span>'));
+  due.appendChild(tableOf(
+    ['Song', 'Last tour play', 'Gap at 7/31', 'Era freq', 'Cadence'],
+    A.horizontal.dueBackUp.slice(0, 18).map(d => [
+      `<span class="song">${esc(d.name)}</span>`, d.lastTourPlay,
+      num(d.gapAtNext), pct(d.eraFreq), num(d.medianInterval),
+    ]), [2, 3, 4]));
+  h.appendChild(due);
+
+  const abs = el('div', 'card');
+  abs.appendChild(el('h2', null, 'Conspicuously absent <span class="hint">— era staples with zero tour plays</span>'));
+  abs.appendChild(tableOf(
+    ['Song', 'Last played', 'Shows since', 'Cadence', 'Overdue ×'],
+    A.horizontal.absent.slice(0, 18).map(d => [
+      `<span class="song">${esc(d.name)}</span>`, d.lastPlayed,
+      num(d.currentGap), num(d.medianInterval), num(d.overdueFactor),
+    ]), [2, 3, 4]));
+  h.appendChild(abs);
+  app.appendChild(h);
+
+  const h2 = el('div', 'grid cols-2');
+  h2.dataset.section = 'Rotation';
+
+  const rot = el('div', 'card');
+  rot.appendChild(el('h2', null, 'Tour rotation <span class="hint">— most-played songs this tour</span>'));
+  rot.appendChild(tableOf(
+    ['Song', 'Plays', 'Dates'],
+    A.horizontal.tourSongs.filter(t => t.plays >= 2).slice(0, 18).map(t => [
+      `<span class="song">${esc(t.name)}</span>`, num(t.plays),
+      `<span class="why">${t.dates.map(d => d.slice(5)).join(', ')}</span>`,
+    ]), [1]));
+  h2.appendChild(rot);
+
+  const hist = el('div', 'card');
+  hist.appendChild(el('h2', null, 'Intra-tour repeat gaps <span class="hint">— shows between repeats of the same song</span>'));
+  const hd = A.tour.intraTourGapHistogram;
+  const keys = Object.keys(hd).map(Number).sort((a, b) => a - b);
+  const max = Math.max(...keys.map(k => hd[k]));
+  const bars = el('div', 'bars');
+  for (const k of keys) {
+    const b = el('div', 'bar');
+    b.appendChild(el('div', 'v', hd[k]));
+    const f = el('div', 'fill'); f.style.height = (hd[k] / max * 80) + 'px';
+    bindTip(f, `Gap of ${k} shows`, `${hd[k]} song repeat${hd[k] > 1 ? 's' : ''} came back after ${k} shows`);
+    b.appendChild(f);
+    b.appendChild(el('div', 'x', k));
+    bars.appendChild(b);
+  }
+  hist.appendChild(bars);
+  hist.appendChild(el('div', 'legend-note', `Median repeat gap: ${A.tour.medianRepeatGap} shows — songs last played ≥${A.tour.medianRepeatGap} shows ago are back in the window.`));
+  h2.appendChild(hist);
+  app.appendChild(h2);
+
+  // ---- album slice
+  const h3 = el('div', 'grid cols-2');
+  h3.dataset.section = 'Albums';
+
+  const alb = el('div', 'card');
+  alb.appendChild(el('h2', null, `Album representation <span class="hint">— tour plays by studio album (${A.albums.attributedPlays} of ${A.albums.attributedPlays + A.albums.unattributedPlays} plays attributed)</span>`));
+  const maxShare = Math.max(...A.albums.tourShare.map(t => t.sharePct));
+  alb.appendChild(tableOf(
+    ['Album', 'Year', 'Plays', 'Songs', 'Share'],
+    A.albums.tourShare.map(t => [
+      `<span class="song">${esc(t.album)}</span>`, t.year, num(t.plays), num(t.uniqueSongs),
+      `<span class="sharebar"><i style="width:${(t.sharePct / maxShare * 60).toFixed(0)}px"></i>${t.sharePct}%</span>`,
+    ]), [1, 2, 3]));
+  h3.appendChild(alb);
+
+  const era = el('div', 'card');
+  era.appendChild(el('h2', null, 'Era center of gravity <span class="hint">— mean album year per show; the MSG run reaches back</span>'));
+  const YMIN = 1988;
+  const eraBars = el('div', 'bars');
+  for (const s of A.albums.perShowEra) {
+    const b = el('div', 'bar');
+    b.appendChild(el('div', 'v', String(Math.round(s.meanYear)).slice(2)));
+    const f = el('div', 'fill');
+    f.style.height = ((s.meanYear - YMIN) / (2026 - YMIN) * 96) + 'px';
+    bindTip(f, `${s.date} — mean album year ${s.meanYear}`,
+      `Top album: ${s.topAlbum || '—'} · ${s.attributed}/${s.total} songs on a studio album`);
+    b.appendChild(f);
+    b.appendChild(el('div', 'x', s.date.slice(5)));
+    eraBars.appendChild(b);
+  }
+  era.appendChild(eraBars);
+  era.appendChild(el('div', 'legend-note', 'Bar = average release year of the show’s studio-album songs (baseline 1988). Hover for the show’s top album.'));
+  h3.appendChild(era);
+  app.appendChild(h3);
+
+  // ---- vertical slice
+  const v = el('div', 'card card-overflow');
+  v.dataset.section = 'Venue History';
+  v.appendChild(el('h2', null, `Vertical slice — Phish at ${esc(A.vertical.venue)} <span class="hint">(songs also in the current top-40 candidates are underlined)</span>`));
+  const topSlugs = new Set(A.candidates.slice(0, 40).map(c => c.slug));
+
+  function venueShowsGrid(shows) {
+    const vwrap = el('div', 'grid cols-3');
+    const setNames = { 1: 'Set 1', 2: 'Set 2', 3: 'Set 3', e: 'Encore', e2: 'Encore 2' };
+    for (const show of shows) {
+      const card = el('div', 'venue-show');
+      card.appendChild(el('div', null, `<span class="date">${esc(show.date)}</span><span class="tour">${esc(show.tour || '')}</span>`));
+      for (const [set, items] of Object.entries(show.sets)) {
+        card.appendChild(el('div', 'setlabel', setNames[set] || 'Set ' + set));
+        const row = el('div', 'setlist');
+        items.forEach((it, i) => {
+          const sp = el('span', 's' + (topSlugs.has(it.slug) ? ' overlap' : ''), esc(it.song));
+          row.appendChild(sp);
+          if (i < items.length - 1) row.appendChild(el('span', 't', esc(it.trans || ',').trim() || ','));
+        });
+        card.appendChild(row);
+      }
+      if (show.notes) {
+        const n = el('div', 'why', esc(show.notes.slice(0, 260)) + (show.notes.length > 260 ? '…' : ''));
+        n.style.marginTop = '6px';
+        card.appendChild(n);
+      }
+      vwrap.appendChild(card);
+    }
+    return vwrap;
+  }
+
+  v.appendChild(venueShowsGrid(A.vertical.shows));
+
+  // venue search: generate a vertical slice for any past venue
+  v.appendChild(el('div', 'setlabel', 'Explore another venue'));
+  const vs = el('div', 'ta-wrap');
+  const vsInput = el('input', 'ta-input');
+  vsInput.placeholder = 'search venues…';
+  const vsList = el('div', 'ta-list');
+  vsList.style.display = 'none';
+  vs.appendChild(vsInput); vs.appendChild(vsList);
+  v.appendChild(vs);
+  const vsResults = el('div');
+  v.appendChild(vsResults);
+
+  let venueCatalog = null;
+  vsInput.addEventListener('focus', () => {
+    if (!venueCatalog) fetch('/data/venues.json').then(r => r.json()).then(d => { venueCatalog = d; });
+  });
+  vsInput.addEventListener('input', () => {
+    const q = vsInput.value.trim().toLowerCase();
+    vsList.innerHTML = '';
+    if (!q || !venueCatalog) { vsList.style.display = 'none'; return; }
+    const matches = venueCatalog
+      .filter(x => (`${x.venuename} ${x.city} ${x.state}`).toLowerCase().includes(q))
+      .slice(0, 8);
+    for (const m of matches) {
+      const row = el('div', 'ta-item', `${esc(m.venuename)} <span class="ta-plays">${esc(m.city)}${m.state ? ', ' + esc(m.state) : ''}</span>`);
+      row.addEventListener('mousedown', ev => {
+        ev.preventDefault();
+        vsList.style.display = 'none';
+        vsInput.value = '';
+        loadVenueSlice(m);
+      });
+      vsList.appendChild(row);
+    }
+    vsList.style.display = matches.length ? '' : 'none';
+  });
+  vsInput.addEventListener('blur', () => setTimeout(() => { vsList.style.display = 'none'; }, 150));
+
+  async function loadVenueSlice(venue, opts = {}) {
+    vsResults.innerHTML = '';
+    const label = `${venue.venuename}, ${venue.city}${venue.state ? ' ' + venue.state : ''}`;
+    const loadingN = opts.limit || (opts.dates && opts.dates.length) || 5;
+    vsResults.appendChild(el('div', 'hint', `Loading ${esc(label)}… ${loadingN > 10 ? `(${loadingN} shows — first load can take a moment)` : ''}`));
+    try {
+      const qs = new URLSearchParams({ venueid: venue.venueid });
+      if (opts.limit) qs.set('limit', opts.limit);
+      if (opts.dates) qs.set('dates', opts.dates.join(','));
+      const j = await (await fetch(`/api/venue-slice?${qs}`)).json();
+      if (j.error) throw new Error(j.error);
+      vsResults.innerHTML = '';
+      const desc = opts.dates ? `showing ${j.shown} selected` : (j.total > j.shown ? `showing the ${j.shown} most recent` : 'showing all');
+      const head = el('h2', null, `Phish at ${esc(label)} <span class="hint">— ${j.total} show${j.total === 1 ? '' : 's'} on record, ${desc}</span>`);
+      head.style.marginTop = '14px';
+      vsResults.appendChild(head);
+
+      // controls: show more / show all / pick specific shows
+      const shownDates = new Set(j.shows.map(s => s.date));
+      const controls = el('div', 'vs-controls');
+      if (!opts.dates && j.shown < j.total) {
+        const more = el('button', 'p-mode', 'Show 5 more');
+        more.addEventListener('click', () => loadVenueSlice(venue, { limit: j.shown + 5 }));
+        controls.appendChild(more);
+        const all = el('button', 'p-mode', `Show all ${j.total}`);
+        all.addEventListener('click', () => loadVenueSlice(venue, { limit: j.total }));
+        controls.appendChild(all);
+      }
+      const pick = el('button', 'p-mode', 'Pick shows ▾');
+      controls.appendChild(pick);
+      vsResults.appendChild(controls);
+
+      const panel = el('div', 'vs-panel');
+      panel.style.display = 'none';
+      for (const d of j.dates) {
+        const lab = el('label', null, `<input type="checkbox" value="${d}"${shownDates.has(d) ? ' checked' : ''}> ${d}`);
+        panel.appendChild(lab);
+      }
+      const apply = el('button', 'p-btn', 'Show selected');
+      apply.style.marginTop = '6px';
+      apply.addEventListener('click', () => {
+        const sel = [...panel.querySelectorAll('input:checked')].map(i => i.value);
+        if (sel.length) loadVenueSlice(venue, { dates: sel });
+      });
+      const panelWrap = el('div');
+      panelWrap.appendChild(panel);
+      panelWrap.appendChild(apply);
+      apply.style.display = 'none';
+      vsResults.appendChild(panelWrap);
+      pick.addEventListener('click', () => {
+        const open = panel.style.display === 'none';
+        panel.style.display = open ? '' : 'none';
+        apply.style.display = open ? '' : 'none';
+        pick.textContent = open ? 'Pick shows ▴' : 'Pick shows ▾';
+      });
+
+      if (!j.shows.length) vsResults.appendChild(el('div', 'hint', 'No Phish setlists on record at this venue.'));
+      else vsResults.appendChild(venueShowsGrid(j.shows));
+    } catch (e) {
+      vsResults.innerHTML = '';
+      vsResults.appendChild(el('div', 'hint', `Could not load venue: ${esc(e.message)}`));
+    }
+  }
+  app.appendChild(v);
+
+  // ---- candidates table
+  const c = el('div', 'card');
+  c.dataset.section = 'Candidates';
+  c.appendChild(el('h2', null, 'All candidates <span class="hint">— ranked by combined horizontal + vertical score</span>'));
+  c.appendChild(tableOf(
+    ['#', 'Song', 'Score', 'Era freq', 'Shows since', 'Cadence', 'Tour plays', 'Why'],
+    A.candidates.slice(0, 60).map((x, i) => [
+      num(i + 1), `<span class="song">${esc(x.name)}</span>`, `<span class="score">${x.score}</span>`,
+      pct(x.eraFreq), num(x.currentGap), num(x.medianInterval), num(x.tourPlays),
+      `<span class="why">${esc(x.why.join('; '))}</span>`,
+    ]), [0, 2, 3, 4, 5, 6]));
+  app.appendChild(c);
+
+  // ---- tabs
+  const tabBar = document.getElementById('tabs');
+  const sections = [...app.children];
+  const tabNames = ['All Data', ...new Set(sections.map(s => s.dataset.section))];
+  let activeTab = 'All Data';
+  function renderTabs() {
+    tabBar.innerHTML = '';
+    for (const name of tabNames) {
+      const b = el('button', 'tab' + (name === activeTab ? ' active' : ''), esc(name));
+      b.addEventListener('click', () => { activeTab = name; renderTabs(); });
+      tabBar.appendChild(b);
+    }
+    for (const s of sections) {
+      s.style.display = (activeTab === 'All Data' || s.dataset.section === activeTab) ? '' : 'none';
+    }
+  }
+  renderTabs();
+
+  function num(v) { return v == null ? '—' : v; }
+  function pct(v) { return v == null ? '—' : Math.round(v * 100) + '%'; }
+  function tableOf(headers, rowsData, numCols = []) {
+    const t = el('table');
+    const tr = el('tr');
+    headers.forEach((hh, i) => tr.appendChild(el('th', numCols.includes(i) ? 'num' : null, hh)));
+    t.appendChild(tr);
+
+    // per-column filter row: substring match, or >n <n >=n <=n =n on numeric-ish cells; plus sort toggles
+    const ftr = el('tr', 'filter-row');
+    const filters = [];
+    const sortBtns = [];
+    let sortState = { col: null, dir: 1 };
+    headers.forEach((hh, i) => {
+      const th = el('th');
+      const wrap = el('div', 'th-controls');
+      const inp = el('input', 'th-filter');
+      inp.placeholder = '⌕';
+      inp.addEventListener('input', apply);
+      filters.push(inp);
+      wrap.appendChild(inp);
+      const btn = el('button', 'th-sort', '↕');
+      btn.title = 'sort ' + (numCols.includes(i) ? 'numerically' : 'alphabetically');
+      btn.addEventListener('click', () => {
+        if (sortState.col === i) sortState.dir = -sortState.dir;
+        else sortState = { col: i, dir: 1 };
+        sortBtns.forEach(b => { b.textContent = '↕'; b.classList.remove('active'); });
+        btn.textContent = sortState.dir === 1 ? '↑' : '↓';
+        btn.classList.add('active');
+        applySort();
+      });
+      sortBtns.push(btn);
+      wrap.appendChild(btn);
+      th.appendChild(wrap);
+      ftr.appendChild(th);
+    });
+    t.appendChild(ftr);
+
+    function applySort() {
+      const i = sortState.col;
+      if (i == null) return;
+      const isNum = numCols.includes(i);
+      const sorted = [...bodyRows].sort((a, b) => {
+        const ta = a.children[i].textContent.trim();
+        const tb = b.children[i].textContent.trim();
+        if (isNum) {
+          const na = parseFloat(ta.replace(/[^0-9.\-]/g, ''));
+          const nb = parseFloat(tb.replace(/[^0-9.\-]/g, ''));
+          if (isNaN(na) && isNaN(nb)) return 0;
+          if (isNaN(na)) return 1;  // blanks/— always sink to the bottom
+          if (isNaN(nb)) return -1;
+          return sortState.dir * (na - nb);
+        }
+        return sortState.dir * ta.localeCompare(tb, undefined, { numeric: true, sensitivity: 'base' });
+      });
+      for (const r of sorted) t.appendChild(r);
+    }
+
+    const bodyRows = [];
+    for (const r of rowsData) {
+      const row = el('tr');
+      r.forEach((cell, i) => row.appendChild(el('td', numCols.includes(i) ? 'num' : null, cell)));
+      bodyRows.push(row);
+      t.appendChild(row);
+    }
+
+    function apply() {
+      for (const row of bodyRows) {
+        let show = true;
+        filters.forEach((f, i) => {
+          if (!show) return;
+          const v = f.value.trim().toLowerCase();
+          if (!v) return;
+          const text = row.children[i].textContent.toLowerCase();
+          const cmp = v.match(/^(>=|<=|>|<|=)\s*(-?\d+\.?\d*)$/);
+          if (cmp) {
+            const cellNum = parseFloat(text.replace(/[^0-9.\-]/g, ''));
+            if (isNaN(cellNum)) { show = false; return; }
+            const n = parseFloat(cmp[2]);
+            show = cmp[1] === '>' ? cellNum > n : cmp[1] === '<' ? cellNum < n :
+                   cmp[1] === '>=' ? cellNum >= n : cmp[1] === '<=' ? cellNum <= n : cellNum === n;
+          } else {
+            show = text.includes(v);
+          }
+        });
+        row.style.display = show ? '' : 'none';
+      }
+    }
+    return t;
+  }
+});
+</script>
+</body>
+</html>
