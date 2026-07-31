@@ -8,3 +8,11 @@ data/*.json
 
 # user accounts, password hashes, sessions, predictions — never publish
 data/db.json
+
+# generated deploy bundle (scripts/build-public.js) and the one-shot D1 seed
+public/
+data/seed.sql
+
+# local Worker secrets + state
+.dev.vars
+.wrangler/

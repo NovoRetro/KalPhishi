@@ -1,0 +1,84 @@
+// Password hashing, sessions, and cookies — Web Crypto only, no Node APIs.
+
+export const SESSION_COOKIE = 'kalphishi_session';
+export const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
+export const MIN_PASSWORD_LENGTH = 12;
+
+// Cloudflare caps PBKDF2 at 100k iterations, and the free plan allows 10ms CPU per
+// request. Lowering this stays compatible with existing hashes: the iteration count
+// used is stored inside each hash string.
+export const PBKDF2_ITERATIONS = 100_000;
+
+const enc = new TextEncoder();
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+
+async function derive(password, salt, iterations) {
+  const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  return await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, key, 256);
+}
+
+export async function hashPassword(password, iterations = PBKDF2_ITERATIONS) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const bits = await derive(password, salt, iterations);
+  return `pbkdf2$${iterations}$${b64(salt)}$${b64(bits)}`;
+}
+
+export async function verifyPassword(password, stored) {
+  // Legacy scrypt hashes ("salthex:hashhex") are unverifiable here and fail closed.
+  if (!stored || !stored.startsWith('pbkdf2$')) return false;
+  const [, iterStr, saltB64, hashB64] = stored.split('$');
+  const want = unb64(hashB64);
+  const bits = new Uint8Array(await derive(password, unb64(saltB64), Number(iterStr)));
+  if (bits.length !== want.length) return false;
+  let diff = 0;
+  for (let i = 0; i < bits.length; i++) diff |= bits[i] ^ want[i];
+  return diff === 0;
+}
+
+export async function sha256hex(s) {
+  return hex(await crypto.subtle.digest('SHA-256', enc.encode(s)));
+}
+
+export function getCookie(request, name) {
+  for (const part of (request.headers.get('cookie') || '').split(';')) {
+    const [k, ...v] = part.trim().split('=');
+    if (k === name) return v.join('=');
+  }
+  return null;
+}
+
+export function sessionCookie(token) {
+  return `${SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_TTL_MS / 1000}`;
+}
+
+export function clearedSessionCookie() {
+  return `${SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
+}
+
+// Returns the statement to insert the session plus the raw token for the cookie.
+export async function newSession(env, userId) {
+  const token = hex(crypto.getRandomValues(new Uint8Array(32)));
+  const stmt = env.DB
+    .prepare('INSERT INTO sessions (token_hash, user_id, expires) VALUES (?1, ?2, ?3)')
+    .bind(await sha256hex(token), userId, Date.now() + SESSION_TTL_MS);
+  return { token, stmt };
+}
+
+export async function currentUser(request, env) {
+  const token = getCookie(request, SESSION_COOKIE);
+  if (!token) return null;
+  return await env.DB.prepare(
+    `SELECT u.id, u.name, u.created, u.passhash, u.profile
+       FROM sessions s JOIN users u ON u.id = s.user_id
+      WHERE s.token_hash = ?1 AND s.expires > ?2`
+  ).bind(await sha256hex(token), Date.now()).first();
+}
+
+export function timingSafeEqualStr(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}

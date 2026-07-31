@@ -2,14 +2,19 @@
   "name": "kalphishi",
   "version": "0.1.0",
   "description": "Phish setlist prediction tool — rotation analysis, venue history, and a PHISH bingo game",
-  "main": "server.js",
+  "main": "src/worker.mjs",
   "scripts": {
-    "start": "node server.js",
     "fetch": "node scripts/fetch.js",
     "fetch:albums": "node scripts/fetch-albums.js",
     "analyze": "node scripts/analyze.js",
     "score": "node scripts/score.js",
-    "score:users": "node scripts/score-users.js"
+    "build:songmeta": "node scripts/build-songmeta.js",
+    "build": "node scripts/build-songmeta.js && node scripts/build-public.js",
+    "dev": "wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
   },
   "engines": {
     "node": ">=18"

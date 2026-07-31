@@ -16,6 +16,10 @@ Powered by [NovoRetro](https://github.com/NovoRetro). Data from the [Phish.net A
 
 **Your predictions.** Draft a setlist with drag-to-reorder and stressor bonuses for opener/closer/encore calls, or fill a 5×5 **PHISH bingo** card (free donut center, five-in-a-line wins) and check squares off live during the show. Scores are graded against the real setlist; accuracy ratings and a leaderboard accumulate over time.
 
+## Architecture
+
+The app runs on Cloudflare Workers with a D1 (SQLite) database — accounts, predictions, and sessions live in D1, and the dashboard is served as static assets. The data pipeline stays offline: `scripts/` fetch from phish.net and MusicBrainz on your machine and produce the JSON artifacts that get published with each deploy.
+
 ## Setup
 
 Requires Node 18+ and a free [phish.net API key](https://phish.net/api/keys).
@@ -25,19 +29,44 @@ cp .env.example .env   # then paste your key in
 npm run fetch          # cache setlists, songs, venues (a few minutes)
 npm run fetch:albums   # album tracklists from MusicBrainz
 npm run analyze        # build data/analysis.json
-npm start              # dashboard at http://localhost:5177
 ```
 
-`data/` is gitignored — it's a local cache of third-party API responses plus your user database, all regenerable (except accounts) from the commands above.
+`data/` is gitignored — it's a local cache of third-party API responses, all regenerable from the commands above.
+
+## Running locally
+
+```bash
+cp .dev.vars.example .dev.vars    # phish.net key + an ADMIN_TOKEN for local use
+npm run build                     # precompute songmeta.json, assemble public/
+npx wrangler d1 migrations apply kalphishi --local
+npm run dev                       # dashboard at http://localhost:8788
+```
+
+## Deploying
+
+```bash
+npx wrangler d1 create kalphishi   # paste the database_id into wrangler.jsonc
+npx wrangler d1 migrations apply kalphishi --remote
+npx wrangler secret put PHISHNET_API_KEY
+npx wrangler secret put ADMIN_TOKEN   # openssl rand -hex 32
+npm run deploy
+```
+
+`npm run build` copies an explicit six-file allowlist into `public/` (see `scripts/build-public.js`); nothing else is ever uploaded, so `.env` and local caches cannot be served. Deploys run from a machine with a populated `data/`.
 
 ## Scoring a show afterward
 
+Scoring runs automatically: a cron trigger checks a few times a day for shows with unscored predictions and grades them once phish.net posts the setlist. To force it manually:
+
 ```bash
-npm run score          # grade the model's prediction
-npm run score:users    # grade all user predictions
+curl -X POST https://<your-worker-url>/api/score/2026-07-31 -H "x-admin-token: $ADMIN_TOKEN"
 ```
 
-Both default to the next show in `data/analysis.json`; pass a date (`node scripts/score.js 2026-07-31`) to target another.
+To grade the *model's* prediction (a local report, separate from user scoring):
+
+```bash
+npm run score          # defaults to the next show in data/analysis.json
+```
 
 ## How predictions are scored
 
@@ -50,8 +79,7 @@ A user's accuracy rating is the mean score across their graded predictions.
 ## Notes
 
 - Predictions are chalk by design — they lean on rotation math and won't call a themed show or a 1,000-show bustout. The *conspicuously absent* table is where those hide.
-- Auth is scrypt password hashing with HttpOnly cookie sessions, no dependencies. It runs over plain HTTP, so put HTTPS in front of it before exposing it beyond a trusted network.
-- The JSON-file store is single-writer — fine at friends scale, not for a public deployment.
+- Auth is PBKDF2-HMAC-SHA-256 with `HttpOnly; Secure` cookie sessions; session tokens are stored hashed, so a database leak yields nothing usable. Cloudflare caps PBKDF2 at 100k iterations and the free plan allows 10ms CPU per request, which puts the work factor below OWASP's 600k recommendation — hence the 12-character minimum password. Fine for an app where accounts control nothing but Phish predictions; don't copy this KDF into something that matters more.
 
 ## License
 

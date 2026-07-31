@@ -22,7 +22,7 @@ function initPredictor(mount, A) {
     songs = d.filter(s => s.artist === 'Phish' || true).map(s => ({ slug: s.slug, name: s.song, plays: s.times_played }));
     songs.sort((a, b) => b.plays - a.plays);
   });
-  fetch('/api/songmeta').then(r => r.json()).then(d => { meta = d; });
+  fetch('/data/songmeta.json').then(r => r.json()).then(d => { meta = d; });
 
   // bustout tiers by show-gap since last played: 31-39 minor, 40-99 major, 100+ mega
   function bustTier(slug) {
