@@ -107,7 +107,8 @@
   .p-bust.major { background: var(--series-2); }
   .p-bust.mega { background: #e34948; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .p-bust.mega { background: #e66767; } }
-  .p-drag { cursor: grab; color: var(--muted); user-select: none; font-size: 11px; letter-spacing: -1px; padding: 0 2px; }
+  /* touch-action: none so a drag on the handle doesn't scroll the page instead. */
+  .p-drag { cursor: grab; color: var(--muted); user-select: none; font-size: 11px; letter-spacing: -1px; padding: 0 2px; touch-action: none; }
   .p-drag:hover { color: var(--ink); }
   .p-songrow.dragging { opacity: 0.45; }
   .p-songrow.drop-above { box-shadow: 0 -2px 0 var(--series-1); }
@@ -129,6 +130,20 @@
   .p-cell.locked { border-color: var(--series-2); box-shadow: inset 0 0 0 1px var(--series-2); }
   .p-btn-alt { background: var(--surface); color: var(--ink); border: 1px solid var(--baseline); font-weight: 500; }
   .p-cellname { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+  /* Phones: let the 5 bingo columns divide the available width instead of holding a
+     90px floor, which forced ~498px of sideways scrolling on a 375px screen. Must come
+     after the base .p-grid/.p-cell rules — same specificity, so source order decides.
+     Also enlarges the drag handle, which is a finger target here rather than a cursor one. */
+  @media (max-width: 560px) {
+    .p-grid { grid-template-columns: 16px repeat(5, minmax(0, 1fr)); gap: 3px; }
+    .p-cell { font-size: 9.5px; padding: 2px; border-radius: 6px; line-height: 1.15; }
+    .p-cell.free { font-size: 15px; }
+    .p-cellname { -webkit-line-clamp: 4; }
+    .p-cell .p-lock { font-size: 9px; opacity: 0.5; }
+    .p-head, .p-corner { font-size: 11px; }
+    .p-drag { font-size: 15px; padding: 6px 8px; }
+    .p-songrow { padding: 5px 0; }
+  }
   .p-bingo-banner { margin: 12px 0; padding: 12px; border: 2px solid var(--series-2); border-radius: 10px; text-align: center; font-size: 16px; }
   .p-histrow { padding: 5px 0; border-bottom: 1px solid var(--grid); }
   .p-flash { margin-top: 8px; color: var(--series-3); font-weight: 600; }
@@ -165,15 +180,38 @@ const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls)
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 const tooltip = document.getElementById('tooltip');
+
+// Mouse tracks on hover; touch has no hover, so a tap toggles the tip and a tap
+// anywhere else dismisses it. tipOwner is the node currently showing a tapped tip.
+let tipOwner = null;
+function showTip(name, why, x, y) {
+  tooltip.innerHTML = `<div class="tt-name">${esc(name)}</div><div class="tt-why">${esc(why)}</div>`;
+  tooltip.style.display = 'block';
+  const w = tooltip.offsetWidth, h = tooltip.offsetHeight;
+  // Flip above the finger when there is not room below, and keep it on-screen.
+  const top = y + 14 + h > window.innerHeight ? Math.max(8, y - 14 - h) : y + 14;
+  tooltip.style.left = Math.max(8, Math.min(x + 14, window.innerWidth - w - 8)) + 'px';
+  tooltip.style.top = top + 'px';
+}
+function hideTip() { tooltip.style.display = 'none'; }
+
+document.addEventListener('pointerup', ev => {
+  if (tipOwner && !tipOwner.contains(ev.target)) { hideTip(); tipOwner = null; }
+}, true);
+
 function bindTip(node, name, why) {
-  node.addEventListener('mousemove', ev => {
-    tooltip.style.display = 'block';
-    tooltip.innerHTML = `<div class="tt-name">${esc(name)}</div><div class="tt-why">${esc(why)}</div>`;
-    const x = Math.min(ev.clientX + 14, window.innerWidth - 320);
-    tooltip.style.left = x + 'px';
-    tooltip.style.top = (ev.clientY + 14) + 'px';
+  node.addEventListener('pointermove', ev => {
+    if (ev.pointerType !== 'mouse' || tipOwner) return;
+    showTip(name, why, ev.clientX, ev.clientY);
   });
-  node.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+  node.addEventListener('pointerleave', ev => {
+    if (ev.pointerType === 'mouse' && !tipOwner) hideTip();
+  });
+  node.addEventListener('pointerup', ev => {
+    if (ev.pointerType === 'mouse') return;
+    if (tipOwner === node) { hideTip(); tipOwner = null; }
+    else { tipOwner = node; showTip(name, why, ev.clientX, ev.clientY); }
+  });
 }
 
 fetch('/data/analysis.json').then(r => r.json()).then(A => {
@@ -187,7 +225,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
 
   // ---- predicted setlist marquee
   const pred = el('div', 'card marquee');
-  pred.appendChild(el('h2', null, `Predicted setlist — ${esc(A.nextShow.date)} ${esc(A.nextShow.venue)} <span class="hint">(hover a song for reasoning)</span>`));
+  pred.appendChild(el('h2', null, `Predicted setlist — ${esc(A.nextShow.date)} ${esc(A.nextShow.venue)} <span class="hint">(hover or tap a song for reasoning)</span>`));
   for (const [label, list] of [['Set 1', A.prediction.set1], ['Set 2', A.prediction.set2], ['Encore', A.prediction.encore]]) {
     pred.appendChild(el('div', 'setlabel', label));
     const row = el('div', 'setlist');

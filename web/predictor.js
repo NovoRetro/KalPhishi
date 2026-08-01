@@ -216,6 +216,23 @@ function initPredictor(mount, A) {
 
   let dragState = null;
 
+  // Which row a drag is currently over, and whether it should land after it.
+  // Pointer capture keeps events on the handle, so hit-testing is done by clientY.
+  function dropTargetIn(list, clientY) {
+    const rows = [...list.querySelectorAll('.p-songrow')];
+    if (!rows.length) return null;
+    for (let idx = 0; idx < rows.length; idx++) {
+      const r = rows[idx].getBoundingClientRect();
+      if (clientY < r.bottom) return { idx, after: clientY > r.top + r.height / 2 };
+    }
+    return { idx: rows.length - 1, after: true };
+  }
+
+  function clearDropMarks(list) {
+    list.querySelectorAll('.drop-above, .drop-below')
+      .forEach(n => n.classList.remove('drop-above', 'drop-below'));
+  }
+
   function renderSetlistBuilder() {
     const usedSlugs = () => new Set([...build.set1, ...build.set2, ...build.encore].map(s => s.slug));
 
@@ -266,35 +283,46 @@ function initPredictor(mount, A) {
           : '';
         const row = el('div', 'p-songrow',
           `<span class="p-songmain"><span>${esc(s.name)} ${bustChip(s.slug)}${stressor ? `<span class="p-stress">${stressor}</span>` : ''}</span>${metaLine}</span>`);
+        // Pointer Events rather than HTML5 drag-and-drop: touch devices never fire
+        // dragstart/dragover/drop, so the old handlers made this desktop-only.
         const handle = el('span', 'p-drag', '⋮⋮');
         handle.title = 'drag to reorder';
-        handle.addEventListener('mousedown', () => { row.draggable = true; });
         row.prepend(handle);
-        row.addEventListener('dragstart', ev => {
+        handle.addEventListener('pointerdown', ev => {
+          ev.preventDefault();
+          // Capture keeps move/up on the handle once the finger leaves the row.
+          try { handle.setPointerCapture(ev.pointerId); } catch { /* non-active id */ }
           dragState = { key, from: i };
-          ev.dataTransfer.setData('text/plain', s.name);
-          ev.dataTransfer.effectAllowed = 'move';
           row.classList.add('dragging');
         });
-        row.addEventListener('dragend', () => { row.draggable = false; row.classList.remove('dragging'); });
-        row.addEventListener('dragover', ev => {
+        handle.addEventListener('pointermove', ev => {
           if (!dragState || dragState.key !== key) return;
-          ev.preventDefault();
-          const after = ev.clientY > row.getBoundingClientRect().top + row.offsetHeight / 2;
-          row.classList.toggle('drop-below', after);
-          row.classList.toggle('drop-above', !after);
+          clearDropMarks(list);
+          const t = dropTargetIn(list, ev.clientY);
+          if (!t || t.idx === i) return;
+          const target = list.querySelectorAll('.p-songrow')[t.idx];
+          if (target) target.classList.add(t.after ? 'drop-below' : 'drop-above');
         });
-        row.addEventListener('dragleave', () => row.classList.remove('drop-below', 'drop-above'));
-        row.addEventListener('drop', ev => {
-          ev.preventDefault();
+        const endDrag = ev => {
           if (!dragState || dragState.key !== key) return;
-          const after = ev.clientY > row.getBoundingClientRect().top + row.offsetHeight / 2;
-          let to = i + (after ? 1 : 0);
-          const [moved] = build[key].splice(dragState.from, 1);
-          if (dragState.from < to) to--;
-          build[key].splice(to, 0, moved);
+          const t = dropTargetIn(list, ev.clientY);
+          clearDropMarks(list);
+          row.classList.remove('dragging');
+          const from = dragState.from;
           dragState = null;
+          if (!t) return render();
+          let to = t.idx + (t.after ? 1 : 0);
+          if (from < to) to--;
+          if (to === from) return render();
+          const [moved] = build[key].splice(from, 1);
+          build[key].splice(to, 0, moved);
           render();
+        };
+        handle.addEventListener('pointerup', endDrag);
+        handle.addEventListener('pointercancel', () => {
+          dragState = null;
+          clearDropMarks(list);
+          row.classList.remove('dragging');
         });
         const x = el('button', 'p-x', '×');
         x.addEventListener('click', () => { build[key].splice(i, 1); render(); });
