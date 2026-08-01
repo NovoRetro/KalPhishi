@@ -49,7 +49,7 @@ async function main() {
     const phishShows = shows.filter(s => s.artistid === 1 || /^phish$/i.test(s.artist_name || ''));
     console.log(`Venue ${v.venuename} (${v.venueid}): ${shows.length} shows, ${phishShows.length} phish`);
     for (const s of phishShows) {
-      if (s.showdate < '2026-07-30') {
+      if (s.showdate < '2026-08-01') { // fetch only shows that have actually happened
         await cached(`setlist-${s.showdate}`, `/setlists/showdate/${s.showdate}.json`);
       }
     }

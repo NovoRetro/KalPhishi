@@ -5,7 +5,7 @@ const dataDir = path.join(__dirname, '..', 'data');
 const load = n => JSON.parse(fs.readFileSync(path.join(dataDir, `${n}.json`), 'utf8'));
 
 const TOUR = '2026 Summer Tour';
-const NEXT_SHOW = { date: '2026-07-31', venue: 'Fenway Park', city: 'Boston, MA' };
+const NEXT_SHOW = { date: '2026-08-01', venue: 'Fenway Park', city: 'Boston, MA' }; // night 2 of the Fenway stand
 
 // ---- load all setlist rows, phish only, exclude soundchecks/excluded rows
 const years = [2022, 2023, 2024, 2025, 2026];
