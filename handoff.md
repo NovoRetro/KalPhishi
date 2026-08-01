@@ -99,6 +99,12 @@ Consequences to accept, and say out loud in the UI:
 
 Revisit if the app grows past people you can text.
 
+**Confirmed 2026-08-01:** registration stays happy-path — any well-formed address is
+accepted immediately, no confirmation step, no gate on account creation. Real
+verification (a signup email with a link back to the app that flips a `verified` flag)
+is real work — provider signup, a sending domain, DNS — and is deliberately deferred to
+a later phase (stubbed as Phase 6 below), not built defensively now.
+
 ### 3. Attendance is self-reported
 
 There is no ticket integration and no geofence. A user marking "I was there" is a claim,
@@ -315,6 +321,21 @@ management in the Friends panel.
 
 **Done when:** a group leaderboard ranks only its members, and attendance shows there too
 ("3 of 5 were at this one").
+
+---
+
+## Phase 6 — Email verification (not started, deferred by design)
+
+**Goal:** prove an address is real, without which "forgot password" stays impossible
+(Design Decision 2).
+
+Needs, before any code: a provider (Resend is the least setup), a sending domain you
+control, and its SPF/DKIM DNS records. Then: a `verified` column on `users`, a signup
+email with a signed, expiring token, `GET /api/verify?token=...` to flip it, and a
+decision on what an unverified account can't do in the meantime (nothing, by default —
+verification is a nice-to-have here, not a gate, unless abuse shows up).
+
+Pick this up only when the app outgrows "people you can text" — see Design Decision 2.
 
 ---
 
