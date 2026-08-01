@@ -13,7 +13,7 @@ test('slugifyName: lowercases, collapses punctuation, trims dashes', () => {
   assert.equal(slugifyName('  Mike\'s Song  '), 'mike-s-song');
   assert.equal(slugifyName('46 Days'), '46-days');
   assert.equal(slugifyName('Say It To Me S.A.N.T.O.S.'), 'say-it-to-me-s-a-n-t-o-s');
-  assert.equal(slugifyName('rguempel@gmail.com'), 'rguempel-gmail-com');
+  assert.equal(slugifyName('someone@example.com'), 'someone-example-com');
   assert.equal(slugifyName('!!!'), '', 'punctuation-only collapses to empty');
 });
 

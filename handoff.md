@@ -29,12 +29,13 @@ the Predictor card. The asks:
 login name. `predictions.user_id` and `sessions.user_id` both FK to it
 ([migrations/0001_schema.sql](migrations/0001_schema.sql)).
 
-Two real accounts exist in production D1:
+Production D1 holds a small number of real accounts in two shapes — read the current
+rows out of D1 rather than hardcoding them anywhere:
 
-| id | name | passhash | note |
+| shape | name | passhash | note |
 |---|---|---|---|
-| `rguempel-gmail-com` | `rguempel@gmail.com` | PBKDF2 | already an email, slugified into the id |
-| `robbie` | `Robbie` | `NULL` | legacy, claimable by registering that name |
+| owner | an email address | PBKDF2 | the name is already an email, so the id is that email slugified |
+| legacy | a display name | `NULL` | no password; claimable by registering that name |
 
 **Auth.** PBKDF2-HMAC-SHA-256, 100k iterations, `HttpOnly; Secure` cookie sessions with
 SHA-256-hashed tokens ([src/auth.mjs](src/auth.mjs)). 12-char minimum password.
@@ -67,10 +68,10 @@ Today one value is doing three jobs. Split it:
 | `email` | login credential, unique | only to the owner |
 | `handle` | public profile URL + @mentions | yes |
 
-**Why this matters now:** the public profile endpoint is `/api/profile/:id`, and for the
-existing account that URL is literally `/api/profile/rguempel-gmail-com` — a slightly
-obfuscated email address, publicly fetchable. Anyone clicking a leaderboard row hits it.
-Adding `handle` fixes that leak.
+**Why this matters now:** the public profile endpoint is `/api/profile/:id`, and any
+account whose name was an email has an id that is that address with its punctuation
+swapped for dashes. The URL is therefore a barely-obfuscated email, publicly fetchable,
+and anyone clicking a leaderboard row hits it. Adding `handle` fixes that leak.
 
 **Recommended:** keep `id` exactly as-is and add `email` + `handle` alongside. Do **not**
 rewrite `users.id` — that means rewriting `predictions.user_id` and `sessions.user_id` too,
@@ -119,8 +120,10 @@ ALTER TABLE users ADD COLUMN handle TEXT;
 CREATE UNIQUE INDEX idx_users_email  ON users(LOWER(email)) WHERE email  IS NOT NULL;
 CREATE UNIQUE INDEX idx_users_handle ON users(LOWER(handle)) WHERE handle IS NOT NULL;
 ```
-Backfill in the same migration: set `rguempel-gmail-com`'s email to `rguempel@gmail.com`
-and give both rows a handle (`robbie`, and something non-email for the other).
+Backfill in the same migration, reading the live values out of D1 when you write it: set
+the owner row's `email` to the address its id was derived from, and give every row a
+`handle` — the legacy account can keep its existing name, and the owner needs one that is
+*not* derived from the email, or the leak just moves.
 
 **Backend** ([src/worker.mjs](src/worker.mjs), [src/db.mjs](src/db.mjs)):
 - `/api/register` takes `{email, password, displayName}`; normalize email to lowercase
