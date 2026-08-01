@@ -14,7 +14,7 @@
     {
       "binding": "DB",
       "database_name": "kalphishi",
-      "database_id": "PLACEHOLDER_RUN_WRANGLER_D1_CREATE",
+      "database_id": "4718ac0c-d6f3-4c3f-bf0f-43c123e0452b",
       "migrations_dir": "migrations"
     }
   ],

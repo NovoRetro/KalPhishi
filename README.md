@@ -2,6 +2,8 @@
 
 A Phish setlist prediction tool. Phish have played 40+ years without ever repeating a setlist — Kalphishi slices that history two ways to guess what's coming next, then lets you make your own call and keeps score.
 
+**▶ [Play it here](https://kalphishi.kalphishi.workers.dev)** — no install, create an account to make predictions.
+
 Powered by [NovoRetro](https://github.com/NovoRetro). Data from the [Phish.net API](https://docs.phish.net).
 
 ## What it does
