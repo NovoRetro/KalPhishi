@@ -1,12 +1,16 @@
 import {
   slugifyName, FREE, bingoLine, scoreSetlistPrediction, scoreBingoPrediction,
 } from '../lib/scoring.mjs';
+import { normalizeEmail, isValidEmail, handleCandidates } from '../lib/identity.mjs';
 import { fetchActualSetlist } from '../lib/phishnet-core.mjs';
 import {
   MIN_PASSWORD_LENGTH, hashPassword, verifyPassword, newSession, currentUser,
   sessionCookie, clearedSessionCookie, getCookie, sha256hex, timingSafeEqualStr, SESSION_COOKIE,
 } from './auth.mjs';
-import { rowToPrediction, userStats, publicUser, getUser } from './db.mjs';
+import {
+  rowToPrediction, userStats, publicUser, ownUser, publicName,
+  getUser, getUserByEmail, getUserByHandle, anyUserLacksEmail,
+} from './db.mjs';
 import { venueSlice } from './phishnet.mjs';
 
 const json = (body, status = 200, headers = {}) =>
@@ -40,54 +44,94 @@ async function scoreShow(env, showdate, actual, force = false) {
   return results.length;
 }
 
+// First free handle for a display name. The candidate sequence is pure
+// (lib/identity.mjs); only the availability check touches the database.
+async function assignHandle(env, displayName) {
+  for (const cand of handleCandidates(displayName)) {
+    const hit = await env.DB.prepare('SELECT 1 AS x FROM users WHERE LOWER(handle) = LOWER(?1)')
+      .bind(cand).first();
+    if (!hit) return cand;
+  }
+  throw new Error('could not assign a handle');
+}
+
 async function api(request, env, ctx, { p, m, q, url }) {
   if (p === '/api/register' && m === 'POST') {
-    const { name, password, displayName } = await body(request);
-    if (!name || !name.trim()) return err(400, 'name required');
+    const { email: rawEmail, password, displayName, claimName } = await body(request);
+    if (!isValidEmail(rawEmail)) return err(400, 'a valid email address is required');
     if (!password || password.length < MIN_PASSWORD_LENGTH) {
       return err(400, `password must be at least ${MIN_PASSWORD_LENGTH} characters`);
     }
-    const id = slugifyName(name);
-    if (!id) return err(400, 'invalid name');
-
-    const existing = await getUser(env, id);
-    if (existing && existing.passhash) return err(409, 'that name is taken');
+    const email = normalizeEmail(rawEmail);
+    if (await getUserByEmail(env, email)) return err(409, 'that email is already registered');
 
     const passhash = await hashPassword(password);
-    const { token, stmt: sessionStmt } = await newSession(env, id);
 
-    if (existing) {
-      // legacy name-only account: setting a password claims it, and its predictions
+    // Claiming a pre-password legacy account: registering its name attaches a password
+    // and an email to the existing row (and its predictions) in one step.
+    if (claimName) {
+      const existing = await getUser(env, slugifyName(claimName));
+      if (!existing) return err(404, 'no account with that name');
+      if (existing.passhash) return err(409, 'that account already has a password — sign in instead');
       const profile = { ...JSON.parse(existing.profile || '{}'), displayName: displayName || existing.name };
+      const handle = existing.handle || await assignHandle(env, displayName || existing.name);
+      const { token, stmt: sessionStmt } = await newSession(env, existing.id);
       await env.DB.batch([
-        env.DB.prepare('UPDATE users SET passhash = ?1, profile = ?2 WHERE id = ?3')
-          .bind(passhash, JSON.stringify(profile), id),
+        env.DB.prepare('UPDATE users SET passhash = ?1, email = ?2, handle = ?3, profile = ?4 WHERE id = ?5')
+          .bind(passhash, email, handle, JSON.stringify(profile), existing.id),
         sessionStmt,
       ]);
-    } else {
-      await env.DB.batch([
-        env.DB.prepare('INSERT INTO users (id, name, created, passhash, profile) VALUES (?1, ?2, ?3, ?4, ?5)')
-          .bind(id, name.trim(), new Date().toISOString(), passhash,
-            JSON.stringify({ displayName: displayName || name.trim() })),
-        sessionStmt,
-      ]);
+      return json({ user: await ownUser(env, await getUser(env, existing.id)) },
+        200, { 'set-cookie': sessionCookie(token) });
     }
-    const user = await getUser(env, id);
-    return json({ user: await publicUser(env, user) }, 200, { 'set-cookie': sessionCookie(token) });
+
+    // Internal id: random, never derived from anything a user typed.
+    const id = 'u-' + crypto.randomUUID();
+    const handle = await assignHandle(env, displayName || '');
+    const { token, stmt: sessionStmt } = await newSession(env, id);
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO users (id, name, created, passhash, profile, email, handle) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)'
+      ).bind(id, (displayName || '').trim() || email, new Date().toISOString(), passhash,
+        JSON.stringify({ displayName: (displayName || '').trim() || handle }), email, handle),
+      sessionStmt,
+    ]);
+    return json({ user: await ownUser(env, await getUser(env, id)) },
+      200, { 'set-cookie': sessionCookie(token) });
   }
 
   if (p === '/api/login' && m === 'POST') {
-    const { name, password } = await body(request);
-    const user = await getUser(env, slugifyName(name || ''));
-    if (user && !user.passhash) {
-      return err(409, 'claimable', { message: 'This name has no password yet — use "Create account" with it to claim it and its predictions.' });
+    const { email, name, password } = await body(request);
+
+    let user = null;
+    if (email) {
+      user = await getUserByEmail(env, normalizeEmail(email));
+    } else if (name && await anyUserLacksEmail(env)) {
+      // Legacy path: name + password, alive only while pre-email accounts remain.
+      // Delete this branch (and the frontend affordance) once every row has an email.
+      user = await getUser(env, slugifyName(name));
+      if (user && !user.passhash) {
+        return err(409, 'claimable', { message: 'This name has no password yet — use "Create account" with it to claim it and its predictions.' });
+      }
     }
     if (!user || !await verifyPassword(password || '', user.passhash)) {
-      return err(401, 'wrong name or password');
+      return err(401, 'wrong email or password');
     }
     const { token, stmt } = await newSession(env, user.id);
     await stmt.run();
-    return json({ user: await publicUser(env, user) }, 200, { 'set-cookie': sessionCookie(token) });
+    return json({ user: await ownUser(env, user) }, 200, { 'set-cookie': sessionCookie(token) });
+  }
+
+  if (p === '/api/link-email' && m === 'POST') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    if (user.email) return err(409, 'this account already has an email');
+    const { email: rawEmail } = await body(request);
+    if (!isValidEmail(rawEmail)) return err(400, 'a valid email address is required');
+    const email = normalizeEmail(rawEmail);
+    if (await getUserByEmail(env, email)) return err(409, 'that email is already registered');
+    await env.DB.prepare('UPDATE users SET email = ?1 WHERE id = ?2').bind(email, user.id).run();
+    return json({ user: await ownUser(env, { ...user, email }) });
   }
 
   if (p === '/api/logout' && m === 'POST') {
@@ -99,7 +143,7 @@ async function api(request, env, ctx, { p, m, q, url }) {
   if (p === '/api/me' && m === 'GET') {
     const user = await currentUser(request, env);
     if (!user) return err(401, 'not signed in');
-    return json({ user: await publicUser(env, user) });
+    return json({ user: await ownUser(env, user) });
   }
 
   if (p === '/api/profile' && m === 'PUT') {
@@ -111,11 +155,11 @@ async function api(request, env, ctx, { p, m, q, url }) {
       if (f in b) profile[f] = String(b[f] || '').slice(0, f === 'bio' ? 500 : 80);
     }
     await env.DB.prepare('UPDATE users SET profile = ?1 WHERE id = ?2').bind(JSON.stringify(profile), user.id).run();
-    return json({ user: await publicUser(env, { ...user, profile: JSON.stringify(profile) }) });
+    return json({ user: await ownUser(env, { ...user, profile: JSON.stringify(profile) }) });
   }
 
   if (p.startsWith('/api/profile/') && m === 'GET') {
-    const u = await getUser(env, p.split('/').pop());
+    const u = await getUserByHandle(env, p.split('/').pop());
     if (!u) return err(404, 'no such user');
     const { results } = await env.DB.prepare(
       `SELECT showdate, type, score, bingo FROM predictions
@@ -131,15 +175,21 @@ async function api(request, env, ctx, { p, m, q, url }) {
   }
 
   if (p === '/api/predictions' && m === 'GET') {
-    const user = q.get('user'), showdate = q.get('showdate');
-    if (!user && !showdate) return err(400, 'user or showdate filter required');
+    const handle = q.get('user'), showdate = q.get('showdate');
+    if (!handle && !showdate) return err(400, 'user or showdate filter required');
     const where = [], binds = [];
-    if (user) { binds.push(user); where.push(`user_id = ?${binds.length}`); }
-    if (showdate) { binds.push(showdate); where.push(`showdate = ?${binds.length}`); }
+    if (handle) {
+      const u = await getUserByHandle(env, handle);
+      if (!u) return json([]);
+      binds.push(u.id); where.push(`p.user_id = ?${binds.length}`);
+    }
+    if (showdate) { binds.push(showdate); where.push(`p.showdate = ?${binds.length}`); }
     const { results } = await env.DB.prepare(
-      `SELECT * FROM predictions WHERE ${where.join(' AND ')}`
+      `SELECT p.*, u.handle AS user_handle
+         FROM predictions p JOIN users u ON u.id = p.user_id
+        WHERE ${where.join(' AND ')}`
     ).bind(...binds).all();
-    return json(results.map(rowToPrediction));
+    return json(results.map(r => ({ ...rowToPrediction(r), userHandle: r.user_handle })));
   }
 
   if (p === '/api/predictions' && m === 'POST') {
@@ -169,14 +219,18 @@ async function api(request, env, ctx, { p, m, q, url }) {
   }
 
   if (p === '/api/live-check' && m === 'POST') {
+    // Keyed on (showdate, type) rather than a prediction id: it only ever applies to
+    // the caller's own prediction, and prediction ids embed the internal user id.
     const user = await currentUser(request, env);
     if (!user) return err(401, 'not signed in');
-    const { predictionId, checked } = await body(request);
-    const row = await env.DB.prepare('SELECT user_id, type FROM predictions WHERE id = ?1').bind(predictionId).first();
+    const { showdate, type, checked } = await body(request);
+    if (!showdate || !['setlist', 'bingo'].includes(type)) return err(400, 'showdate and type required');
+    const row = await env.DB.prepare(
+      'SELECT id, type FROM predictions WHERE user_id = ?1 AND showdate = ?2 AND type = ?3'
+    ).bind(user.id, showdate, type).first();
     if (!row) return err(404, 'not found');
-    if (row.user_id !== user.id) return err(403, 'not your prediction');
     await env.DB.prepare('UPDATE predictions SET live_checked = ?1 WHERE id = ?2')
-      .bind(JSON.stringify(checked), predictionId).run();
+      .bind(JSON.stringify(checked), row.id).run();
     const line = row.type === 'bingo' ? bingoLine(checked) : null;
     return json({ ok: true, bingo: !!line, line });
   }
@@ -193,7 +247,9 @@ async function api(request, env, ctx, { p, m, q, url }) {
   }
 
   if (p.startsWith('/api/stats/') && m === 'GET') {
-    return json(await userStats(env, p.split('/').pop()));
+    const u = await getUserByHandle(env, p.split('/').pop());
+    if (!u) return err(404, 'no such user');
+    return json(await userStats(env, u.id));
   }
 
   if (p === '/api/venue-slice' && m === 'GET') {
@@ -206,7 +262,7 @@ async function api(request, env, ctx, { p, m, q, url }) {
 
   if (p === '/api/leaderboard' && m === 'GET') {
     const { results } = await env.DB.prepare(
-      `SELECT u.id, u.name, u.created, u.profile,
+      `SELECT u.handle, u.name, u.created, u.profile,
               COUNT(p.id)          AS predictions,
               COUNT(p.result)      AS scored,
               ROUND(AVG(p.score), 1) AS accuracy,
@@ -219,7 +275,7 @@ async function api(request, env, ctx, { p, m, q, url }) {
     // stats appear both nested and spread at top level — the frontend reads the top-level copies
     return json(results.map(r => {
       const stats = { predictions: r.predictions, scored: r.scored, accuracy: r.accuracy, bingos: r.bingos || 0 };
-      return { id: r.id, name: r.name, created: r.created, profile: JSON.parse(r.profile || '{}'), stats, ...stats };
+      return { handle: r.handle, name: publicName(r), created: r.created, profile: JSON.parse(r.profile || '{}'), stats, ...stats };
     }));
   }
 

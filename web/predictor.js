@@ -97,6 +97,7 @@ function initPredictor(mount, A) {
     mount.innerHTML = '';
     mount.appendChild(el('h2', null, 'Predictor <span class="hint">— build your own call for the next show</span>'));
     if (!user) return renderLogin();
+    if (user.needsEmail) return renderLinkEmail();
     renderTopBar();
     if (mode === 'setlist') renderSetlistBuilder();
     else if (mode === 'bingo') renderBingo();
@@ -104,8 +105,37 @@ function initPredictor(mount, A) {
     else renderHistory();
   }
 
+  // Pre-email accounts land here after signing in: everything else waits until an
+  // address is linked. Goes away once every account has one.
+  function renderLinkEmail() {
+    const box = el('div', 'p-login');
+    mount.appendChild(box);
+    box.appendChild(el('div', null, `Welcome back, <b>${esc(displayName(user))}</b>.`));
+    box.appendChild(el('div', 'hint',
+      'Sign-in is moving to email + password. Add your address to keep using this account — it becomes your login and is never shown to other users.'));
+    const email = el('input', 'ta-input'); email.placeholder = 'email address';
+    email.type = 'email'; email.autocomplete = 'email';
+    const err = el('div', 'p-flash err');
+    const btn = el('button', 'p-btn', 'Link email');
+    async function go() {
+      err.textContent = '';
+      try {
+        const j = await api('/api/link-email', 'POST', { email: email.value });
+        user = j.user;
+        render();
+      } catch (e) { err.textContent = e.message; }
+    }
+    btn.addEventListener('click', go);
+    email.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); });
+    const row = el('div', 'p-row');
+    row.appendChild(email); row.appendChild(btn);
+    box.appendChild(row);
+    box.appendChild(err);
+  }
+
   function renderLogin(startTab) {
     let tab = startTab || 'login';
+    let legacy = false; // sign in with a pre-email account name
     const box = el('div', 'p-login');
     mount.appendChild(box);
     function draw() {
@@ -119,35 +149,50 @@ function initPredictor(mount, A) {
       box.appendChild(tabs);
       box.appendChild(el('div', 'hint', tab === 'login'
         ? 'Sign in to predict and build your track record.'
-        : 'Pick a name and password. If you predicted before passwords existed, register with your old name to claim it.'));
-      const name = el('input', 'ta-input'); name.placeholder = 'name'; name.autocomplete = 'username';
+        : 'Register with your email and a password (12+ characters). Predicted before under just a name with no password? Put that name in the claim field to keep your history.'));
+      const email = el('input', 'ta-input');
+      email.placeholder = legacy ? 'name' : 'email address';
+      email.type = legacy ? 'text' : 'email';
+      email.autocomplete = legacy ? 'username' : 'email';
       const pass = el('input', 'ta-input'); pass.placeholder = 'password'; pass.type = 'password';
       pass.autocomplete = tab === 'login' ? 'current-password' : 'new-password';
-      const disp = el('input', 'ta-input'); disp.placeholder = 'display name (optional)';
+      const disp = el('input', 'ta-input'); disp.placeholder = 'display name';
+      const claim = el('input', 'ta-input'); claim.placeholder = 'old name to claim (optional)';
       const err = el('div', 'p-flash err');
       const btn = el('button', 'p-btn', tab === 'login' ? 'Sign in' : 'Create account');
       async function go() {
         err.textContent = '';
         try {
-          const body = { name: name.value, password: pass.value };
-          if (tab === 'register') body.displayName = disp.value;
+          const body = { password: pass.value };
+          if (tab === 'login' && legacy) body.name = email.value;
+          else body.email = email.value;
+          if (tab === 'register') {
+            body.displayName = disp.value;
+            if (claim.value.trim()) body.claimName = claim.value.trim();
+          }
           const j = await api(tab === 'login' ? '/api/login' : '/api/register', 'POST', body);
           user = j.user;
           loadExisting();
         } catch (e) {
           err.textContent = e.message === 'claimable'
-            ? 'This name has no password yet — switch to "Create account" with it to claim it and its predictions.'
+            ? 'This name has no password yet — switch to "Create account" and put it in the claim field to keep its predictions.'
             : e.message;
         }
       }
       btn.addEventListener('click', go);
-      for (const inp of [name, pass, disp]) inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); });
+      for (const inp of [email, pass, disp, claim]) inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); });
       const row = el('div', 'p-row');
-      row.appendChild(name); row.appendChild(pass);
-      if (tab === 'register') row.appendChild(disp);
+      row.appendChild(email); row.appendChild(pass);
+      if (tab === 'register') { row.appendChild(disp); row.appendChild(claim); }
       row.appendChild(btn);
       box.appendChild(row);
       box.appendChild(err);
+      if (tab === 'login') {
+        // Legacy affordance: dies with the last pre-email account.
+        const alt = el('button', 'p-mode', legacy ? 'Sign in with email instead' : 'Signed up before emails? Sign in with your name');
+        alt.addEventListener('click', () => { legacy = !legacy; draw(); });
+        box.appendChild(alt);
+      }
     }
     draw();
   }
@@ -188,7 +233,7 @@ function initPredictor(mount, A) {
   }
 
   async function loadExisting() {
-    const preds = await api(`/api/predictions?user=${user.id}&showdate=${showdate}`);
+    const preds = await api(`/api/predictions?user=${user.handle}&showdate=${showdate}`);
     const sl = preds.find(p => p.type === 'setlist');
     const bg = preds.find(p => p.type === 'bingo');
     build = sl ? JSON.parse(JSON.stringify(sl.payload)) : { set1: [], set2: [], encore: [] };
@@ -381,7 +426,7 @@ function initPredictor(mount, A) {
             cell.title = 'tap to check off';
             cell.addEventListener('click', async () => {
               checked[i] = !checked[i];
-              const j = await api('/api/live-check', 'POST', { predictionId: livePrediction.id, checked });
+              const j = await api('/api/live-check', 'POST', { showdate: livePrediction.showdate, type: 'bingo', checked });
               livePrediction.liveChecked = checked;
               render();
               if (j.bingo && !bingoDeclared) { bingoDeclared = true; declareBingo(); }
@@ -548,7 +593,7 @@ function initPredictor(mount, A) {
       container.innerHTML = '';
       const card = el('div', 'p-profilecard');
       card.appendChild(el('div', null,
-        `<span class="p-avatar">${esc(avatarOf(u))}</span> <b>${esc(displayName(u))}</b> <span class="hint">@${esc(u.id)} · member since ${(u.created || '').slice(0, 10)}</span>`));
+        `<span class="p-avatar">${esc(avatarOf(u))}</span> <b>${esc(displayName(u))}</b> <span class="hint">@${esc(u.handle)} · member since ${(u.created || '').slice(0, 10)}</span>`));
       if (p.hometown || p.favoriteSong) card.appendChild(el('div', 'hint', [p.hometown && `from ${p.hometown}`, p.favoriteSong && `favorite song: ${p.favoriteSong}`].filter(Boolean).map(esc).join(' · ')));
       if (p.bio) card.appendChild(el('div', null, esc(p.bio)));
       card.appendChild(el('div', 'hint',
@@ -575,7 +620,7 @@ function initPredictor(mount, A) {
     const wrap = el('div');
     mount.appendChild(wrap);
     const [preds, board] = await Promise.all([
-      api(`/api/predictions?user=${user.id}`),
+      api(`/api/predictions?user=${user.handle}`),
       api('/api/leaderboard'),
     ]);
     preds.sort((a, b) => b.showdate.localeCompare(a.showdate));
@@ -595,7 +640,7 @@ function initPredictor(mount, A) {
       board.forEach((u, i) => {
         const row = el('div', 'p-histrow p-boardrow',
           `#${i + 1} <span class="p-avatar">${esc(avatarOf(u))}</span> <b>${esc(displayName(u))}</b> — accuracy ${u.accuracy} over ${u.scored} scored${u.bingos ? `, ${u.bingos} 🍩` : ''}`);
-        row.addEventListener('click', () => showPublicProfile(profilePanel, u.id));
+        row.addEventListener('click', () => showPublicProfile(profilePanel, u.handle));
         wrap.appendChild(row);
       });
     }

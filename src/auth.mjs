@@ -78,7 +78,7 @@ export async function currentUser(request, env) {
   const token = getCookie(request, SESSION_COOKIE);
   if (!token) return null;
   return await env.DB.prepare(
-    `SELECT u.id, u.name, u.created, u.passhash, u.profile
+    `SELECT u.id, u.name, u.created, u.passhash, u.profile, u.email, u.handle
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = ?1 AND s.expires > ?2`
   ).bind(await sha256hex(token), Date.now()).first();

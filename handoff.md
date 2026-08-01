@@ -29,13 +29,18 @@ the Predictor card. The asks:
 login name. `predictions.user_id` and `sessions.user_id` both FK to it
 ([migrations/0001_schema.sql](migrations/0001_schema.sql)).
 
-Production D1 holds a small number of real accounts in two shapes — read the current
-rows out of D1 rather than hardcoding them anywhere:
+Production D1 holds a handful of real accounts in three shapes — read the current rows
+out of D1 rather than hardcoding them anywhere:
 
 | shape | name | passhash | note |
 |---|---|---|---|
 | owner | an email address | PBKDF2 | the name is already an email, so the id is that email slugified |
-| legacy | a display name | `NULL` | no password; claimable by registering that name |
+| legacy | a display name | `NULL` | pre-password account; claimable by registering that name |
+| public signup | a display name | PBKDF2 | registered through the live site after launch |
+
+That third shape is the one to keep in mind: the site is public and registration is open,
+so **the account list grows without warning**. Any auth change has to carry along people
+who signed up under name-based login and never gave an address.
 
 **Auth.** PBKDF2-HMAC-SHA-256, 100k iterations, `HttpOnly; Secure` cookie sessions with
 SHA-256-hashed tokens ([src/auth.mjs](src/auth.mjs)). 12-char minimum password.
@@ -109,9 +114,15 @@ strangers start showing up.
 
 ---
 
-## Phase 1 — Email authentication
+## Phase 1 — Email authentication ✅ (shipped 2026-08-01)
 
 **Goal:** sign in with email + password; profile loads from that identity.
+
+*Done and deployed. One addition found during rollout: `publicName()` in src/db.mjs —
+pre-email accounts can have an email address AS their `name`, and every public shape
+(leaderboard, profiles) must route names through it or the address leaks anyway. The
+legacy name+password login stays until `users.email` has no NULLs, then delete the
+branch in /api/login and the affordance in renderLogin.*
 
 **Schema** — `migrations/0002_email_identity.sql`:
 ```sql
@@ -136,16 +147,32 @@ the owner row's `email` to the address its id was derived from, and give every r
 - Keep the timing-safe compare and the generic "wrong email or password" error — do not
   reveal whether an address is registered.
 
-**Legacy `robbie`.** No password, no email. Give it an email + password by hand in D1
-(one row, one time) rather than carrying the name-claim flow forward. Delete the
-`claimable` 409 branch (worker.mjs:82) and its frontend handler (predictor.js:138) once done.
+**Carrying existing accounts across the cutover.** Registration is open, so this cannot be
+a manual D1 edit against a known list. Decided approach: a **one-time link-email flow**.
 
-**Frontend** ([web/predictor.js](web/predictor.js) `renderLogin`, ~line 107): name field
-becomes email, `type="email"`, `autocomplete="email"`. Drop the "claim your old name" hint.
+- Login accepts either `{email, password}` or, while any row still lacks an email,
+  `{name, password}` — the legacy path, verified against the same passhash.
+- A session whose user has `email IS NULL` is *linked but incomplete*: `/api/me` reports
+  `needsEmail: true`, and the UI prompts for an address before anything else.
+- `POST /api/link-email {email}` sets it, subject to the same uniqueness check.
+- The passwordless legacy row has no password to verify, so it keeps the existing claim
+  path: registering its name sets a password and an email in one step.
+- Delete the legacy branch once `SELECT COUNT(*) FROM users WHERE email IS NULL` is 0.
+
+Nobody loses access or data, and no address has to be collected out of band.
+
+**Handles.** Auto-generated at registration from the display name, slugified, with a
+numeric suffix on collision — and editable later in Profile. Never derived from the email,
+or the leak just moves. Existing rows are backfilled by a script that reads the live rows
+rather than a hardcoded list.
+
+**Frontend** ([web/predictor.js](web/predictor.js) `renderLogin`, ~line 107): email field,
+`type="email"`, `autocomplete="email"`, plus a smaller "signed up before emails? sign in
+with your name" affordance that disappears with the legacy path.
 
 **Done when:** a fresh account registers with an email, signs out, signs back in, and sees
-its own predictions; the old account still resolves to its 4 predictions; no endpoint
-returns an email-derived id.
+its own predictions; every pre-existing account can still get in and is prompted to add an
+address; no endpoint returns an email-derived id.
 
 ---
 
@@ -288,9 +315,11 @@ management in the Friends panel.
 
 ## Open questions
 
-1. **Handle format** — auto-generated from display name, or user-chosen at registration?
-   Auto is less friction; chosen is nicer for sharing. Auto-with-edit-later is the middle.
-2. **Group membership** — owner-managed only, or can members add others? Owner-only is
+*Settled: build order (email auth first), how existing accounts cross the cutover (one-time
+link-email flow), and handle format (auto from display name, editable in Profile). All
+three are written into Phase 1 above.*
+
+1. **Group membership** — owner-managed only, or can members add others? Owner-only is
    simpler and probably right for now.
 3. **Attendance granularity** — Phish plays multi-night runs at one venue. Keying on
    `showdate` handles that correctly, but confirm there is never more than one show per
@@ -310,8 +339,9 @@ management in the Friends panel.
   `npx wrangler d1 migrations apply kalphishi --local` and, when ready,
   `--remote`. Local D1 state is keyed by `database_id` — changing that id in
   `wrangler.jsonc` silently points local dev at an empty database.
-- **Never bulk-delete from `users`/`predictions`.** Production holds 2 real accounts and 4
-  real predictions. Clean up test rows by explicit id, as done in the deploy verification.
+- **Never bulk-delete from `users`/`predictions`.** Production holds real accounts and real
+  predictions, and registration is open so the count only grows. Clean up test rows by
+  explicit id, as done in the deploy verification — never by truncating a table.
 - **Verify at 375px**, not just desktop. Last session's mobile fixes are in
   `web/predictor.js` (Pointer Events drag) and `web/index.html` (phone breakpoint,
   tap tooltips).
