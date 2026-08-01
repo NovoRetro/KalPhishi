@@ -163,13 +163,16 @@
   .footer .nr { font-weight: 700; color: var(--ink-2); letter-spacing: 0.02em; }
 
   /* ---- account menu (hamburger, upper right) ---- */
-  .menu-btn { position: fixed; top: 10px; right: 12px; z-index: 60; width: 44px; height: 44px;
+  /* Align with the right edge of the centered 1180px content column (the wrap's edge is
+     (100vw - 1180px)/2 from the viewport once body padding cancels out); never closer
+     than 12px to the viewport edge on narrow screens. */
+  .menu-btn { position: fixed; top: 10px; right: max(12px, calc((100vw - 1180px) / 2)); z-index: 60; width: 44px; height: 44px;
     display: flex; align-items: center; justify-content: center; font-size: 20px; line-height: 1;
     background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 10px;
     cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
   .menu-btn:hover { background: var(--accent-wash); }
   .menu-backdrop { position: fixed; inset: 0; z-index: 58; background: rgba(0,0,0,0.35); display: none; }
-  .menu-panel { position: fixed; top: 60px; right: 12px; z-index: 59; min-width: 260px; max-width: 92vw;
+  .menu-panel { position: fixed; top: 60px; right: max(12px, calc((100vw - 1180px) / 2)); z-index: 59; min-width: 260px; max-width: 92vw;
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px;
     box-shadow: 0 8px 30px rgba(0,0,0,0.25); display: none; }
   .menu-open .menu-panel, .menu-open .menu-backdrop { display: block; }
