@@ -161,9 +161,40 @@
   .p-boardrow:hover { background: var(--accent-wash); }
   .footer { margin-top: 28px; padding: 14px 0 6px; border-top: 1px solid var(--grid); color: var(--muted); font-size: 12px; text-align: center; }
   .footer .nr { font-weight: 700; color: var(--ink-2); letter-spacing: 0.02em; }
+
+  /* ---- account menu (hamburger, upper right) ---- */
+  .menu-btn { position: fixed; top: 10px; right: 12px; z-index: 60; width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center; font-size: 20px; line-height: 1;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 10px;
+    cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .menu-btn:hover { background: var(--accent-wash); }
+  .menu-backdrop { position: fixed; inset: 0; z-index: 58; background: rgba(0,0,0,0.35); display: none; }
+  .menu-panel { position: fixed; top: 60px; right: 12px; z-index: 59; min-width: 260px; max-width: 92vw;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25); display: none; }
+  .menu-open .menu-panel, .menu-open .menu-backdrop { display: block; }
+  .menu-id { display: flex; align-items: center; gap: 8px; padding: 4px 6px 10px; border-bottom: 1px solid var(--grid); margin-bottom: 8px; }
+  .menu-id .p-avatar { font-size: 20px; }
+  .menu-stats { color: var(--muted); font-size: 11px; }
+  .menu-item { display: block; width: 100%; text-align: left; padding: 10px 8px; min-height: 44px;
+    background: none; border: none; border-radius: 8px; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+  .menu-item:hover { background: var(--accent-wash); }
+  .menu-item.danger { color: var(--series-2); }
+  .menu-form { padding: 8px 6px; display: flex; flex-direction: column; gap: 8px; }
+  .menu-form .ta-input { max-width: none; }
+  .menu-note { font-size: 11px; color: var(--muted); padding: 0 6px; }
+  /* Phones: right-hand drawer instead of a dropdown. Must follow the base .menu-panel
+     rule — same specificity, so source order decides which wins. */
+  @media (max-width: 560px) {
+    .menu-panel { top: 0; right: 0; bottom: 0; border-radius: 12px 0 0 12px; width: 82vw; max-width: 320px;
+      overflow-y: auto; padding-top: 64px; }
+  }
 </style>
 </head>
 <body>
+<button class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu-panel" aria-label="Account menu">☰</button>
+<div class="menu-backdrop" id="menu-backdrop"></div>
+<div class="menu-panel" id="menu-panel" role="menu" aria-label="Account"></div>
 <div class="wrap">
   <header>
     <h1>Kalphishi <span class="pill" id="asof"></span></h1>
@@ -179,6 +210,109 @@
 <script>
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---- account menu ----
+// Shell + open/close semantics live here; predictor.js pushes state into it via
+// window.KalphishiMenu.update(user, actions) on every render.
+(function () {
+  const btn = document.getElementById('menu-btn');
+  const panel = document.getElementById('menu-panel');
+  const backdrop = document.getElementById('menu-backdrop');
+  let state = { user: null, actions: null };
+  let lastFocus = null;
+
+  const isOpen = () => document.body.classList.contains('menu-open');
+  function open() {
+    lastFocus = document.activeElement;
+    document.body.classList.add('menu-open');
+    btn.setAttribute('aria-expanded', 'true');
+    drawContent();
+    const first = panel.querySelector('button, input');
+    if (first) first.focus();
+  }
+  function close() {
+    document.body.classList.remove('menu-open');
+    btn.setAttribute('aria-expanded', 'false');
+    if (lastFocus && document.contains(lastFocus)) lastFocus.focus(); else btn.focus();
+  }
+  btn.addEventListener('click', () => (isOpen() ? close() : open()));
+  backdrop.addEventListener('click', close);
+  document.addEventListener('keydown', ev => {
+    if (!isOpen()) return;
+    if (ev.key === 'Escape') { close(); return; }
+    if (ev.key === 'Tab') {
+      // keep focus inside the panel while it is open
+      const focusables = [...panel.querySelectorAll('button, input')].filter(n => !n.disabled);
+      if (!focusables.length) return;
+      const first = focusables[0], last = focusables[focusables.length - 1];
+      if (ev.shiftKey && document.activeElement === first) { last.focus(); ev.preventDefault(); }
+      else if (!ev.shiftKey && document.activeElement === last) { first.focus(); ev.preventDefault(); }
+    }
+  });
+
+  const mfetch = (path, method, body) =>
+    fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(r => r.json().then(j => { if (!r.ok) throw new Error(j.error || r.status); return j; }));
+
+  const item = (label, onClick, cls) => {
+    const b = el('button', 'menu-item' + (cls ? ' ' + cls : ''), label);
+    b.setAttribute('role', 'menuitem');
+    b.addEventListener('click', onClick);
+    return b;
+  };
+
+  function drawContent(view) {
+    panel.innerHTML = '';
+    const { user, actions } = state;
+
+    if (!user) {
+      panel.appendChild(el('div', 'menu-note', 'Not signed in.'));
+      panel.appendChild(item('Sign in', () => { close(); actions?.openLogin('login'); }));
+      panel.appendChild(item('Create account', () => { close(); actions?.openLogin('register'); }));
+      return;
+    }
+
+    const s = user.stats || {};
+    const id = el('div', 'menu-id',
+      `<span class="p-avatar">${esc((user.profile && user.profile.avatar) || '🎣')}</span>` +
+      `<span><b>${esc((user.profile && user.profile.displayName) || user.name)}</b> <span class="menu-stats">@${esc(user.handle)}</span><br>` +
+      `<span class="menu-stats">${s.predictions ?? 0} predictions · ${s.scored ?? 0} scored` +
+      `${s.accuracy != null ? ' · accuracy ' + s.accuracy : ''}${s.bingos ? ' · ' + s.bingos + ' 🍩' : ''}</span></span>`);
+    panel.appendChild(id);
+
+    if (view === 'password') {
+      const form = el('div', 'menu-form');
+      const cur = el('input', 'ta-input'); cur.type = 'password'; cur.placeholder = 'current password'; cur.autocomplete = 'current-password';
+      const nw = el('input', 'ta-input'); nw.type = 'password'; nw.placeholder = 'new password (12+ chars)'; nw.autocomplete = 'new-password';
+      const msg = el('div', 'menu-note');
+      const save = el('button', 'p-btn', 'Change password');
+      save.addEventListener('click', async () => {
+        msg.textContent = '';
+        try {
+          await mfetch('/api/password', 'PUT', { currentPassword: cur.value, newPassword: nw.value });
+          msg.textContent = 'Password changed. Other devices were signed out.';
+          cur.value = nw.value = '';
+        } catch (e) { msg.textContent = e.message; }
+      });
+      form.appendChild(cur); form.appendChild(nw); form.appendChild(save); form.appendChild(msg);
+      panel.appendChild(form);
+      panel.appendChild(item('← Back', () => drawContent()));
+      return;
+    }
+
+    panel.appendChild(item('My History', () => { close(); actions?.goTo('history'); }));
+    panel.appendChild(item('Profile', () => { close(); actions?.goTo('profile'); }));
+    panel.appendChild(item('Change password', () => drawContent('password')));
+    panel.appendChild(item('Sign out', async () => { close(); await actions?.signOut(); }, 'danger'));
+  }
+
+  window.KalphishiMenu = {
+    update(user, actions) {
+      state = { user, actions };
+      if (isOpen()) drawContent();
+    },
+  };
+})();
 
 const tooltip = document.getElementById('tooltip');
 

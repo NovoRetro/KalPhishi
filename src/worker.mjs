@@ -134,6 +134,28 @@ async function api(request, env, ctx, { p, m, q, url }) {
     return json({ user: await ownUser(env, { ...user, email }) });
   }
 
+  if (p === '/api/password' && m === 'PUT') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const { currentPassword, newPassword } = await body(request);
+    if (!await verifyPassword(currentPassword || '', user.passhash)) {
+      return err(403, 'current password is wrong');
+    }
+    if (!newPassword || newPassword.length < MIN_PASSWORD_LENGTH) {
+      return err(400, `new password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+    }
+    // Re-hash and revoke every OTHER session: changing the password is the "kick out
+    // whoever else has this account open" lever. The caller's session stays alive.
+    const token = getCookie(request, SESSION_COOKIE);
+    await env.DB.batch([
+      env.DB.prepare('UPDATE users SET passhash = ?1 WHERE id = ?2')
+        .bind(await hashPassword(newPassword), user.id),
+      env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1 AND token_hash <> ?2')
+        .bind(user.id, await sha256hex(token)),
+    ]);
+    return json({ ok: true });
+  }
+
   if (p === '/api/logout' && m === 'POST') {
     const token = getCookie(request, SESSION_COOKIE);
     if (token) await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?1').bind(await sha256hex(token)).run();

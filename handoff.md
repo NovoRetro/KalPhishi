@@ -176,9 +176,14 @@ address; no endpoint returns an email-derived id.
 
 ---
 
-## Phase 2 — Hamburger menu
+## Phase 2 — Hamburger menu ✅ (shipped 2026-08-01)
 
 **Goal:** one home, upper right, for identity and account actions.
+
+*Done and deployed. Implementation notes: the shell + open/close/focus semantics live in
+index.html; predictor.js pushes state via `window.KalphishiMenu.update(user, actions)` on
+every render. Change-password is menu-owned (calls PUT /api/password directly); the route
+revokes every other session for the user. The Friends item lands with Phase 4.*
 
 **Placement:** into `<header>` at [web/index.html:168](web/index.html:168), floated right
 of the `<h1>`. Position `fixed`/`sticky` so it stays reachable on long pages.

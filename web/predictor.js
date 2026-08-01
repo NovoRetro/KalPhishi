@@ -93,10 +93,21 @@ function initPredictor(mount, A) {
   }
 
   // ---------- root render ----------
+  let loginTab = null; // one-shot: which login tab to open next render
+
+  // The header hamburger owns account actions; it reflects whatever state the
+  // predictor last rendered.
+  const menuActions = {
+    goTo(m) { mode = m; render(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
+    async signOut() { await api('/api/logout', 'POST', {}); user = null; render(); },
+    openLogin(tab) { loginTab = tab; render(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
+  };
+
   function render() {
     mount.innerHTML = '';
+    if (window.KalphishiMenu) window.KalphishiMenu.update(user, menuActions);
     mount.appendChild(el('h2', null, 'Predictor <span class="hint">— build your own call for the next show</span>'));
-    if (!user) return renderLogin();
+    if (!user) { const t = loginTab; loginTab = null; return renderLogin(t); }
     if (user.needsEmail) return renderLinkEmail();
     renderTopBar();
     if (mode === 'setlist') renderSetlistBuilder();
@@ -207,19 +218,13 @@ function initPredictor(mount, A) {
       (s.accuracy != null ? `, accuracy ${s.accuracy}` : '') + (s.bingos ? `, ${s.bingos} BINGO${s.bingos > 1 ? 's' : ''}` : '');
     bar.appendChild(el('span', null, `<span class="p-avatar">${esc(avatarOf(user))}</span> <b>${esc(displayName(user))}</b><span class="hint">${esc(statText)}</span>`));
 
+    // Just the two builders — history, profile, and sign-out live in the header menu.
     const modes = el('div', 'p-modes');
-    for (const [key, label] of [['setlist', 'Setlist'], ['bingo', 'PHISH Bingo'], ['history', 'My History'], ['profile', 'Profile']]) {
+    for (const [key, label] of [['setlist', 'Setlist'], ['bingo', 'PHISH Bingo']]) {
       const b = el('button', 'p-mode' + (mode === key ? ' active' : ''), label);
       b.addEventListener('click', () => { mode = key; render(); });
       modes.appendChild(b);
     }
-    const out = el('button', 'p-mode', 'Sign out');
-    out.addEventListener('click', async () => {
-      await api('/api/logout', 'POST', {});
-      user = null;
-      render();
-    });
-    modes.appendChild(out);
     bar.appendChild(modes);
 
     const showRow = el('div', 'hint', `Predicting: `);
