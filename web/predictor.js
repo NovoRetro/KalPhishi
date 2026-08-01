@@ -183,7 +183,7 @@ function initPredictor(mount, A) {
       box.appendChild(tabs);
       box.appendChild(el('div', 'hint', tab === 'login'
         ? 'Sign in to save predictions and build your track record.'
-        : 'Register with your email and a password (12+ characters). Predicted before under just a name with no password? Put that name in the claim field to keep your history.'));
+        : 'Register with your email and a password (6+ characters for now).'));
       const email = el('input', 'ta-input');
       email.placeholder = legacy ? 'name' : 'email address';
       email.type = legacy ? 'text' : 'email';
@@ -191,6 +191,8 @@ function initPredictor(mount, A) {
       const pass = el('input', 'ta-input'); pass.placeholder = 'password'; pass.type = 'password';
       pass.autocomplete = tab === 'login' ? 'current-password' : 'new-password';
       const disp = el('input', 'ta-input'); disp.placeholder = 'display name';
+      // Claim-a-legacy-account field: hidden for now (not needed for current testing),
+      // but kept so the flow still exists — its value just never leaves ''.
       const claim = el('input', 'ta-input'); claim.placeholder = 'old name to claim (optional)';
       const err = el('div', 'p-flash err');
       const btn = el('button', 'p-btn', tab === 'login' ? 'Sign in' : 'Create account');
@@ -215,15 +217,15 @@ function initPredictor(mount, A) {
           await loadExisting();
         } catch (e) {
           err.textContent = e.message === 'claimable'
-            ? 'This name has no password yet — switch to "Create account" and put it in the claim field to keep its predictions.'
+            ? 'This name has no password yet and can’t be claimed from here right now — ask the site owner for help signing in.'
             : e.message;
         }
       }
       btn.addEventListener('click', go);
-      for (const inp of [email, pass, disp, claim]) inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); });
+      for (const inp of [email, pass, disp]) inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); });
       const row = el('div', 'p-row');
       row.appendChild(email); row.appendChild(pass);
-      if (tab === 'register') { row.appendChild(disp); row.appendChild(claim); }
+      if (tab === 'register') row.appendChild(disp);
       row.appendChild(btn);
       box.appendChild(row);
       box.appendChild(err);

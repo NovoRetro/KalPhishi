@@ -81,7 +81,8 @@ A user's accuracy rating is the mean score across their graded predictions.
 ## Notes
 
 - Predictions are chalk by design — they lean on rotation math and won't call a themed show or a 1,000-show bustout. The *conspicuously absent* table is where those hide.
-- Auth is PBKDF2-HMAC-SHA-256 with `HttpOnly; Secure` cookie sessions; session tokens are stored hashed, so a database leak yields nothing usable. Cloudflare caps PBKDF2 at 100k iterations and the free plan allows 10ms CPU per request, which puts the work factor below OWASP's 600k recommendation — hence the 12-character minimum password. Fine for an app where accounts control nothing but Phish predictions; don't copy this KDF into something that matters more.
+- Auth is PBKDF2-HMAC-SHA-256 with `HttpOnly; Secure` cookie sessions; session tokens are stored hashed, so a database leak yields nothing usable. Cloudflare caps PBKDF2 at 100k iterations and the free plan allows 10ms CPU per request, which puts the work factor below OWASP's 600k recommendation — a longer minimum password normally compensates for that. It's temporarily lowered to 6 characters (`MIN_PASSWORD_LENGTH` in `src/auth.mjs`) to make user testing easier; raise it back before this matters for real. Fine for an app where accounts control nothing but Phish predictions; don't copy this KDF into something that matters more.
+- Email registration is happy-path for now: any well-formed address is accepted immediately, no confirmation step. Real verification is deferred — see the roadmap's Phase 6.
 
 ## License
 

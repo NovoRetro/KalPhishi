@@ -84,8 +84,16 @@
   #tooltip .tt-why { color: var(--ink-2); }
   /* predictor */
   .p-login, .p-topbar { margin-bottom: 12px; }
-  .p-row { display: flex; gap: 8px; margin-top: 8px; }
+  .p-login { max-width: 420px; } /* full width on any phone; capped so it doesn't stretch edge-to-edge on wide desktop */
+  .p-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
   .p-topbar { display: flex; flex-direction: column; gap: 8px; }
+  /* Sign in / create account: always a stacked column, not just below some breakpoint —
+     a row of 3-4 inputs plus a button never fit a phone width, and stacked reads fine
+     on desktop too. font-size 16px stops iOS Safari's zoom-on-focus. */
+  .p-login .p-row { flex-direction: column; align-items: stretch; }
+  .p-login .ta-input { max-width: none; font-size: 16px; }
+  .p-login .p-btn { width: 100%; }
+  .p-login .p-modes { margin-bottom: 4px; }
   .p-modes { display: flex; gap: 6px; flex-wrap: wrap; }
   .p-mode { background: var(--surface); border: 1px solid var(--border); border-radius: 99px; color: var(--ink-2); font: inherit; font-size: 13px; padding: 4px 12px; cursor: pointer; }
   .p-mode.active { color: var(--ink); border-color: var(--series-1); font-weight: 600; }
@@ -286,7 +294,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
     if (view === 'password') {
       const form = el('div', 'menu-form');
       const cur = el('input', 'ta-input'); cur.type = 'password'; cur.placeholder = 'current password'; cur.autocomplete = 'current-password';
-      const nw = el('input', 'ta-input'); nw.type = 'password'; nw.placeholder = 'new password (12+ chars)'; nw.autocomplete = 'new-password';
+      const nw = el('input', 'ta-input'); nw.type = 'password'; nw.placeholder = 'new password (6+ chars for now)'; nw.autocomplete = 'new-password';
       const msg = el('div', 'menu-note');
       const save = el('button', 'p-btn', 'Change password');
       save.addEventListener('click', async () => {

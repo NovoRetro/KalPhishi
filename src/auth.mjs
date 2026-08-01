@@ -2,7 +2,9 @@
 
 export const SESSION_COOKIE = 'kalphishi_session';
 export const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
-export const MIN_PASSWORD_LENGTH = 12;
+// Temporarily lowered from 12 for easier user testing (2026-08-01) — raise it back
+// before this matters for real; nothing else assumes a specific value.
+export const MIN_PASSWORD_LENGTH = 6;
 
 // Cloudflare caps PBKDF2 at 100k iterations, and the free plan allows 10ms CPU per
 // request. Lowering this stays compatible with existing hashes: the iteration count
