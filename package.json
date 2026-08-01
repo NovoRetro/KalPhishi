@@ -11,7 +11,8 @@
     "build:songmeta": "node scripts/build-songmeta.js",
     "build": "node scripts/build-songmeta.js && node scripts/build-public.js",
     "dev": "wrangler dev",
-    "deploy": "npm run build && wrangler deploy"
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "deploy": "npm test && npm run build && wrangler deploy"
   },
   "devDependencies": {
     "wrangler": "^4"

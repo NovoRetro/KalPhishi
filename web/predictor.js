@@ -216,16 +216,14 @@ function initPredictor(mount, A) {
 
   let dragState = null;
 
+  // Index math lives in web/reorder.js so it can be unit tested without a DOM.
+  const { resolveDropTarget, resolveDropIndex, moveItem } = self.KalphishiReorder;
+
   // Which row a drag is currently over, and whether it should land after it.
   // Pointer capture keeps events on the handle, so hit-testing is done by clientY.
   function dropTargetIn(list, clientY) {
-    const rows = [...list.querySelectorAll('.p-songrow')];
-    if (!rows.length) return null;
-    for (let idx = 0; idx < rows.length; idx++) {
-      const r = rows[idx].getBoundingClientRect();
-      if (clientY < r.bottom) return { idx, after: clientY > r.top + r.height / 2 };
-    }
-    return { idx: rows.length - 1, after: true };
+    const rects = [...list.querySelectorAll('.p-songrow')].map(n => n.getBoundingClientRect());
+    return resolveDropTarget(rects, clientY);
   }
 
   function clearDropMarks(list) {
@@ -310,12 +308,8 @@ function initPredictor(mount, A) {
           row.classList.remove('dragging');
           const from = dragState.from;
           dragState = null;
-          if (!t) return render();
-          let to = t.idx + (t.after ? 1 : 0);
-          if (from < to) to--;
-          if (to === from) return render();
-          const [moved] = build[key].splice(from, 1);
-          build[key].splice(to, 0, moved);
+          const to = resolveDropIndex(from, t);
+          if (to !== from) build[key] = moveItem(build[key], from, to);
           render();
         };
         handle.addEventListener('pointerup', endDrag);

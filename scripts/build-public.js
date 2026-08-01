@@ -11,6 +11,7 @@ const pub = path.join(root, 'public');
 // everything else keeps the URL the frontend already hardcodes.
 const ALLOW = [
   ['web/index.html', 'index.html'],
+  ['web/reorder.js', 'web/reorder.js'],
   ['web/predictor.js', 'web/predictor.js'],
   ['data/analysis.json', 'data/analysis.json'],
   ['data/venues.json', 'data/venues.json'],

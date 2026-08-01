@@ -26,15 +26,23 @@ export async function hashPassword(password, iterations = PBKDF2_ITERATIONS) {
 }
 
 export async function verifyPassword(password, stored) {
-  // Legacy scrypt hashes ("salthex:hashhex") are unverifiable here and fail closed.
+  // Everything unverifiable fails closed: legacy scrypt hashes ("salthex:hashhex"),
+  // truncated fields, and non-numeric iteration counts. A corrupt row must reject the
+  // login rather than throw its way into a 500.
   if (!stored || !stored.startsWith('pbkdf2$')) return false;
-  const [, iterStr, saltB64, hashB64] = stored.split('$');
-  const want = unb64(hashB64);
-  const bits = new Uint8Array(await derive(password, unb64(saltB64), Number(iterStr)));
-  if (bits.length !== want.length) return false;
-  let diff = 0;
-  for (let i = 0; i < bits.length; i++) diff |= bits[i] ^ want[i];
-  return diff === 0;
+  try {
+    const [, iterStr, saltB64, hashB64] = stored.split('$');
+    const iterations = Number(iterStr);
+    if (!Number.isInteger(iterations) || iterations < 1 || !saltB64 || !hashB64) return false;
+    const want = unb64(hashB64);
+    const bits = new Uint8Array(await derive(password, unb64(saltB64), iterations));
+    if (bits.length !== want.length) return false;
+    let diff = 0;
+    for (let i = 0; i < bits.length; i++) diff |= bits[i] ^ want[i];
+    return diff === 0;
+  } catch {
+    return false; // malformed base64 or an otherwise unusable parameter
+  }
 }
 
 export async function sha256hex(s) {
