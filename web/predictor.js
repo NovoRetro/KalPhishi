@@ -98,32 +98,36 @@ function initPredictor(mount, A) {
   const menuActions = {
     goTo(m) { mode = m; render(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
     async signOut() { await api('/api/logout', 'POST', {}); user = null; authPrompt = null; render(); },
-    openLogin(tab) {
-      authPrompt = { tab, message: null, onAuthed: null };
-      render();
-      mount.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    },
+    openLogin(tab) { authPrompt = { tab, message: null, onAuthed: null }; render(); },
   };
 
-  // When set, an auth panel renders above the builders: {tab, message, onAuthed}.
-  // Saving while signed out sets it with the save as onAuthed, so the draft survives
-  // the sign-in and lands on the server without being rebuilt.
+  // When set, sign-in/register renders in the header's modal (window.KalphishiAuthModal)
+  // rather than inline: {tab, message, onAuthed}. Saving while signed out sets it with
+  // the save as onAuthed, so the draft survives the sign-in and lands on the server
+  // without being rebuilt. authPrompt is the single source of truth for whether the
+  // modal should be open — every render() call reconciles the modal to match it, so a
+  // dismiss via Esc/backdrop (reported through onDismiss, below) just clears this and
+  // re-renders rather than needing its own close path.
   let authPrompt = null;
   let pendingAfterAuth = null; // save deferred past the link-email step
+
+  if (window.KalphishiAuthModal) {
+    window.KalphishiAuthModal.onDismiss(() => { authPrompt = null; render(); });
+  }
 
   function requireAuth(message, onAuthed) {
     if (user) return onAuthed();
     authPrompt = { tab: 'login', message, onAuthed };
     render();
-    mount.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 
   function render() {
     mount.innerHTML = '';
     if (window.KalphishiMenu) window.KalphishiMenu.update(user, menuActions);
     mount.appendChild(el('h2', null, 'Predictor <span class="hint">— build your own call for the next show</span>'));
-    if (user && user.needsEmail) return renderLinkEmail();
     if (!user && authPrompt) renderAuthPanel();
+    else if (window.KalphishiAuthModal) window.KalphishiAuthModal.hide();
+    if (user && user.needsEmail) return renderLinkEmail();
     if (!user && (mode === 'history' || mode === 'profile')) mode = 'setlist';
     renderTopBar();
     if (mode === 'setlist') renderSetlistBuilder();
@@ -163,11 +167,12 @@ function initPredictor(mount, A) {
     box.appendChild(err);
   }
 
+  // Builds the sign-in/register form and hands it to the header's modal (a fixed
+  // overlay, not part of the page's normal scroll flow) rather than appending inline.
   function renderAuthPanel() {
     let tab = authPrompt.tab || 'login';
     let legacy = false; // sign in with a pre-email account name
     const box = el('div', 'p-login card');
-    mount.appendChild(box);
     function draw() {
       box.innerHTML = '';
       if (authPrompt.message) box.appendChild(el('div', null, `<b>${esc(authPrompt.message)}</b>`));
@@ -237,6 +242,10 @@ function initPredictor(mount, A) {
       }
     }
     draw();
+    // draw() above mutates `box` in place for tab switches/toggles, so show() only
+    // needs to run once — it inserts the node and doesn't need calling again.
+    if (window.KalphishiAuthModal) window.KalphishiAuthModal.show(box);
+    else mount.appendChild(box); // no-JS-module fallback, shouldn't happen in practice
   }
 
   const displayName = u => (u.profile && u.profile.displayName) || u.name;

@@ -200,12 +200,22 @@
     .menu-panel { top: 0; right: 0; bottom: 0; border-radius: 12px 0 0 12px; width: 82vw; max-width: 320px;
       overflow-y: auto; padding-top: 64px; }
   }
+
+  /* ---- sign in / create account modal ---- */
+  /* Higher than the account menu (58-60) so the two never fight for a layer, even
+     though in practice only one is ever open (the menu closes itself before opening this). */
+  .auth-modal-backdrop { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,0.5);
+    display: none; align-items: center; justify-content: center; padding: 16px; }
+  .auth-modal-backdrop.open { display: flex; }
+  /* The content is the existing .p-login.card box; just bound its height on short viewports. */
+  .auth-modal-backdrop > .p-login { max-height: 90vh; overflow-y: auto; margin-bottom: 0; }
 </style>
 </head>
 <body>
 <button class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu-panel" aria-label="Account menu">☰</button>
 <div class="menu-backdrop" id="menu-backdrop"></div>
 <div class="menu-panel" id="menu-panel" role="menu" aria-label="Account"></div>
+<div class="auth-modal-backdrop" id="auth-modal-backdrop" role="dialog" aria-modal="true" aria-label="Sign in"></div>
 <div class="wrap">
   <header>
     <h1>Kalphishi <span class="pill" id="asof"></span></h1>
@@ -322,6 +332,59 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
       state = { user, actions };
       if (isOpen()) drawContent();
     },
+  };
+})();
+
+// ---- sign in / create account modal ----
+// Pure chrome: predictor.js owns the sign-in/register form and its state (authPrompt);
+// this just gives that content a floating home instead of an inline slot in the page
+// flow. show()/hide() are the programmatic API predictor.js drives every render from —
+// hide() is a no-op if already closed, so calling it unconditionally is safe. Dismissal
+// via Esc or backdrop click is chrome-initiated, so it's reported back through the
+// dismiss callback rather than assumed — predictor.js's authPrompt is the single source
+// of truth for whether the form should be showing.
+(function () {
+  const backdrop = document.getElementById('auth-modal-backdrop');
+  let dismissCb = null;
+  let lastFocus = null;
+
+  function isOpen() { return backdrop.classList.contains('open'); }
+
+  function doHide() {
+    if (!isOpen()) return;
+    backdrop.classList.remove('open');
+    backdrop.innerHTML = '';
+    if (lastFocus && document.contains(lastFocus)) lastFocus.focus(); else document.getElementById('menu-btn')?.focus();
+  }
+
+  backdrop.addEventListener('click', ev => {
+    if (ev.target !== backdrop) return; // only the dimmed area, not the card itself
+    doHide();
+    dismissCb?.();
+  });
+  document.addEventListener('keydown', ev => {
+    if (!isOpen()) return;
+    if (ev.key === 'Escape') { doHide(); dismissCb?.(); return; }
+    if (ev.key === 'Tab') {
+      const focusables = [...backdrop.querySelectorAll('button, input')].filter(n => !n.disabled);
+      if (!focusables.length) return;
+      const first = focusables[0], last = focusables[focusables.length - 1];
+      if (ev.shiftKey && document.activeElement === first) { last.focus(); ev.preventDefault(); }
+      else if (!ev.shiftKey && document.activeElement === last) { first.focus(); ev.preventDefault(); }
+    }
+  });
+
+  window.KalphishiAuthModal = {
+    show(contentNode) {
+      if (!isOpen()) lastFocus = document.activeElement;
+      backdrop.innerHTML = '';
+      backdrop.appendChild(contentNode);
+      backdrop.classList.add('open');
+      const first = contentNode.querySelector('input') || contentNode.querySelector('button');
+      if (first) first.focus();
+    },
+    hide: doHide,
+    onDismiss(cb) { dismissCb = cb; },
   };
 })();
 
