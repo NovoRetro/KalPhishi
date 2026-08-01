@@ -93,22 +93,38 @@ function initPredictor(mount, A) {
   }
 
   // ---------- root render ----------
-  let loginTab = null; // one-shot: which login tab to open next render
-
   // The header hamburger owns account actions; it reflects whatever state the
   // predictor last rendered.
   const menuActions = {
     goTo(m) { mode = m; render(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
-    async signOut() { await api('/api/logout', 'POST', {}); user = null; render(); },
-    openLogin(tab) { loginTab = tab; render(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
+    async signOut() { await api('/api/logout', 'POST', {}); user = null; authPrompt = null; render(); },
+    openLogin(tab) {
+      authPrompt = { tab, message: null, onAuthed: null };
+      render();
+      mount.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    },
   };
+
+  // When set, an auth panel renders above the builders: {tab, message, onAuthed}.
+  // Saving while signed out sets it with the save as onAuthed, so the draft survives
+  // the sign-in and lands on the server without being rebuilt.
+  let authPrompt = null;
+  let pendingAfterAuth = null; // save deferred past the link-email step
+
+  function requireAuth(message, onAuthed) {
+    if (user) return onAuthed();
+    authPrompt = { tab: 'login', message, onAuthed };
+    render();
+    mount.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
 
   function render() {
     mount.innerHTML = '';
     if (window.KalphishiMenu) window.KalphishiMenu.update(user, menuActions);
     mount.appendChild(el('h2', null, 'Predictor <span class="hint">— build your own call for the next show</span>'));
-    if (!user) { const t = loginTab; loginTab = null; return renderLogin(t); }
-    if (user.needsEmail) return renderLinkEmail();
+    if (user && user.needsEmail) return renderLinkEmail();
+    if (!user && authPrompt) renderAuthPanel();
+    if (!user && (mode === 'history' || mode === 'profile')) mode = 'setlist';
     renderTopBar();
     if (mode === 'setlist') renderSetlistBuilder();
     else if (mode === 'bingo') renderBingo();
@@ -133,6 +149,9 @@ function initPredictor(mount, A) {
       try {
         const j = await api('/api/link-email', 'POST', { email: email.value });
         user = j.user;
+        const after = pendingAfterAuth;
+        pendingAfterAuth = null;
+        if (after) await after();
         render();
       } catch (e) { err.textContent = e.message; }
     }
@@ -144,22 +163,26 @@ function initPredictor(mount, A) {
     box.appendChild(err);
   }
 
-  function renderLogin(startTab) {
-    let tab = startTab || 'login';
+  function renderAuthPanel() {
+    let tab = authPrompt.tab || 'login';
     let legacy = false; // sign in with a pre-email account name
-    const box = el('div', 'p-login');
+    const box = el('div', 'p-login card');
     mount.appendChild(box);
     function draw() {
       box.innerHTML = '';
+      if (authPrompt.message) box.appendChild(el('div', null, `<b>${esc(authPrompt.message)}</b>`));
       const tabs = el('div', 'p-modes');
       for (const [key, label] of [['login', 'Sign in'], ['register', 'Create account']]) {
         const b = el('button', 'p-mode' + (tab === key ? ' active' : ''), label);
         b.addEventListener('click', () => { tab = key; draw(); });
         tabs.appendChild(b);
       }
+      const dismiss = el('button', 'p-mode', '✕ close');
+      dismiss.addEventListener('click', () => { authPrompt = null; render(); });
+      tabs.appendChild(dismiss);
       box.appendChild(tabs);
       box.appendChild(el('div', 'hint', tab === 'login'
-        ? 'Sign in to predict and build your track record.'
+        ? 'Sign in to save predictions and build your track record.'
         : 'Register with your email and a password (12+ characters). Predicted before under just a name with no password? Put that name in the claim field to keep your history.'));
       const email = el('input', 'ta-input');
       email.placeholder = legacy ? 'name' : 'email address';
@@ -183,7 +206,13 @@ function initPredictor(mount, A) {
           }
           const j = await api(tab === 'login' ? '/api/login' : '/api/register', 'POST', body);
           user = j.user;
-          loadExisting();
+          const after = authPrompt.onAuthed;
+          authPrompt = null;
+          // A pre-email account must link an address first; hold the pending save and
+          // run it once renderLinkEmail succeeds.
+          if (after && user.needsEmail) pendingAfterAuth = after;
+          else if (after) await after();
+          await loadExisting();
         } catch (e) {
           err.textContent = e.message === 'claimable'
             ? 'This name has no password yet — switch to "Create account" and put it in the claim field to keep its predictions.'
@@ -213,10 +242,14 @@ function initPredictor(mount, A) {
 
   function renderTopBar() {
     const bar = el('div', 'p-topbar');
-    const s = user.stats || {};
-    const statText = ` · ${s.predictions ?? 0} predictions, ${s.scored ?? 0} scored` +
-      (s.accuracy != null ? `, accuracy ${s.accuracy}` : '') + (s.bingos ? `, ${s.bingos} BINGO${s.bingos > 1 ? 's' : ''}` : '');
-    bar.appendChild(el('span', null, `<span class="p-avatar">${esc(avatarOf(user))}</span> <b>${esc(displayName(user))}</b><span class="hint">${esc(statText)}</span>`));
+    if (user) {
+      const s = user.stats || {};
+      const statText = ` · ${s.predictions ?? 0} predictions, ${s.scored ?? 0} scored` +
+        (s.accuracy != null ? `, accuracy ${s.accuracy}` : '') + (s.bingos ? `, ${s.bingos} BINGO${s.bingos > 1 ? 's' : ''}` : '');
+      bar.appendChild(el('span', null, `<span class="p-avatar">${esc(avatarOf(user))}</span> <b>${esc(displayName(user))}</b><span class="hint">${esc(statText)}</span>`));
+    } else {
+      bar.appendChild(el('span', 'hint', 'Build freely — you’ll be asked to sign in when you save.'));
+    }
 
     // Just the two builders — history, profile, and sign-out live in the header menu.
     const modes = el('div', 'p-modes');
@@ -238,11 +271,18 @@ function initPredictor(mount, A) {
   }
 
   async function loadExisting() {
+    if (!user) { render(); return; }
     const preds = await api(`/api/predictions?user=${user.handle}&showdate=${showdate}`);
     const sl = preds.find(p => p.type === 'setlist');
     const bg = preds.find(p => p.type === 'bingo');
-    build = sl ? JSON.parse(JSON.stringify(sl.payload)) : { set1: [], set2: [], encore: [] };
-    grid = bg ? bg.payload.grid.slice() : Array(25).fill(null);
+    // Saved predictions win, but never clobber an unsaved local draft with emptiness —
+    // signing in mid-draft (e.g. via the menu) must not wipe the work in progress.
+    const draftSongs = build.set1.length + build.set2.length + build.encore.length;
+    if (sl) build = JSON.parse(JSON.stringify(sl.payload));
+    else if (!draftSongs) build = { set1: [], set2: [], encore: [] };
+    const draftCells = grid.filter((c, i) => c && i !== FREE).length;
+    if (bg) grid = bg.payload.grid.slice();
+    else if (!draftCells) grid = Array(25).fill(null);
     locks = Array(25).fill(false);
     livePrediction = bg || null;
     bingoDeclared = false;
@@ -379,13 +419,13 @@ function initPredictor(mount, A) {
     }
     mount.appendChild(wrap);
     mount.appendChild(el('div', 'hint', 'Stressors: show opener, Set 2 opener, both set closers, and encore calls earn bonus points (6 each; song hits are worth 70). Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder.'));
-    const save = el('button', 'p-btn', 'Save setlist prediction');
-    save.addEventListener('click', async () => {
+    const save = el('button', 'p-btn', user ? 'Save setlist prediction' : 'Sign in to save prediction');
+    save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
       try {
         await api('/api/predictions', 'POST', { showdate, type: 'setlist', payload: build });
         flash('Saved.');
       } catch (e) { flash(e.message, true); }
-    });
+    }));
     mount.appendChild(save);
   }
 
@@ -510,16 +550,18 @@ function initPredictor(mount, A) {
       controls.appendChild(safe);
 
       const btnRow = el('div', 'p-row');
-      const save = el('button', 'p-btn', livePrediction ? 'Re-save card' : 'Save bingo card');
-      save.addEventListener('click', async () => {
+      const save = el('button', 'p-btn', livePrediction ? 'Re-save card' : (user ? 'Save bingo card' : 'Sign in to save card'));
+      save.addEventListener('click', () => {
         const filled = grid.filter((c, i) => c && i !== FREE).length;
         if (filled < 24) return flash(`Fill all squares first (${filled}/24).`, true);
-        try {
-          await api('/api/predictions', 'POST', { showdate, type: 'bingo', payload: { grid } });
-          await loadExisting();
-          mode = 'bingo';
-          flash('Card saved — live mode on.');
-        } catch (e) { flash(e.message, true); }
+        requireAuth('Sign in or create an account to save your bingo card.', async () => {
+          try {
+            await api('/api/predictions', 'POST', { showdate, type: 'bingo', payload: { grid } });
+            await loadExisting();
+            mode = 'bingo';
+            flash('Card saved — live mode on.');
+          } catch (e) { flash(e.message, true); }
+        });
       });
       btnRow.appendChild(save);
       mount.appendChild(btnRow);
