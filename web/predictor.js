@@ -560,6 +560,17 @@ function initPredictor(mount, A) {
       });
       controls.appendChild(safe);
 
+      const clear = el('button', 'p-btn p-btn-alt', '🧹 Clear');
+      clear.title = 'Empty every unlocked square (FREE and locked squares are left alone)';
+      clear.addEventListener('click', () => {
+        for (let i = 0; i < 25; i++) {
+          if (i === FREE || locks[i]) continue;
+          grid[i] = null;
+        }
+        render();
+      });
+      controls.appendChild(clear);
+
       const btnRow = el('div', 'p-row');
       const save = el('button', 'p-btn', livePrediction ? 'Re-save card' : (user ? 'Save bingo card' : 'Sign in to save card'));
       save.addEventListener('click', () => {

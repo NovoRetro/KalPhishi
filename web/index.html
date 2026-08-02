@@ -147,7 +147,11 @@
     .p-cell { font-size: 9.5px; padding: 2px; border-radius: 6px; line-height: 1.15; }
     .p-cell.free { font-size: 15px; }
     .p-cellname { -webkit-line-clamp: 4; }
-    .p-cell .p-lock { font-size: 9px; opacity: 0.5; }
+    /* Full opacity, not the desktop hover-reveal design: touch has no hover to reveal
+       these with, so the faint default was effectively invisible. p-x had no mobile
+       override at all before this — stuck at its 14px desktop size in a ~52px cell. */
+    .p-cell .p-lock { font-size: 14px; opacity: 0.85; padding: 3px; }
+    .p-cell .p-x { font-size: 15px; opacity: 0.85; padding: 3px; line-height: 1; }
     .p-head, .p-corner { font-size: 11px; }
     .p-drag { font-size: 15px; padding: 6px 8px; }
     .p-songrow { padding: 5px 0; }
