@@ -36,6 +36,17 @@ async function main() {
     await cached(`setlists-${year}`, `/setlists/showyear/${year}.json`);
   }
 
+  // Schedule endpoint (one row per show-date, including shows that haven't happened yet)
+  // rather than the setlists endpoint (one row per song, past shows only). This is how
+  // analyze.js knows a multi-week break is coming right after the next show — e.g. the
+  // gap between a tour leg's close and its Labor Day stand at Dick's — which the setlist
+  // data alone can't see until those future shows have actually been played. Like the
+  // setlist caches, this goes stale as new dates get announced: delete and refetch to
+  // pick up schedule changes, same as `data/setlists-<year>.json`.
+  for (const year of [2022, 2023, 2024, 2025, 2026]) {
+    await cached(`schedule-${year}`, `/shows/showyear/${year}.json`);
+  }
+
   await cached('songs', '/songs.json');
 
   const venues = await cached('venues', '/venues.json');
