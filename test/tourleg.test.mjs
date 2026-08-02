@@ -81,6 +81,8 @@ test('isResetVenue matches the validated venues', () => {
   assert.equal(isResetVenue("Dick's Sporting Goods Park"), true);
   assert.equal(isResetVenue('Sphere'), true);
   assert.equal(isResetVenue('Watkins Glen International'), true);
+  assert.equal(isResetVenue('The Woodlands'), true, 'Mondegreen festival grounds');
+  assert.equal(isResetVenue('Moon Palace'), true, 'the annual Mexico destination trip');
 });
 
 test('isResetVenue is case-insensitive', () => {
