@@ -76,10 +76,11 @@ test('duplicate rows for the same date (one per song, if the wrong endpoint were
   assert.equal(isNearTourGap('2026-07-31', dup), true);
 });
 
-test('isResetVenue matches the three validated venues', () => {
+test('isResetVenue matches the validated venues', () => {
   assert.equal(isResetVenue('Madison Square Garden'), true);
   assert.equal(isResetVenue("Dick's Sporting Goods Park"), true);
   assert.equal(isResetVenue('Sphere'), true);
+  assert.equal(isResetVenue('Watkins Glen International'), true);
 });
 
 test('isResetVenue is case-insensitive', () => {
