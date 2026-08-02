@@ -14,7 +14,11 @@ Powered by [NovoRetro](https://github.com/NovoRetro). Data from the [Phish.net A
 
 **Album slice.** Studio-album representation across the tour, plus each show's "era center of gravity" (mean release year of its album songs) — which is how the 2026 MSG residency shows up as a deliberate trip backwards through the catalog.
 
-**Prediction.** A slot-aware ranked setlist (opener, set closers, encore) combining rotation strength, dueness, tour-repeat penalties, and venue affinity.
+**Tour-calendar position.** Two quiet scoring nudges, both validated empirically against 2022-2026 before being added (see `lib/tourleg.mjs`):
+- *Leg-end jam intensity* — the 1-2 shows right before a multi-week break (e.g. the run into Dick's Labor Day stand) historically skew toward extended/jam-chart-worthy playing over rarer songs. Detected from the forward schedule (a real calendar gap, not a show-count position — tour naming alone isn't consistent enough to find these boundaries), and applied as a small bonus scaled by each song's own historical jam-chart rate.
+- *Reset venues* — MSG, Dick's, and Sphere measurably do *not* avoid material from the days right before them the way a normal tour show does; carryover ran 2-3x the dataset's baseline at every validated instance. The usual "just played it recently" penalty is softened (not removed) when the next show is at one of these.
+
+**Prediction.** A slot-aware ranked setlist (opener, set closers, encore) combining rotation strength, dueness, tour-repeat penalties, venue affinity, and tour-calendar position.
 
 **Your predictions.** Draft a setlist with drag-to-reorder and stressor bonuses for opener/closer/encore calls, or fill a 5×5 **PHISH bingo** card (free donut center, five-in-a-line wins) and check squares off live during the show. Scores are graded against the real setlist; accuracy ratings and a leaderboard accumulate over time.
 

@@ -57,6 +57,7 @@ for (const r of rows) {
   if (r.set === '2' && r._setpos === 0) s.slots.s2open++;
   if ((r.set === '1' || r.set === '2' || r.set === '3') && r._setpos === r._setlen - 1) s.slots.closer++;
   if (r.set === 'e' || r.set === 'e2') s.slots.encore++;
+  if (r.isjamchart === 1) s.jamchartPlays = (s.jamchartPlays || 0) + 1;
 }
 
 // median rotation interval (in shows) per song, modern era
@@ -66,6 +67,7 @@ function median(arr) {
   const m = Math.floor(a.length / 2);
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 }
+const MIN_PLAYS_FOR_JAMRATE = 5; // below this, a song's jam-chart rate is noise, not signal
 for (const s of songs.values()) {
   const idxs = [...new Set(s.plays)].map(d => showIndex.get(d)).sort((a, b) => a - b);
   s.playCount = idxs.length;
@@ -74,6 +76,10 @@ for (const s of songs.values()) {
   s.medianInterval = median(s.intervals);
   s.lastPlayed = s.plays[s.plays.length - 1];
   s.currentGap = totalShows - 1 - showIndex.get(s.lastPlayed); // shows since last played (0 = played at latest show)
+  // Share of a song's performances that phish.net's editors flagged as jam-chart-worthy
+  // (an extended/notable jam) — how reliably it "goes big" when it's played at all,
+  // independent of how often it gets played.
+  s.jamRate = s.playCount >= MIN_PLAYS_FOR_JAMRATE ? (s.jamchartPlays || 0) / s.playCount : 0;
 }
 
 // ---- HORIZONTAL SLICE: current summer tour
@@ -200,6 +206,31 @@ const perShowEra = tourShows.map(d => {
 });
 
 // ---- PREDICTION SCORING
+(async () => {
+const { isNearTourGap, isResetVenue } = await import('../lib/tourleg.mjs');
+
+// Forward schedule (one row per show-date, including shows that haven't happened yet —
+// this is how a big gap right after NEXT_SHOW, like the break before Dick's, is visible
+// before those future shows exist as setlists). Missing/not-yet-fetched cache files just
+// mean no leg-boundary signal is available, not a hard failure — see scripts/fetch.js.
+let scheduleRows = [];
+for (const y of years) {
+  try { scheduleRows.push(...load(`schedule-${y}`)); } catch { /* not fetched for this year */ }
+}
+// Last 1-2 shows before a detected multi-week break (e.g. a tour leg's close ahead of
+// the Labor Day stand at Dick's) historically favor extended/jam-chart-worthy playing
+// over rarer songs specifically — see lib/tourleg.mjs and the roadmap discussion this
+// came from. Applied as a quiet score nudge on each song's own jam-chart rate, not a
+// separate visible reason.
+const legEndWindow = isNearTourGap(NEXT_SHOW.date, scheduleRows);
+// MSG, Dick's, and Sphere measurably do NOT avoid material from the days right before
+// them the way a normal tour show does — carryover from the immediately preceding show
+// runs 2-3x the dataset's own baseline at all validated instances (lib/tourleg.mjs).
+// Softened, not zeroed: even at these venues most songs still don't repeat, just
+// noticeably more do than the "just played it" assumption normally accounts for.
+const RESET_VENUE_PENALTY_SCALE = 0.3;
+const nextShowIsResetVenue = isResetVenue(NEXT_SHOW.venue);
+
 const played729 = new Set(tourRows.filter(r => r.showdate === tourShows[tourShows.length - 1]).map(r => r.slug));
 const scored = [];
 for (const s of songs.values()) {
@@ -221,10 +252,11 @@ for (const s of songs.values()) {
     if (due > 4 && s.freq > 0.1) { score -= 3; why.push('possibly shelved'); }
   }
 
-  // tour recency penalties
+  // tour recency penalties — softened at reset venues (see RESET_VENUE_PENALTY_SCALE above)
+  const recencyScale = nextShowIsResetVenue ? RESET_VENUE_PENALTY_SCALE : 1;
   if (t && gapAtNext !== null) {
-    if (gapAtNext <= 2) { score -= 15; why.push(`just played ${t.dates[t.dates.length-1]}`); }
-    else if (gapAtNext <= 3) { score -= 6; why.push('played recently this tour'); }
+    if (gapAtNext <= 2) { score -= 15 * recencyScale; why.push(`just played ${t.dates[t.dates.length-1]}`); }
+    else if (gapAtNext <= 3) { score -= 6 * recencyScale; why.push('played recently this tour'); }
     else { score += 3; why.push(`tour repeat window open (gap ${gapAtNext})`); }
     if ([...new Set(t.dates)].length >= 3) { score -= 5; why.push('already 3+ tour plays'); }
   } else {
@@ -234,6 +266,9 @@ for (const s of songs.values()) {
 
   // venue affinity
   if (venueSongCounts.has(s.slug)) { score += 2.5 * venueSongCounts.get(s.slug); why.push(`played at Fenway ${venueSongCounts.get(s.slug)}x before`); }
+
+  // leg-end jam intensity — quiet nudge, no why-string (see comment above)
+  if (legEndWindow) score += (s.jamRate || 0) * 10;
 
   scored.push({
     slug: s.slug, name: s.name, score: +score.toFixed(1), why,
@@ -331,3 +366,4 @@ for (const c of scored.slice(0, 25)) console.log(` ${c.score.toString().padStart
 console.log('\nPredicted Set 1:', prediction.set1.map(x => x.name).join(' > '));
 console.log('Predicted Set 2:', prediction.set2.map(x => x.name).join(' > '));
 console.log('Encore:', prediction.encore.map(x => x.name).join(', '));
+})().catch(e => { console.error(e); process.exit(1); });
