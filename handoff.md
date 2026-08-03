@@ -1,399 +1,165 @@
-# Kalphishi — account & social roadmap
+# Kalphishi — state of the project
 
-Working plan for the next chunk of work, meant to be chipped away at across sessions.
-Each phase ships something usable on its own and is safe to stop after.
+Everything the account & social roadmap planned is shipped. This file is now the
+orientation doc: what exists, how to operate it, what was decided and why, and what is
+deliberately left undone. The phase-by-phase plan it replaced is in git history.
 
-Live: https://kalphishi.kalphishi.workers.dev · repo: https://github.com/NovoRetro/KalPhishi
-
----
-
-## Context
-
-The app is deployed on Cloudflare Workers + D1 and works, but accounts are thin:
-you sign in with a **name**, there is no concept of other people beyond a global
-leaderboard, and everything account-related is crammed into a row of buttons inside
-the Predictor card. The asks:
-
-- A hamburger menu (upper right) as the single home for identity and account actions.
-- Sign in with **email + password** instead of name + password.
-- Historical predictions (setlist *and* bingo) reachable from that menu.
-- Friends: invite, remove, group.
-- Change password.
-- Mark whether you were **physically at a show**, tracked alongside stats.
+**Live:** https://kalphishi.kalphishi.workers.dev
+**Repo:** https://github.com/NovoRetro/KalPhishi
 
 ---
 
-## Where things stand today
+## What it is
 
-**Identity.** `users.id = slugifyName(name)` — the primary key is derived from the
-login name. `predictions.user_id` and `sessions.user_id` both FK to it
-([migrations/0001_schema.sql](migrations/0001_schema.sql)).
+A Phish setlist predictor. It slices 2022+ setlist history several ways to guess the next
+show, lets users make their own call (setlist draft or 5×5 PHISH bingo), grades both
+against what actually got played, and keeps a public track record of how the *model*
+itself has done.
 
-Production D1 holds a handful of real accounts in three shapes — read the current rows
-out of D1 rather than hardcoding them anywhere:
-
-| shape | name | passhash | note |
-|---|---|---|---|
-| owner | an email address | PBKDF2 | the name is already an email, so the id is that email slugified |
-| legacy | a display name | `NULL` | pre-password account; claimable by registering that name |
-| public signup | a display name | PBKDF2 | registered through the live site after launch |
-
-That third shape is the one to keep in mind: the site is public and registration is open,
-so **the account list grows without warning**. Any auth change has to carry along people
-who signed up under name-based login and never gave an address.
-
-**Auth.** PBKDF2-HMAC-SHA-256, 100k iterations, `HttpOnly; Secure` cookie sessions with
-SHA-256-hashed tokens ([src/auth.mjs](src/auth.mjs)). 12-char minimum password.
-
-**Routes.** 13 live in [src/worker.mjs](src/worker.mjs): register, login, logout, me,
-profile (PUT), profile/:id (GET), predictions (GET/POST), live-check, score/:showdate,
-stats/:userId, venue-slice, leaderboard.
-
-**Frontend.** No build step or framework — [web/index.html](web/index.html) is the shell
-and inline dashboard script, [web/predictor.js](web/predictor.js) is the signed-in app.
-`renderTopBar()` (predictor.js:158) draws the current inline nav: Setlist · PHISH Bingo ·
-My History · Profile · Sign out. `renderHistory()` (predictor.js:~470) already lists both
-prediction types plus the leaderboard.
-
-**Profile fields.** `displayName, avatar, hometown, favoriteSong, bio` (worker.mjs:16).
+Runs entirely on Cloudflare Workers + D1. No framework, no bundler, no npm runtime
+dependencies — `wrangler` is the only devDependency.
 
 ---
 
-## Design decisions
+## Shipped
 
-These shape several phases, so settle them before Phase 1.
+| | |
+|---|---|
+| **Auth** | Email + password, PBKDF2 via Web Crypto, `HttpOnly; Secure` cookies, session tokens stored hashed |
+| **Account menu** | Hamburger, upper right: identity, history, profile, friends, change password, sign out |
+| **Predictor** | Setlist builder (touch drag-reorder) and PHISH bingo, both open to signed-out visitors — auth is only required to *save* |
+| **Attendance** | Mark "I was at this show"; accuracy splits by present vs remote |
+| **Friends** | Symmetric, established by invite link; no pending-request queue |
+| **Groups** | Owner-managed, drawn from your friends; leaderboards scope to Everyone / Friends / a group |
+| **Track record** | The model's own graded predictions, searchable, with ← Newer / Older → navigation |
+| **Model** | Horizontal (rotation) + vertical (venue) + album slices, set-1/set-2 placement affinity, tour-leg and reset-venue adjustments |
 
-### 1. Three separate identifiers, not one
-
-Today one value is doing three jobs. Split it:
-
-| field | role | exposed? |
-|---|---|---|
-| `id` | internal PK, FK target | never sent to clients after this change |
-| `email` | login credential, unique | only to the owner |
-| `handle` | public profile URL + @mentions | yes |
-
-**Why this matters now:** the public profile endpoint is `/api/profile/:id`, and any
-account whose name was an email has an id that is that address with its punctuation
-swapped for dashes. The URL is therefore a barely-obfuscated email, publicly fetchable,
-and anyone clicking a leaderboard row hits it. Adding `handle` fixes that leak.
-
-**Recommended:** keep `id` exactly as-is and add `email` + `handle` alongside. Do **not**
-rewrite `users.id` — that means rewriting `predictions.user_id` and `sessions.user_id` too,
-and the win is nil once `id` stops being exposed.
-
-### 2. Email sending is a real dependency — avoid it in v1
-
-Anything that *sends* mail (verification, password reset, emailed invites) needs an
-external provider. MailChannels' free Workers tier is gone; the realistic options are
-Resend, Postmark, or SES — all need signup, a verified sending domain, and SPF/DKIM DNS
-records. That is a meaningful detour.
-
-**Recommended for v1:** invite by **shareable link/code**, which the user passes along
-themselves however they like. No provider, no DNS, no cost.
-
-Consequences to accept, and say out loud in the UI:
-- **Email is unverified** — it is a login handle, not a proof of address.
-- **"Forgot password" is impossible.** Change-password-while-signed-in works fine;
-  account recovery does not. At friends-scale, recovery is a manual D1 update.
-
-Revisit if the app grows past people you can text.
-
-**Confirmed 2026-08-01:** registration stays happy-path — any well-formed address is
-accepted immediately, no confirmation step, no gate on account creation. Real
-verification (a signup email with a link back to the app that flips a `verified` flag)
-is real work — provider signup, a sending domain, DNS — and is deliberately deferred to
-a later phase (stubbed as Phase 6 below), not built defensively now.
-
-### 3. Attendance is self-reported
-
-There is no ticket integration and no geofence. A user marking "I was there" is a claim,
-not a fact. Fine for the intended use, but do not build anything that treats it as
-verified. Allow retroactive marking — people will forget until after the show.
-
-### 4. Friends: symmetric, accept-free in v1
-
-Skip pending/accept state initially. Redeeming someone's invite link creates the
-friendship in **both** directions immediately. Simpler schema, simpler UI, and matches how
-this will actually get used (people you already know). Add request/approve later only if
-strangers start showing up.
+Five D1 migrations, `0001`–`0005`. 87 tests, `npm test`.
 
 ---
 
-## Phase 1 — Email authentication ✅ (shipped 2026-08-01)
+## Operating it
 
-**Goal:** sign in with email + password; profile loads from that identity.
+### Deploys are automatic
+Merging to `main` runs `.github/workflows/deploy.yml`: tests → `build:ci` → `wrangler
+deploy`. Tests gate it, so a red suite cannot reach production. Requires repo secrets
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (both set).
 
-*Done and deployed. One addition found during rollout: `publicName()` in src/db.mjs —
-pre-email accounts can have an email address AS their `name`, and every public shape
-(leaderboard, profiles) must route names through it or the address leaks anyway. The
-legacy name+password login stays until `users.email` has no NULLs, then delete the
-branch in /api/login and the affordance in renderLogin.*
+**Migrations are deliberately NOT automated.** Schema changes are irreversible against
+live user data — run `npx wrangler d1 migrations apply kalphishi --remote` by hand, and
+do it *before* merging the code that depends on it.
 
-**Schema** — `migrations/0002_email_identity.sql`:
-```sql
-ALTER TABLE users ADD COLUMN email  TEXT;
-ALTER TABLE users ADD COLUMN handle TEXT;
-CREATE UNIQUE INDEX idx_users_email  ON users(LOWER(email)) WHERE email  IS NOT NULL;
-CREATE UNIQUE INDEX idx_users_handle ON users(LOWER(handle)) WHERE handle IS NOT NULL;
-```
-Backfill in the same migration, reading the live values out of D1 when you write it: set
-the owner row's `email` to the address its id was derived from, and give every row a
-`handle` — the legacy account can keep its existing name, and the owner needs one that is
-*not* derived from the email, or the leak just moves.
+### Advancing to the next show
+The predicted show resolves itself: a show is complete once phish.net publishes its
+setlist, and the target becomes the first scheduled date after that. Refreshing the
+caches is what moves it:
 
-**Backend** ([src/worker.mjs](src/worker.mjs), [src/db.mjs](src/db.mjs)):
-- `/api/register` takes `{email, password, displayName}`; normalize email to lowercase
-  and trim; validate shape; 409 on duplicate. Generate `id` (random or slug+suffix) and
-  `handle` from displayName with a collision suffix.
-- `/api/login` takes `{email, password}`; look up by `LOWER(email)`. Keep the response
-  identical so the frontend contract barely moves.
-- Add `getUserByEmail(env, email)` next to the existing `getUser` in db.mjs.
-- `/api/profile/:id` → `/api/profile/:handle`; stop returning `id` from `publicUser()`.
-- Keep the timing-safe compare and the generic "wrong email or password" error — do not
-  reveal whether an address is registered.
-
-**Carrying existing accounts across the cutover.** Registration is open, so this cannot be
-a manual D1 edit against a known list. Decided approach: a **one-time link-email flow**.
-
-- Login accepts either `{email, password}` or, while any row still lacks an email,
-  `{name, password}` — the legacy path, verified against the same passhash.
-- A session whose user has `email IS NULL` is *linked but incomplete*: `/api/me` reports
-  `needsEmail: true`, and the UI prompts for an address before anything else.
-- `POST /api/link-email {email}` sets it, subject to the same uniqueness check.
-- The passwordless legacy row has no password to verify, so it keeps the existing claim
-  path: registering its name sets a password and an email in one step.
-- Delete the legacy branch once `SELECT COUNT(*) FROM users WHERE email IS NULL` is 0.
-
-Nobody loses access or data, and no address has to be collected out of band.
-
-**Handles.** Auto-generated at registration from the display name, slugified, with a
-numeric suffix on collision — and editable later in Profile. Never derived from the email,
-or the leak just moves. Existing rows are backfilled by a script that reads the live rows
-rather than a hardcoded list.
-
-**Frontend** ([web/predictor.js](web/predictor.js) `renderLogin`, ~line 107): email field,
-`type="email"`, `autocomplete="email"`, plus a smaller "signed up before emails? sign in
-with your name" affordance that disappears with the legacy path.
-
-**Done when:** a fresh account registers with an email, signs out, signs back in, and sees
-its own predictions; every pre-existing account can still get in and is prompted to add an
-address; no endpoint returns an email-derived id.
-
----
-
-## Phase 2 — Hamburger menu ✅ (shipped 2026-08-01)
-
-**Goal:** one home, upper right, for identity and account actions.
-
-*Done and deployed. Implementation notes: the shell + open/close/focus semantics live in
-index.html; predictor.js pushes state via `window.KalphishiMenu.update(user, actions)` on
-every render. Change-password is menu-owned (calls PUT /api/password directly); the route
-revokes every other session for the user. The Friends item lands with Phase 4.*
-
-**Placement:** into `<header>` at [web/index.html:168](web/index.html:168), floated right
-of the `<h1>`. Position `fixed`/`sticky` so it stays reachable on long pages.
-
-**Contents:**
-- Signed out → "Sign in" / "Create account"
-- Signed in → avatar + display name + stat line (reuse `displayName()`/`avatarOf()`,
-  predictor.js:155-156), then: My History · Profile · Friends · Change password · Sign out
-
-**Move, don't duplicate:** the inline nav in `renderTopBar()` (predictor.js:158) shrinks to
-just **Setlist · PHISH Bingo** — the two things you actually build. History, Profile and
-Sign out move to the menu. Avoid two competing navs.
-
-**Change password:** new `PUT /api/password` taking `{currentPassword, newPassword}`.
-Verify current, enforce the 12-char minimum, re-hash, and **delete all other sessions for
-that user** so a password change kicks out other devices. Keep the caller signed in.
-
-**Mobile — do not regress the work just done:** drawer/sheet at `max-width: 560px`, not a
-dropdown. Needs Esc-to-close, tap-outside-to-close, `aria-expanded` + `aria-controls`, and
-focus moved into the panel on open and restored on close. Touch targets ≥44px. Remember
-the CSS ordering trap from last session: a phone breakpoint must come **after** the base
-rule it overrides — same specificity means source order decides.
-
-**Done when:** every account action is reachable from the menu on both a 375px viewport and
-desktop, and the Predictor card shows only the two builders.
-
----
-
-## Phase 3 — Show attendance ✅ (shipped 2026-08-02)
-
-**Goal:** mark "I was at this show", and surface it in stats.
-
-*Done and deployed, built as planned below. Notes: attendance is fetched whole on load
-and held as a Set in predictor.js, since My History needs every date anyway. The accuracy
-split only renders when BOTH sides exist — one number with nothing to compare against
-would read as a comparison. `showsAttended` is counted separately from the predictions
-join because a user can attend shows they never predicted.*
-
-**Schema** — `migrations/0003_attendance.sql`:
-```sql
-CREATE TABLE attendance (
-  user_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  showdate TEXT NOT NULL,              -- YYYY-MM-DD
-  created  TEXT NOT NULL,
-  PRIMARY KEY (user_id, showdate)
-);
-CREATE INDEX idx_attendance_showdate ON attendance(showdate);
-```
-Row present = attended. Unmarking deletes the row — no boolean column to keep in sync.
-
-**Backend:** `POST /api/attendance {showdate, attended}` (upsert/delete) and
-`GET /api/attendance?user=` . Extend `userStats()` ([src/db.mjs:23](src/db.mjs:23)) with
-`showsAttended`, and — the genuinely interesting stat — accuracy split by whether the user
-was there:
-```sql
-AVG(CASE WHEN a.user_id IS NOT NULL THEN p.score END) AS accuracyAtShows,
-AVG(CASE WHEN a.user_id IS     NULL THEN p.score END) AS accuracyRemote
-```
-via `LEFT JOIN attendance a ON a.user_id = p.user_id AND a.showdate = p.showdate`.
-
-**Frontend:** a toggle on the Predictor card near the show date ("🎟 I'm at this show"),
-and a column in My History. Allow toggling for past dates.
-
-**Done when:** the toggle round-trips, survives reload, and the split accuracy shows on
-the profile.
-
----
-
-## Phase 4 — Friends via invite links ✅ (shipped 2026-08-02)
-
-**Goal:** invite, accept, remove.
-
-*Done and deployed, built as planned below. Notes: redeeming an invite you've already
-redeemed is a no-op success rather than an error (re-opening a link should reassure, not
-fail) and doesn't burn a use. Revoking is scoped by owner_id, so someone else's code is a
-silent no-op rather than a 403 that would confirm the code exists. The pending invite is
-held in sessionStorage and the `?invite=` param is stripped immediately, so a refresh or a
-shared screenshot of the address bar can't re-trigger it.*
-
-**Schema** — `migrations/0004_friends.sql`:
-```sql
-CREATE TABLE friendships (
-  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  friend_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created   TEXT NOT NULL,
-  PRIMARY KEY (user_id, friend_id),
-  CHECK (user_id <> friend_id)
-);
-
-CREATE TABLE invites (
-  code       TEXT PRIMARY KEY,          -- random, URL-safe
-  owner_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created    TEXT NOT NULL,
-  expires    INTEGER,                   -- epoch ms, NULL = no expiry
-  max_uses   INTEGER,                   -- NULL = unlimited
-  uses       INTEGER NOT NULL DEFAULT 0
-);
-```
-Write **both** directions into `friendships` on redeem, in one `env.DB.batch()` so a
-half-formed friendship can't exist.
-
-**Backend:**
-- `POST /api/invites` → `{code, url}`; `GET /api/invites` lists own active codes;
-  `DELETE /api/invites/:code` revokes.
-- `POST /api/invites/:code/redeem` — reject self-redeem, already-friends, expired,
-  and over-max-uses. Increment `uses` in the same batch.
-- `GET /api/friends` / `DELETE /api/friends/:handle` (deletes both rows).
-- Redeeming while signed out: stash the code, run it after sign-in/registration.
-
-**Frontend:** a Friends panel in the menu — list with remove buttons, plus "Create invite
-link" with a copy-to-clipboard control. The link is `/?invite=CODE`.
-
-**Done when:** two accounts can befriend each other end-to-end via a link, and removal is
-symmetric.
-
----
-
-## Phase 5 — Friend groups & scoped leaderboards ✅ (shipped 2026-08-02)
-
-**Goal:** the actual payoff — leaderboards among people you know.
-
-*Done and deployed. Settled the two open questions this phase depended on: groups are
-owner-managed, and membership is drawn from your friends, so the invite link stays the
-single way to connect. The global board survives as one scope option rather than being
-dropped. Notes: the owner is stored as a member row too, so leaderboard queries are a
-plain join instead of "members UNION the owner" everywhere. Unfriending someone deletes
-the corresponding group memberships in the same batch — otherwise they'd be stranded in
-a friends-only group they could no longer be re-added to. The owner can't leave their own
-group (delete it instead), and deleting someone else's group is a silent no-op, matching
-how invite revocation avoids confirming what exists.*
-
-**Schema** — `migrations/0005_groups.sql`:
-```sql
-CREATE TABLE friend_groups (
-  id       TEXT PRIMARY KEY,
-  owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  name     TEXT NOT NULL,
-  created  TEXT NOT NULL
-);
-CREATE TABLE friend_group_members (
-  group_id TEXT NOT NULL REFERENCES friend_groups(id) ON DELETE CASCADE,
-  user_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  PRIMARY KEY (group_id, user_id)
-);
+```bash
+rm data/setlists-2026.json data/schedule-2026.json data/songs.json
+npm run fetch && npm run analyze && npm run build
 ```
 
-**Backend:** CRUD on groups and membership, plus `GET /api/leaderboard?scope=friends` and
-`?scope=group:<id>`. Extend rather than replace the existing handler (worker.mjs:207).
+Then commit the changed `data/*.json` and push — that push deploys. Nothing is hardcoded
+to a date or venue any more; the venue history, the "played at X Nx before" reasoning and
+the "Gap at ..." column all follow whatever resolves.
 
-**Frontend:** scope selector on the leaderboard (Everyone / Friends / a group), and group
-management in the Friends panel.
+### Which data files are committed, and why
+`data/*.json` is gitignored **except** the five the site serves — `analysis.json`,
+`songs.json`, `venues.json`, `songmeta.json`, `history.json` — plus `data/archive/*.json`.
 
-**Done when:** a group leaderboard ranks only its members, and attendance shows there too
-("3 of 5 were at this one").
-
----
-
-## Phase 6 — Email verification (not started, deferred by design)
-
-**Goal:** prove an address is real, without which "forgot password" stays impossible
-(Design Decision 2).
-
-Needs, before any code: a provider (Resend is the least setup), a sending domain you
-control, and its SPF/DKIM DNS records. Then: a `verified` column on `users`, a signup
-email with a signed, expiring token, `GET /api/verify?token=...` to flip it, and a
-decision on what an unverified account can't do in the meantime (nothing, by default —
-verification is a nice-to-have here, not a gate, unless abuse shows up).
-
-Pick this up only when the app outgrows "people you can text" — see Design Decision 2.
+- The five are committed so CI can deploy without a phish.net key or minutes of fetching.
+- The archive is committed because it holds point-in-time predictions that **cannot be
+  regenerated** once `analysis.json` advances. Losing it would destroy the accuracy record
+  permanently. `test/assets.test.mjs` guards the gitignore pattern against being broadened
+  to `data/**/*.json`, which would silently stop tracking it.
+- The ~14MB of raw setlist caches stay ignored; they are only inputs.
 
 ---
 
-## Open questions
+## Decisions already settled — don't re-litigate
 
-*Settled: build order (email auth first), how existing accounts cross the cutover (one-time
-link-email flow), and handle format (auto from display name, editable in Profile). All
-three are written into Phase 1 above.*
-
-*Also settled in Phase 5: group membership is owner-managed, groups draw only from your
-friends, and the global leaderboard stays as one scope option alongside Friends and each
-group.*
-
-1. **Attendance granularity** — Phish plays multi-night runs at one venue. Keying on
-   `showdate` handles that correctly, but confirm there is never more than one show per
-   date (festivals?).
-4. **Does the global leaderboard stay?** Once friend leaderboards exist, a public
-   all-users board may not be wanted. Easy to keep, easy to drop — your call.
-5. **Email verification** — deferred per Design Decision 2. Revisit if this goes beyond
-   people you can text.
+- **Email is unverified.** Registration is happy-path: any well-formed address is accepted,
+  no confirmation. Sending mail needs a provider + verified domain + DNS, which is real
+  work for little gain at this scale. Consequence: **no "forgot password"** — recovery is a
+  manual D1 update.
+- **`MIN_PASSWORD_LENGTH` is temporarily 6**, lowered from 12 for testing convenience.
+  Raise it before this matters. Flagged in `src/auth.mjs`, README, and the test asserting
+  the floor.
+- **Three identifiers, not one.** `id` internal (never sent to clients), `email` the login,
+  `handle` the public profile URL. Fixed a real leak where profile URLs exposed a
+  slugified email.
+- **Friends are symmetric and accept-free.** Redeeming a link friends both parties
+  immediately. Groups are owner-managed and drawn only from friends, so the invite link is
+  the single way to connect.
+- **Attendance is self-reported.** No ticket integration, no geofence. Nothing downstream
+  should treat it as verified.
+- **The global leaderboard stays** as one scope option alongside Friends and groups.
 
 ---
 
-## Working notes
+## Deliberate behaviours that look like bugs
 
-- **Deploys run from this machine.** `public/` is assembled at build time from the
-  gitignored `data/`, so CI can't build it. `npm run deploy`.
-- **Schema changes:** add a file in `migrations/`, then
-  `npx wrangler d1 migrations apply kalphishi --local` and, when ready,
-  `--remote`. Local D1 state is keyed by `database_id` — changing that id in
-  `wrangler.jsonc` silently points local dev at an empty database.
-- **Never bulk-delete from `users`/`predictions`.** Production holds real accounts and real
-  predictions, and registration is open so the count only grows. Clean up test rows by
-  explicit id, as done in the deploy verification — never by truncating a table.
-- **Verify at 375px**, not just desktop. Last session's mobile fixes are in
-  `web/predictor.js` (Pointer Events drag) and `web/index.html` (phone breakpoint,
-  tap tooltips).
-- **Cron** `0 13,17,21 * * *` auto-scores past shows; it does not depend on this machine.
+- Re-redeeming an invite you already used **succeeds** (and doesn't burn a use) rather
+  than erroring — re-opening a link should reassure, not fail.
+- Revoking someone else's invite, or deleting someone else's group, is a **silent no-op**,
+  not a 403 — a 403 would confirm the thing exists.
+- `/api/songmeta` returns **404**; it was replaced by the static `/data/songmeta.json`,
+  which is what keeps 9MB of setlist dumps out of the deploy.
+- The track record shows **nothing before 2026-07-31**, the app's first live prediction.
+  A backfilled show would be graded against a setlist that already existed, inflating the
+  numbers and claiming the model called shows it never saw.
+- The prediction currently targets **September 4**, a month out. Correct — the Fenway run
+  is finished and Dick's is genuinely next.
+
+---
+
+## Gotchas that cost time
+
+- **Cloudflare's edge lags a deploy** by up to a couple of minutes, and its cache key
+  ignores query strings — cache-busting URLs don't help, only waiting does. This produced
+  three separate false "the deploy is broken" moments. Don't trust an immediate
+  post-deploy check.
+- **Local D1 state is keyed by `database_id`.** Changing it in `wrangler.jsonc` silently
+  points `wrangler dev` at an empty database.
+- **Multi-statement `--command` can crash mid-way** on Windows without applying anything.
+  Run one statement per invocation.
+- **User ids are random now** (`u-<uuid>`), not slugs. Cleanup queries must target
+  `handle`, not `id` — targeting `id` matches nothing and silently no-ops.
+- **CSS: same specificity means source order decides.** A phone breakpoint placed *before*
+  the base rule it overrides does nothing. Encoded as a test.
+- **`predictor.js` rebuilds its own `<h2>` on render**, so anything bound directly to that
+  heading is discarded. Collapse uses delegation + a MutationObserver for this reason.
+- **Deploys need `data/`**, so a fresh clone cannot run `npm run build` — only
+  `npm run build:ci`, which uses the committed artifacts.
+
+---
+
+## Open / not started
+
+1. **Email verification** — deferred by design (above). Needs a provider, a sending
+   domain, DNS, then a token flow. Only worth it if this outgrows people you can text.
+2. **Raise the password floor** back to 12 before real use.
+3. **Attendance granularity** — keyed on `showdate`; confirm Phish never plays two shows
+   on one date (festivals?).
+4. **Open registration is unrate-limited and unverified.** Fine at this scale, but the
+   site is public and strangers have already signed up (`santos`, `novoretro` are real,
+   unsolicited registrations — leave them alone).
+5. **GitHub Actions warns** that `checkout@v4` / `setup-node@v4` / `wrangler-action@v3`
+   target the deprecated Node 20 and are being forced onto 24. Harmless; bump when new
+   majors ship.
+
+---
+
+## Key files
+
+| Path | What |
+|---|---|
+| `src/worker.mjs` | Every route, one linear if-chain on pathname |
+| `src/auth.mjs` | PBKDF2, cookies, sessions — Web Crypto only, so it tests in plain Node |
+| `src/db.mjs` | D1 queries; `publicUser`/`publicName` are the "never leak an email" boundary |
+| `lib/` | Pure, unit-tested logic: `scoring`, `identity`, `tourleg`, `phishnet-core` |
+| `web/index.html` | Shell, all CSS, dashboard script, account menu, auth modal, track record |
+| `web/predictor.js` | The signed-in app: builder, bingo, history, profile |
+| `scripts/analyze.js` | The model. `resolveNextShow()` is what makes it self-advancing |
+| `scripts/build-public.js` | Publish allowlist — an explicit list, not a filter, so secrets cannot leak |
+| `migrations/` | `0001` schema → `0005` groups |
