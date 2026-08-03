@@ -400,7 +400,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
             rm.disabled = true;
             try {
               await mfetch('/api/friends/' + encodeURIComponent(f.handle), 'DELETE');
-              await drawFriends();
+              // Unfriending also drops them from your groups server-side, so member
+              // counts here would otherwise show stale numbers.
+              await Promise.all([drawFriends(), drawGroups()]);
             } catch (e) { rm.disabled = false; msg.textContent = e.message; }
           });
           row.appendChild(rm);
@@ -453,13 +455,131 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
         }
       }
 
+      const groupHost = el('div');
+
+      async function drawGroups() {
+        groupHost.innerHTML = '';
+        groupHost.appendChild(el('div', 'setlabel', 'Groups'));
+        let groups = [], friends = [];
+        try {
+          [groups, friends] = await Promise.all([
+            mfetch('/api/groups', 'GET').then(j => j.groups),
+            mfetch('/api/friends', 'GET').then(j => j.friends),
+          ]);
+        } catch (e) { groupHost.appendChild(el('div', 'menu-note', e.message)); return; }
+
+        if (!groups.length) groupHost.appendChild(el('div', 'menu-note', 'No groups yet.'));
+        for (const g of groups) {
+          const row = el('div', 'friend-row',
+            `<span><b>${esc(g.name)}</b> <span class="menu-stats">${g.memberCount} member${g.memberCount === 1 ? '' : 's'}` +
+            `${g.isOwner ? '' : ' · joined'}</span></span>`);
+          // Owners manage; everyone else can only leave.
+          if (g.isOwner) {
+            const add = el('button', 'friend-remove', '＋ Add');
+            add.style.color = 'var(--ink-2)';
+            add.addEventListener('click', () => drawAddPicker(g, friends));
+            row.appendChild(add);
+            const del = el('button', 'friend-remove', 'Delete');
+            del.addEventListener('click', async () => {
+              del.disabled = true;
+              try { await mfetch('/api/groups/' + encodeURIComponent(g.id), 'DELETE'); await drawGroups(); }
+              catch (e) { del.disabled = false; msg.textContent = e.message; }
+            });
+            row.appendChild(del);
+          } else {
+            const leave = el('button', 'friend-remove', 'Leave');
+            leave.addEventListener('click', async () => {
+              leave.disabled = true;
+              try {
+                await mfetch(`/api/groups/${encodeURIComponent(g.id)}/members/${encodeURIComponent(user.handle)}`, 'DELETE');
+                await drawGroups();
+              } catch (e) { leave.disabled = false; msg.textContent = e.message; }
+            });
+            row.appendChild(leave);
+          }
+          groupHost.appendChild(row);
+        }
+
+        const nameInput = el('input', 'ta-input');
+        nameInput.placeholder = 'new group name';
+        const create = el('button', 'p-btn', 'Create group');
+        const go = async () => {
+          const name = nameInput.value.trim();
+          if (!name) return;
+          create.disabled = true;
+          try { await mfetch('/api/groups', 'POST', { name }); nameInput.value = ''; await drawGroups(); }
+          catch (e) { msg.textContent = e.message; }
+          create.disabled = false;
+        };
+        create.addEventListener('click', go);
+        nameInput.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); });
+        groupHost.appendChild(nameInput);
+        groupHost.appendChild(create);
+      }
+
+      // Only friends are offered — groups are subsets of your friend list, so there is
+      // no free-text handle entry that would bypass the invite flow.
+      async function drawAddPicker(g, friends) {
+        groupHost.innerHTML = '';
+        groupHost.appendChild(el('div', 'setlabel', `Add to ${g.name}`));
+        let members = [];
+        try { members = (await mfetch(`/api/groups/${encodeURIComponent(g.id)}/members`, 'GET')).members; }
+        catch { /* fall through with an empty list */ }
+        const inGroup = new Set(members.map(m => m.handle));
+        const available = friends.filter(f => !inGroup.has(f.handle));
+        if (!available.length) {
+          groupHost.appendChild(el('div', 'menu-note', friends.length
+            ? 'All your friends are already in this group.'
+            : 'Add friends first — share an invite link above.'));
+        }
+        for (const f of available) {
+          const row = el('div', 'friend-row', `<span><b>${esc(f.name)}</b> <span class="menu-stats">@${esc(f.handle)}</span></span>`);
+          const add = el('button', 'friend-remove', 'Add');
+          add.style.color = 'var(--ink-2)';
+          add.addEventListener('click', async () => {
+            add.disabled = true;
+            try {
+              await mfetch(`/api/groups/${encodeURIComponent(g.id)}/members`, 'POST', { handle: f.handle });
+              await drawAddPicker(g, friends);
+            } catch (e) { add.disabled = false; msg.textContent = e.message; }
+          });
+          row.appendChild(add);
+          groupHost.appendChild(row);
+        }
+        // Members currently in the group, with removal for the owner.
+        if (members.length > 1) {
+          groupHost.appendChild(el('div', 'setlabel', 'In this group'));
+          for (const mem of members) {
+            const row = el('div', 'friend-row',
+              `<span><b>${esc(mem.name)}</b> <span class="menu-stats">@${esc(mem.handle)}${mem.isOwner ? ' · owner' : ''}</span></span>`);
+            if (!mem.isOwner) {
+              const rm = el('button', 'friend-remove', 'Remove');
+              rm.addEventListener('click', async () => {
+                rm.disabled = true;
+                try {
+                  await mfetch(`/api/groups/${encodeURIComponent(g.id)}/members/${encodeURIComponent(mem.handle)}`, 'DELETE');
+                  await drawAddPicker(g, friends);
+                } catch (e) { rm.disabled = false; msg.textContent = e.message; }
+              });
+              row.appendChild(rm);
+            }
+            groupHost.appendChild(row);
+          }
+        }
+        const back = el('button', 'p-btn p-btn-alt', '← Back to groups');
+        back.addEventListener('click', () => drawGroups());
+        groupHost.appendChild(back);
+      }
+
       wrap.appendChild(listHost);
       wrap.appendChild(inviteHost);
+      wrap.appendChild(groupHost);
       wrap.appendChild(msg);
       panel.appendChild(wrap);
       panel.appendChild(item('← Back', () => drawContent()));
       drawFriends();
       drawInvites();
+      drawGroups();
       return;
     }
 

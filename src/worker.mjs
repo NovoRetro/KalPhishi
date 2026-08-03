@@ -252,11 +252,140 @@ async function api(request, env, ctx, { p, m, q, url }) {
     if (!user) return err(401, 'not signed in');
     const other = await getUserByHandle(env, decodeURIComponent(p.split('/').pop()));
     if (!other) return err(404, 'no such user');
-    // Both directions, or the two of them would disagree about being friends.
+    // Both directions, or the two of them would disagree about being friends. Group
+    // membership goes too — groups are friends-only, so leaving them behind would strand
+    // someone in a group they could no longer be re-added to. Each direction only touches
+    // groups the *other* person owns... but expressed as: drop each from the other's
+    // owned groups, so neither keeps the other in a group after the friendship ends.
     await env.DB.batch([
       env.DB.prepare('DELETE FROM friendships WHERE user_id = ?1 AND friend_id = ?2').bind(user.id, other.id),
       env.DB.prepare('DELETE FROM friendships WHERE user_id = ?1 AND friend_id = ?2').bind(other.id, user.id),
+      env.DB.prepare(
+        `DELETE FROM friend_group_members
+          WHERE user_id = ?2
+            AND group_id IN (SELECT id FROM friend_groups WHERE owner_id = ?1)`
+      ).bind(user.id, other.id),
+      env.DB.prepare(
+        `DELETE FROM friend_group_members
+          WHERE user_id = ?1
+            AND group_id IN (SELECT id FROM friend_groups WHERE owner_id = ?2)`
+      ).bind(user.id, other.id),
     ]);
+    return json({ ok: true });
+  }
+
+  if (p === '/api/groups' && m === 'GET') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    // Groups you're in, whether you made them or were added — owner-ness is a flag on
+    // the row rather than a separate list, so the UI can show both in one place.
+    const { results } = await env.DB.prepare(
+      `SELECT g.id, g.name, g.owner_id, g.created,
+              (SELECT COUNT(*) FROM friend_group_members WHERE group_id = g.id) AS memberCount
+         FROM friend_groups g
+         JOIN friend_group_members mem ON mem.group_id = g.id AND mem.user_id = ?1
+        ORDER BY g.created DESC`
+    ).bind(user.id).all();
+    return json({
+      groups: results.map(r => ({
+        id: r.id, name: r.name, memberCount: r.memberCount,
+        created: r.created, isOwner: r.owner_id === user.id,
+      })),
+    });
+  }
+
+  if (p === '/api/groups' && m === 'POST') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const { name } = await body(request);
+    const clean = String(name ?? '').trim().slice(0, 40);
+    if (!clean) return err(400, 'group name required');
+    const id = [...crypto.getRandomValues(new Uint8Array(8))]
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    const now = new Date().toISOString();
+    // Owner joins as a member in the same batch, so a group is never memberless.
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO friend_groups (id, owner_id, name, created) VALUES (?1, ?2, ?3, ?4)')
+        .bind(id, user.id, clean, now),
+      env.DB.prepare('INSERT INTO friend_group_members (group_id, user_id, created) VALUES (?1, ?2, ?3)')
+        .bind(id, user.id, now),
+    ]);
+    return json({ group: { id, name: clean, memberCount: 1, created: now, isOwner: true } });
+  }
+
+  if (p.startsWith('/api/groups/') && p.endsWith('/members') && m === 'GET') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const gid = decodeURIComponent(p.split('/').slice(-2)[0]);
+    // Membership is the read permission: you can only see a group you're part of.
+    const mine = await env.DB.prepare(
+      'SELECT 1 AS ok FROM friend_group_members WHERE group_id = ?1 AND user_id = ?2'
+    ).bind(gid, user.id).first();
+    if (!mine) return err(404, 'no such group');
+    const { results } = await env.DB.prepare(
+      `SELECT u.handle, u.name, u.profile, (g.owner_id = u.id) AS isOwner
+         FROM friend_group_members mem
+         JOIN users u ON u.id = mem.user_id
+         JOIN friend_groups g ON g.id = mem.group_id
+        WHERE mem.group_id = ?1
+        ORDER BY isOwner DESC, mem.created ASC`
+    ).bind(gid).all();
+    return json({
+      members: results.map(r => ({
+        handle: r.handle, name: publicName(r),
+        profile: JSON.parse(r.profile || '{}'), isOwner: !!r.isOwner,
+      })),
+    });
+  }
+
+  if (p.startsWith('/api/groups/') && p.endsWith('/members') && m === 'POST') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const gid = decodeURIComponent(p.split('/').slice(-2)[0]);
+    const g = await env.DB.prepare('SELECT id, owner_id FROM friend_groups WHERE id = ?1').bind(gid).first();
+    if (!g) return err(404, 'no such group');
+    if (g.owner_id !== user.id) return err(403, 'only the group owner can add people');
+    const { handle } = await body(request);
+    const target = await getUserByHandle(env, String(handle ?? '').trim());
+    if (!target) return err(404, 'no such user');
+    // Friends-only: the invite link stays the single way to connect to someone.
+    if (!(await areFriends(env, user.id, target.id))) {
+      return err(400, 'you can only add your own friends to a group');
+    }
+    await env.DB.prepare(
+      'INSERT INTO friend_group_members (group_id, user_id, created) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING'
+    ).bind(gid, target.id, new Date().toISOString()).run();
+    return json({ ok: true });
+  }
+
+  if (p.startsWith('/api/groups/') && p.includes('/members/') && m === 'DELETE') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const parts = p.split('/');
+    const gid = decodeURIComponent(parts[parts.length - 3]);
+    const handle = decodeURIComponent(parts[parts.length - 1]);
+    const g = await env.DB.prepare('SELECT id, owner_id FROM friend_groups WHERE id = ?1').bind(gid).first();
+    if (!g) return err(404, 'no such group');
+    const target = await getUserByHandle(env, handle);
+    if (!target) return err(404, 'no such user');
+    // The owner can remove anyone; anyone else may only remove themselves (leave).
+    const isSelf = target.id === user.id;
+    if (g.owner_id !== user.id && !isSelf) return err(403, 'only the group owner can remove people');
+    if (g.owner_id === target.id) {
+      return err(400, 'the owner cannot leave their own group — delete it instead');
+    }
+    await env.DB.prepare('DELETE FROM friend_group_members WHERE group_id = ?1 AND user_id = ?2')
+      .bind(gid, target.id).run();
+    return json({ ok: true });
+  }
+
+  if (p.startsWith('/api/groups/') && m === 'DELETE') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    // Scoped to owner_id: deleting someone else's group is a silent no-op, matching how
+    // invite revocation avoids confirming what exists.
+    await env.DB.prepare('DELETE FROM friend_groups WHERE id = ?1 AND owner_id = ?2')
+      .bind(decodeURIComponent(p.split('/').pop()), user.id).run();
     return json({ ok: true });
   }
 
@@ -413,20 +542,50 @@ async function api(request, env, ctx, { p, m, q, url }) {
   }
 
   if (p === '/api/leaderboard' && m === 'GET') {
-    const { results } = await env.DB.prepare(
+    // scope: everyone (default) | friends | group:<id>. Friends and group scopes need a
+    // session; everyone stays open so a signed-out visitor still sees a board.
+    const scope = q.get('scope') || 'everyone';
+    let restrictSql = '', binds = [];
+    if (scope !== 'everyone') {
+      const me = await currentUser(request, env);
+      if (!me) return err(401, 'sign in to see a scoped leaderboard');
+      if (scope === 'friends') {
+        // Include yourself — a leaderboard you're absent from isn't much of a comparison.
+        restrictSql = `AND (u.id = ?1 OR u.id IN (SELECT friend_id FROM friendships WHERE user_id = ?1))`;
+        binds = [me.id];
+      } else if (scope.startsWith('group:')) {
+        const gid = scope.slice('group:'.length);
+        const mine = await env.DB.prepare(
+          'SELECT 1 AS ok FROM friend_group_members WHERE group_id = ?1 AND user_id = ?2'
+        ).bind(gid, me.id).first();
+        if (!mine) return err(404, 'no such group');
+        restrictSql = `AND u.id IN (SELECT user_id FROM friend_group_members WHERE group_id = ?1)`;
+        binds = [gid];
+      } else {
+        return err(400, 'unknown scope');
+      }
+    }
+
+    const stmt = env.DB.prepare(
       `SELECT u.handle, u.name, u.created, u.profile,
               COUNT(p.id)          AS predictions,
               COUNT(p.result)      AS scored,
               ROUND(AVG(p.score), 1) AS accuracy,
-              SUM(CASE WHEN p.type = 'bingo' AND p.bingo = 1 THEN 1 ELSE 0 END) AS bingos
+              SUM(CASE WHEN p.type = 'bingo' AND p.bingo = 1 THEN 1 ELSE 0 END) AS bingos,
+              (SELECT COUNT(*) FROM attendance a WHERE a.user_id = u.id) AS showsAttended
          FROM users u JOIN predictions p ON p.user_id = u.id
+        WHERE 1=1 ${restrictSql}
         GROUP BY u.id
        HAVING scored > 0
         ORDER BY accuracy DESC`
-    ).all();
+    );
+    const { results } = await (binds.length ? stmt.bind(...binds) : stmt).all();
     // stats appear both nested and spread at top level — the frontend reads the top-level copies
     return json(results.map(r => {
-      const stats = { predictions: r.predictions, scored: r.scored, accuracy: r.accuracy, bingos: r.bingos || 0 };
+      const stats = {
+        predictions: r.predictions, scored: r.scored, accuracy: r.accuracy,
+        bingos: r.bingos || 0, showsAttended: r.showsAttended || 0,
+      };
       return { handle: r.handle, name: publicName(r), created: r.created, profile: JSON.parse(r.profile || '{}'), stats, ...stats };
     }));
   }
