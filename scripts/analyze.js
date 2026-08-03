@@ -5,7 +5,38 @@ const dataDir = path.join(__dirname, '..', 'data');
 const load = n => JSON.parse(fs.readFileSync(path.join(dataDir, `${n}.json`), 'utf8'));
 
 const TOUR = '2026 Summer Tour';
-const NEXT_SHOW = { date: '2026-08-01', venue: 'Fenway Park', city: 'Boston, MA' }; // night 2 of the Fenway stand
+
+// NEXT_SHOW derives itself rather than being hardcoded, so the app rolls forward on its
+// own once a show is played: a show counts as complete when phish.net publishes its
+// setlist, and the target becomes the first scheduled date after that. Refreshing the
+// caches (`npm run fetch` after deleting setlists-<year>.json) is what advances it.
+//
+// Falls back to the last scheduled show when the tour is over and nothing is left ahead
+// — better to keep showing the final show than to render an app with no target at all.
+function resolveNextShow() {
+  const played = new Set();
+  const scheduled = [];
+  for (const y of [2022, 2023, 2024, 2025, 2026]) {
+    for (const r of load(`setlists-${y}`)) {
+      if (r.artistid === 1 && !r.exclude) played.add(r.showdate);
+    }
+    let sched = [];
+    try { sched = load(`schedule-${y}`); } catch { continue; } // year not fetched yet
+    for (const s of sched) if (s.artistid === 1) scheduled.push(s);
+  }
+  scheduled.sort((a, b) => a.showdate.localeCompare(b.showdate));
+  const lastPlayed = [...played].sort().pop() || '';
+  const upcoming = scheduled.filter(s => s.showdate > lastPlayed);
+  const target = upcoming[0] || scheduled[scheduled.length - 1];
+  if (!target) throw new Error('no scheduled shows found — fetch schedule-<year>.json first');
+  return {
+    date: target.showdate,
+    venue: target.venue,
+    city: [target.city, target.state].filter(Boolean).join(', '),
+    venueid: target.venueid,
+  };
+}
+const NEXT_SHOW = resolveNextShow();
 
 // ---- load all setlist rows, phish only, exclude soundchecks/excluded rows
 const years = [2022, 2023, 2024, 2025, 2026];
@@ -123,7 +154,7 @@ const absent = [...songs.values()]
 
 // due-back-up: songs played this tour but gap since last tour play >= typical intra-tour repeat cadence
 const medianRepeatGap = median(intraTourGaps) ?? 4;
-const nextShowTourIdx = tourShows.length; // index the Fenway show would have
+const nextShowTourIdx = tourShows.length; // index the upcoming show would occupy
 const dueBackUp = [...tourSongs.values()]
   .map(t => {
     const lastIdx = tourShowIdx.get([...new Set(t.dates)].sort().pop());
@@ -138,14 +169,28 @@ const dueBackUp = [...tourSongs.values()]
   .filter(x => x.gapAtNext >= Math.min(medianRepeatGap, 5) && x.eraFreq >= 0.1)
   .sort((a, b) => b.gapAtNext - a.gapAtNext || b.eraFreq - a.eraFreq);
 
-// ---- VERTICAL SLICE: Fenway history
-const venueShows = load('shows-venue-498')
-  .filter(s => s.artistid === 1 && s.showdate < NEXT_SHOW.date)
-  .map(s => s.showdate).sort();
-const venueSetlists = venueShows.map(d => {
-  const rs = load(`setlist-${d}`).filter(r => r.artistid === 1 && r.set !== 's');
+// ---- VERTICAL SLICE: history at whatever venue NEXT_SHOW resolved to.
+// Follows the venue rather than hardcoding one, so advancing to the next show also
+// advances the venue history. Missing caches degrade to an empty slice instead of
+// throwing — fetch.js pulls them on the next run, and a prediction without venue
+// history is still useful, where a crashed pipeline is not.
+const nextVenueId = NEXT_SHOW.venueid;
+let venueShows = [];
+try {
+  venueShows = load(`shows-venue-${nextVenueId}`)
+    .filter(s => s.artistid === 1 && s.showdate < NEXT_SHOW.date)
+    .map(s => s.showdate).sort();
+} catch {
+  console.warn(`no cached shows for venue ${nextVenueId} — run npm run fetch to populate the venue slice`);
+}
+const venueSetlists = venueShows.flatMap(d => {
+  let rs;
+  try { rs = load(`setlist-${d}`).filter(r => r.artistid === 1 && r.set !== 's'); }
+  catch { return []; } // that show's setlist isn't cached yet
   rs.sort((a, b) => a.position - b.position);
-  return {
+  // Wrapped in an array: flatMap would otherwise spread the object's own iterable-ness
+  // rather than treating it as a single item.
+  return [{
     date: d,
     tour: rs[0]?.tourname,
     notes: (rs[0]?.setlistnotes || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
@@ -155,7 +200,7 @@ const venueSetlists = venueShows.map(d => {
         rs.filter(r => r.set === set).map(r => ({ song: r.song, slug: r.slug, trans: r.trans_mark })),
       ])
     ),
-  };
+  }];
 });
 const venueSongCounts = new Map();
 for (const vs of venueSetlists) {
@@ -270,7 +315,7 @@ for (const s of songs.values()) {
   if (played729.has(s.slug)) { score -= 10; }
 
   // venue affinity
-  if (venueSongCounts.has(s.slug)) { score += 2.5 * venueSongCounts.get(s.slug); why.push(`played at Fenway ${venueSongCounts.get(s.slug)}x before`); }
+  if (venueSongCounts.has(s.slug)) { score += 2.5 * venueSongCounts.get(s.slug); why.push(`played at ${NEXT_SHOW.venue} ${venueSongCounts.get(s.slug)}x before`); }
 
   // leg-end jam intensity — quiet nudge, no why-string (see comment above)
   if (legEndWindow) score += (s.jamRate || 0) * 10;
