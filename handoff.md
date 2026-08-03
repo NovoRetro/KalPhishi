@@ -218,9 +218,15 @@ desktop, and the Predictor card shows only the two builders.
 
 ---
 
-## Phase 3 — Show attendance
+## Phase 3 — Show attendance ✅ (shipped 2026-08-02)
 
 **Goal:** mark "I was at this show", and surface it in stats.
+
+*Done and deployed, built as planned below. Notes: attendance is fetched whole on load
+and held as a Set in predictor.js, since My History needs every date anyway. The accuracy
+split only renders when BOTH sides exist — one number with nothing to compare against
+would read as a comparison. `showsAttended` is counted separately from the predictions
+join because a user can attend shows they never predicted.*
 
 **Schema** — `migrations/0003_attendance.sql`:
 ```sql

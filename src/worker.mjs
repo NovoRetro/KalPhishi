@@ -9,7 +9,7 @@ import {
 } from './auth.mjs';
 import {
   rowToPrediction, userStats, publicUser, ownUser, publicName,
-  getUser, getUserByEmail, getUserByHandle, anyUserLacksEmail,
+  getUser, getUserByEmail, getUserByHandle, anyUserLacksEmail, attendedShows,
 } from './db.mjs';
 import { venueSlice } from './phishnet.mjs';
 
@@ -238,6 +238,40 @@ async function api(request, env, ctx, { p, m, q, url }) {
 
     if (!res.meta.changes) return err(409, 'already scored — cannot edit');
     return json({ ok: true });
+  }
+
+  if (p === '/api/attendance' && m === 'GET') {
+    // Own attendance by default; ?user=<handle> exposes someone else's, which is fine —
+    // "I was at this show" is public-facing, the same as a prediction.
+    const handle = q.get('user');
+    let userId;
+    if (handle) {
+      const target = await getUserByHandle(env, handle);
+      if (!target) return err(404, 'no such user');
+      userId = target.id;
+    } else {
+      const me = await currentUser(request, env);
+      if (!me) return err(401, 'not signed in');
+      userId = me.id;
+    }
+    return json({ showdates: await attendedShows(env, userId) });
+  }
+
+  if (p === '/api/attendance' && m === 'POST') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const { showdate, attended } = await body(request);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(showdate || '')) return err(400, 'showdate must be YYYY-MM-DD');
+    if (attended) {
+      // Idempotent: re-marking an already-marked show must not error or move `created`.
+      await env.DB.prepare(
+        'INSERT INTO attendance (user_id, showdate, created) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING'
+      ).bind(user.id, showdate, new Date().toISOString()).run();
+    } else {
+      await env.DB.prepare('DELETE FROM attendance WHERE user_id = ?1 AND showdate = ?2')
+        .bind(user.id, showdate).run();
+    }
+    return json({ ok: true, showdate, attended: !!attended });
   }
 
   if (p === '/api/live-check' && m === 'POST') {

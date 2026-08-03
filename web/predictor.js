@@ -16,6 +16,9 @@ function initPredictor(mount, A) {
   let locks = Array(25).fill(false); // build-mode only: locked squares survive Randomize
   let livePrediction = null; // saved bingo prediction being played live
   let bingoDeclared = false;
+  // Every show the signed-in user says they attended. Held as a set because the toggle
+  // and My History both need "was I at this date?" without a round trip per row.
+  let attendedDates = new Set();
 
   let meta = {};
   fetch('/data/songs.json').then(r => r.json()).then(d => {
@@ -97,7 +100,11 @@ function initPredictor(mount, A) {
   // predictor last rendered.
   const menuActions = {
     goTo(m) { mode = m; render(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
-    async signOut() { await api('/api/logout', 'POST', {}); user = null; authPrompt = null; render(); },
+    async signOut() {
+      await api('/api/logout', 'POST', {});
+      user = null; authPrompt = null; attendedDates = new Set();
+      render();
+    },
     openLogin(tab) { authPrompt = { tab, message: null, onAuthed: null }; render(); },
   };
 
@@ -278,11 +285,40 @@ function initPredictor(mount, A) {
     showRow.appendChild(dateInput);
     showRow.appendChild(el('span', null, ` (next show: ${A.nextShow.date} — ${esc(A.nextShow.venue)})`));
     bar.appendChild(showRow);
+
+    // Attendance toggle for whichever show is currently selected. Self-reported and
+    // freely re-togglable, including for past dates — people forget until afterwards.
+    const here = attendedDates.has(showdate);
+    const att = el('button', 'p-attend' + (here ? ' on' : ''),
+      here ? '🎟 I was at this show' : '🎟 Mark that I was at this show');
+    att.title = 'Self-reported — tracked alongside your prediction accuracy';
+    att.addEventListener('click', async () => {
+      const next = !attendedDates.has(showdate);
+      att.disabled = true;
+      try {
+        await api('/api/attendance', 'POST', { showdate, attended: next });
+        if (next) attendedDates.add(showdate); else attendedDates.delete(showdate);
+        // Refresh stats so the accuracy split and attended count update immediately.
+        try { user = (await api('/api/me')).user; } catch { /* stats are cosmetic here */ }
+        render();
+      } catch (e) {
+        att.disabled = false;
+        flash(e.message, true);
+      }
+    });
+    bar.appendChild(att);
     mount.appendChild(bar);
   }
 
   async function loadExisting() {
-    if (!user) { render(); return; }
+    if (!user) { attendedDates = new Set(); render(); return; }
+    // Attendance is fetched whole rather than per-date: it's a short list, and My
+    // History needs all of it anyway. Failure here is non-fatal — the rest of the
+    // predictor should still load if this one call fails.
+    try {
+      const { showdates } = await api('/api/attendance');
+      attendedDates = new Set(showdates);
+    } catch { attendedDates = new Set(); }
     const preds = await api(`/api/predictions?user=${user.handle}&showdate=${showdate}`);
     const sl = preds.find(p => p.type === 'setlist');
     const bg = preds.find(p => p.type === 'bingo');
@@ -693,15 +729,31 @@ function initPredictor(mount, A) {
       api('/api/leaderboard'),
     ]);
     preds.sort((a, b) => b.showdate.localeCompare(a.showdate));
+    const st = user.stats || {};
+    if (st.showsAttended) {
+      // Only show the split once both sides exist — one number against nothing isn't a
+      // comparison, and reading it as one would be misleading.
+      const split = (st.accuracyAtShows != null && st.accuracyRemote != null)
+        ? ` · accuracy <b>${st.accuracyAtShows}</b> at shows vs <b>${st.accuracyRemote}</b> remote`
+        : '';
+      wrap.appendChild(el('div', 'p-attsummary',
+        `🎟 <b>${st.showsAttended}</b> show${st.showsAttended === 1 ? '' : 's'} attended${split}`));
+    }
     if (!preds.length) wrap.appendChild(el('div', 'hint', 'No predictions yet.'));
     for (const p of preds) {
       const r = p.result;
+      // Defensive: a result row missing its expected fields used to throw mid-loop and
+      // silently blank the whole history, not just its own row.
+      const hits = Array.isArray(r?.hits) ? r.hits : [];
+      const stressors = r?.stressors && typeof r.stressors === 'object' ? r.stressors : {};
       const line = r
         ? (p.type === 'setlist'
-          ? `score <b>${r.score}</b> — ${r.hits.length} hits (${r.hits.map(esc).join(', ') || 'none'}); stressors: ${Object.entries(r.stressors).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'}`
-          : `score <b>${r.score}</b> — ${r.hitCount}/24 squares${r.bingo ? ' — <b>BINGO 🍩</b>' : ''}`)
+          ? `score <b>${r.score ?? '—'}</b> — ${hits.length} hits (${hits.map(esc).join(', ') || 'none'}); stressors: ${Object.entries(stressors).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'}`
+          : `score <b>${r.score ?? '—'}</b> — ${r.hitCount ?? 0}/24 squares${r.bingo ? ' — <b>BINGO 🍩</b>' : ''}`)
         : 'not scored yet';
-      wrap.appendChild(el('div', 'p-histrow', `<b>${p.showdate}</b> · ${p.type} · ${line}`));
+      const wasThere = attendedDates.has(p.showdate)
+        ? '<span class="p-there" title="You marked that you were at this show">🎟 there</span>' : '';
+      wrap.appendChild(el('div', 'p-histrow', `<b>${p.showdate}</b>${wasThere} · ${p.type} · ${line}`));
     }
     const profilePanel = el('div');
     if (board.length) {

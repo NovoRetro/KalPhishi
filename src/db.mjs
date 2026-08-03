@@ -30,17 +30,49 @@ export function rowToPrediction(r) {
   };
 }
 
-const EMPTY_STATS = { predictions: 0, scored: 0, accuracy: null, bingos: 0 };
+const EMPTY_STATS = {
+  predictions: 0, scored: 0, accuracy: null, bingos: 0,
+  showsAttended: 0, accuracyAtShows: null, accuracyRemote: null,
+};
 
 export async function userStats(env, userId) {
+  // Accuracy split by whether the user was physically at the show. The LEFT JOIN is on
+  // (user_id, showdate) so a prediction counts as "at the show" only when that same user
+  // marked that same date — AVG ignores NULLs, so each side averages only its own rows.
+  // Either side stays null until there's a scored prediction of that kind, which the UI
+  // uses to avoid showing a split built on one data point.
   const row = await env.DB.prepare(
     `SELECT COUNT(*)        AS predictions,
-            COUNT(result)   AS scored,
-            ROUND(AVG(score), 1) AS accuracy,
-            SUM(CASE WHEN type = 'bingo' AND bingo = 1 THEN 1 ELSE 0 END) AS bingos
-       FROM predictions WHERE user_id = ?1`
+            COUNT(p.result) AS scored,
+            ROUND(AVG(p.score), 1) AS accuracy,
+            SUM(CASE WHEN p.type = 'bingo' AND p.bingo = 1 THEN 1 ELSE 0 END) AS bingos,
+            ROUND(AVG(CASE WHEN a.user_id IS NOT NULL THEN p.score END), 1) AS accuracyAtShows,
+            ROUND(AVG(CASE WHEN a.user_id IS     NULL THEN p.score END), 1) AS accuracyRemote
+       FROM predictions p
+       LEFT JOIN attendance a
+         ON a.user_id = p.user_id AND a.showdate = p.showdate
+      WHERE p.user_id = ?1`
   ).bind(userId).first();
-  return row ? { ...row, bingos: row.bingos || 0 } : { ...EMPTY_STATS };
+
+  // Counted separately: a user can attend shows they never predicted, so this must not
+  // be derived from the predictions join above.
+  const att = await env.DB.prepare(
+    'SELECT COUNT(*) AS showsAttended FROM attendance WHERE user_id = ?1'
+  ).bind(userId).first();
+
+  if (!row) return { ...EMPTY_STATS };
+  return {
+    ...row,
+    bingos: row.bingos || 0,
+    showsAttended: att?.showsAttended || 0,
+  };
+}
+
+export async function attendedShows(env, userId) {
+  const { results } = await env.DB.prepare(
+    'SELECT showdate FROM attendance WHERE user_id = ?1 ORDER BY showdate DESC'
+  ).bind(userId).all();
+  return results.map(r => r.showdate);
 }
 
 // What anyone may see about a user. No id, no email — including an email hiding in name.
