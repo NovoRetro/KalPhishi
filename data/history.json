@@ -1,0 +1,227 @@
+{
+ "generated": "2026-08-03T12:16:36.762Z",
+ "summary": {
+  "showsGraded": 1,
+  "meanPrecision": 0.235,
+  "meanRecall": 0.25
+ },
+ "shows": [
+  {
+   "showdate": "2026-08-01",
+   "venue": "Fenway Park",
+   "city": "Boston, MA",
+   "asOf": "2026-07-31",
+   "predicted": {
+    "set1": [
+     "46 Days",
+     "Set Your Soul Free",
+     "The Moma Dance",
+     "555",
+     "Bathtub Gin",
+     "Hey Stranger",
+     "Blaze On",
+     "Life Saving Gun"
+    ],
+    "set2": [
+     "Chalk Dust Torture",
+     "Twist",
+     "Piper",
+     "Ruby Waves",
+     "Plasma",
+     "Sand",
+     "First Tube"
+    ],
+    "encore": [
+     "Wading in the Velvet Sea",
+     "When the Circus Comes"
+    ]
+   },
+   "result": {
+    "hits": [
+     "Chalk Dust Torture",
+     "Ruby Waves",
+     "Sand",
+     "Wading in the Velvet Sea"
+    ],
+    "misses": [
+     "46 Days",
+     "Set Your Soul Free",
+     "The Moma Dance",
+     "555",
+     "Bathtub Gin",
+     "Hey Stranger",
+     "Blaze On",
+     "Life Saving Gun",
+     "Twist",
+     "Piper",
+     "Plasma",
+     "First Tube",
+     "When the Circus Comes"
+    ],
+    "surprises": [
+     "My Friend, My Friend",
+     "Tweezer",
+     "Sigma Oasis",
+     "Stash",
+     "Mike's Song",
+     "No Men In No Man's Land",
+     "Light",
+     "Weekapaug Groove",
+     "Ghost",
+     "Possum",
+     "Character Zero",
+     "Tweezer Reprise"
+    ],
+    "precision": 0.235,
+    "recall": 0.25,
+    "setPlacementHits": [
+     "Ruby Waves",
+     "Wading in the Velvet Sea"
+    ],
+    "slotChecks": [
+     {
+      "check": "Show opener",
+      "ok": false,
+      "detail": "predicted 46 Days, actual My Friend, My Friend"
+     },
+     {
+      "check": "Set 2 opener",
+      "ok": false,
+      "detail": "predicted Chalk Dust Torture, actual Mike's Song"
+     },
+     {
+      "check": "Encore (any overlap)",
+      "ok": true,
+      "detail": "predicted Wading in the Velvet Sea, When the Circus Comes, actual Wading in the Velvet Sea, Character Zero, Tweezer Reprise"
+     }
+    ],
+    "top40Hits": 9,
+    "uniqueActualCount": 16,
+    "actual": [
+     {
+      "slug": "my-friend-my-friend",
+      "name": "My Friend, My Friend",
+      "set": "1"
+     },
+     {
+      "slug": "tweezer",
+      "name": "Tweezer",
+      "set": "1"
+     },
+     {
+      "slug": "sigma-oasis",
+      "name": "Sigma Oasis",
+      "set": "1"
+     },
+     {
+      "slug": "tweezer",
+      "name": "Tweezer",
+      "set": "1"
+     },
+     {
+      "slug": "chalk-dust-torture",
+      "name": "Chalk Dust Torture",
+      "set": "1"
+     },
+     {
+      "slug": "stash",
+      "name": "Stash",
+      "set": "1"
+     },
+     {
+      "slug": "tweezer",
+      "name": "Tweezer",
+      "set": "1"
+     },
+     {
+      "slug": "sand",
+      "name": "Sand",
+      "set": "1"
+     },
+     {
+      "slug": "mikes-song",
+      "name": "Mike's Song",
+      "set": "2"
+     },
+     {
+      "slug": "ruby-waves",
+      "name": "Ruby Waves",
+      "set": "2"
+     },
+     {
+      "slug": "no-men-in-no-mans-land",
+      "name": "No Men In No Man's Land",
+      "set": "2"
+     },
+     {
+      "slug": "light",
+      "name": "Light",
+      "set": "2"
+     },
+     {
+      "slug": "weekapaug-groove",
+      "name": "Weekapaug Groove",
+      "set": "2"
+     },
+     {
+      "slug": "ghost",
+      "name": "Ghost",
+      "set": "2"
+     },
+     {
+      "slug": "possum",
+      "name": "Possum",
+      "set": "2"
+     },
+     {
+      "slug": "wading-in-the-velvet-sea",
+      "name": "Wading in the Velvet Sea",
+      "set": "e"
+     },
+     {
+      "slug": "character-zero",
+      "name": "Character Zero",
+      "set": "e"
+     },
+     {
+      "slug": "tweezer-reprise",
+      "name": "Tweezer Reprise",
+      "set": "e"
+     }
+    ]
+   }
+  },
+  {
+   "showdate": "2026-09-04",
+   "venue": "Dick's Sporting Goods Park",
+   "city": "Commerce City, CO",
+   "asOf": "2026-08-01",
+   "predicted": {
+    "set1": [
+     "46 Days",
+     "The Moma Dance",
+     "Bathtub Gin",
+     "Wolfman's Brother",
+     "Blaze On",
+     "Tube",
+     "Steam",
+     "First Tube"
+    ],
+    "set2": [
+     "A Song I Heard the Ocean Sing",
+     "Piper",
+     "Down with Disease",
+     "Also Sprach Zarathustra",
+     "The Wedge",
+     "Harry Hood",
+     "Slave to the Traffic Light"
+    ],
+    "encore": [
+     "More",
+     "Silent in the Morning"
+    ]
+   },
+   "result": null
+  }
+ ]
+}

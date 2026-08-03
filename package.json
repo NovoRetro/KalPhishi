@@ -10,10 +10,13 @@
     "score": "node scripts/score.js",
     "build:songmeta": "node scripts/build-songmeta.js",
     "build:history": "node scripts/build-history.js",
+    "build:public": "node scripts/build-public.js",
     "build": "node scripts/build-songmeta.js && node scripts/build-history.js && node scripts/build-public.js",
     "dev": "wrangler dev",
     "test": "node --test \"test/**/*.test.mjs\"",
-    "deploy": "npm test && npm run build && wrangler deploy"
+    "deploy": "npm test && npm run build && wrangler deploy",
+    "_comment_deploy_ci": "CI build: history.json is rebuilt from the committed archive, then public/ is assembled from committed artifacts. Skips build:songmeta, which needs the 14MB of gitignored raw setlists.",
+    "build:ci": "node scripts/build-history.js && node scripts/build-public.js"
   },
   "devDependencies": {
     "wrangler": "^4"
