@@ -198,6 +198,19 @@
   .tr-miss { color: var(--muted); }
   .tr-surprise { color: var(--series-2); }
   .tr-slot { font-size: 12px; color: var(--ink-2); padding: 2px 0; }
+  .tr-nav { display: flex; align-items: center; gap: 10px; margin: 8px 0 2px; }
+  .tr-nav-btn { background: var(--surface); border: 1px solid var(--baseline); border-radius: 99px;
+    color: var(--ink); font: inherit; font-size: 12px; padding: 6px 14px; min-height: 36px; cursor: pointer; }
+  .tr-nav-btn:hover:not(:disabled) { background: var(--accent-wash); }
+  .tr-nav-btn:disabled { opacity: 0.4; cursor: default; }
+  .tr-nav-pos { font-size: 12px; color: var(--muted); }
+
+  /* ---- collapsible cards ---- */
+  .collapsible > h2 { cursor: pointer; user-select: none; }
+  .collapsible > h2::before { content: '▾'; display: inline-block; width: 1em; color: var(--muted); font-size: 11px; }
+  .collapsible.collapsed > h2::before { content: '▸'; }
+  .collapsible.collapsed > *:not(h2) { display: none; }
+
   /* Phones: the 3-up hit/miss/surprise columns stack, and the show list gets more room
      since it is the primary way to move between shows on a small screen. Must follow the
      base rules above — same specificity, so source order decides. */
@@ -207,6 +220,7 @@
     .tr-row { font-size: 12px; }
     /* 16px stops iOS Safari zooming the page when the field takes focus. */
     .tr-search { font-size: 16px; }
+    .tr-nav-btn { min-height: 44px; font-size: 13px; }
   }
   .footer { margin-top: 28px; padding: 14px 0 6px; border-top: 1px solid var(--grid); color: var(--muted); font-size: 12px; text-align: center; }
   .footer .nr { font-weight: 700; color: var(--ink-2); letter-spacing: 0.02em; }
@@ -713,19 +727,24 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     pred.appendChild(row);
   }
   pred.dataset.section = 'Prediction';
-  app.appendChild(pred);
-
-  // ---- track record: how past predictions actually did
-  const track = el('div', 'card card-overflow');
-  track.dataset.section = 'Prediction';
-  app.appendChild(track);
-  renderTrackRecord(track);
 
   // ---- user predictor
   const up = el('div', 'card card-overflow');
   up.dataset.section = 'Prediction';
+
+  // ---- track record: how past predictions actually did
+  const track = el('div', 'card card-overflow');
+  track.dataset.section = 'Prediction';
+
+  // Order on the Prediction tab: what you *do* first (build a setlist or bingo card),
+  // then the model's call for the same show, then how it has done historically.
   app.appendChild(up);
+  app.appendChild(pred);
+  app.appendChild(track);
   initPredictor(up, A);
+  renderTrackRecord(track);
+
+  for (const card of [up, pred, track]) makeCollapsible(card);
 
   // ---- horizontal slice
   const h = el('div', 'grid cols-2');
@@ -987,6 +1006,48 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   }
   renderTabs();
 
+  // Clicking a card's own <h2> collapses it. Delegated rather than bound directly,
+  // because the predictor card rebuilds its heading on every render — a listener
+  // attached to the original element would be discarded on the first re-render.
+  // The .collapsed class lives on the card, which survives, so the state does too.
+  function makeCollapsible(card) {
+    card.classList.add('collapsible');
+
+    const mark = () => {
+      const h = [...card.children].find(n => n.tagName === 'H2');
+      if (!h || h.dataset.collapseReady) return;
+      h.dataset.collapseReady = '1';
+      h.setAttribute('role', 'button');
+      h.setAttribute('tabindex', '0');
+      h.setAttribute('aria-expanded', String(!card.classList.contains('collapsed')));
+    };
+    mark();
+    // Re-mark after the predictor replaces its own heading.
+    new MutationObserver(mark).observe(card, { childList: true });
+
+    const toggle = h => {
+      card.classList.toggle('collapsed');
+      h.setAttribute('aria-expanded', String(!card.classList.contains('collapsed')));
+    };
+    // Only the card's OWN heading toggles — headings inside nested content (the track
+    // record's set labels, say) must not collapse the whole card.
+    const ownHeading = target => {
+      const h = target.closest && target.closest('h2');
+      return h && h.parentElement === card ? h : null;
+    };
+    card.addEventListener('click', ev => {
+      const h = ownHeading(ev.target);
+      if (h) toggle(h);
+    });
+    card.addEventListener('keydown', ev => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      const h = ownHeading(ev.target);
+      if (!h) return;
+      ev.preventDefault(); // space would scroll the page
+      toggle(h);
+    });
+  }
+
   // ---- track record: the model's own past predictions, graded
   // Loaded separately from analysis.json because it grows with every show while
   // analysis.json is always only about the next one.
@@ -1063,10 +1124,35 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     search.placeholder = 'search past predictions — date, venue, or song…';
     const list = el('div', 'tr-list');
 
+    // Arrow navigation steps through whatever the search currently matches, so stepping
+    // and filtering agree rather than the arrows walking shows the list isn't showing.
+    // `graded` is newest-first, so a lower index is a more recent show.
+    let matches = [];
+    let idx = 0;
+    const nav = el('div', 'tr-nav');
+    const prev = el('button', 'tr-nav-btn', '← Newer');
+    const next = el('button', 'tr-nav-btn', 'Older →');
+    const pos = el('span', 'tr-nav-pos');
+    nav.appendChild(prev); nav.appendChild(pos); nav.appendChild(next);
+
+    function showAt(i) {
+      if (!matches.length) return;
+      idx = Math.max(0, Math.min(i, matches.length - 1));
+      drawShow(matches[idx]);
+      [...list.querySelectorAll('.tr-row')].forEach((n, j) => n.classList.toggle('active', j === idx));
+      prev.disabled = idx === 0;
+      next.disabled = idx === matches.length - 1;
+      pos.textContent = `${idx + 1} of ${matches.length}`;
+      // Keep the highlighted row visible when arrowing past the end of the viewport.
+      list.querySelectorAll('.tr-row')[idx]?.scrollIntoView({ block: 'nearest' });
+    }
+    prev.addEventListener('click', () => showAt(idx - 1));
+    next.addEventListener('click', () => showAt(idx + 1));
+
     function drawList() {
       const q = search.value.trim().toLowerCase();
       list.innerHTML = '';
-      const matches = graded.filter(s => {
+      matches = graded.filter(s => {
         if (!q) return true;
         const hay = [
           s.showdate, s.venue, s.city,
@@ -1077,28 +1163,26 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       });
       if (!matches.length) {
         list.appendChild(el('div', 'hint', 'No past predictions match that.'));
+        nav.style.display = 'none';
+        detail.innerHTML = '';
         return;
       }
-      for (const s of matches) {
+      nav.style.display = matches.length > 1 ? '' : 'none';
+      matches.forEach((s, i) => {
         const row = el('button', 'tr-row',
           `<b>${esc(s.showdate)}</b> <span class="hint">${esc(s.venue)}</span> ` +
           `<span class="tr-row-metrics">P ${pct(s.result.precision)} · R ${pct(s.result.recall)} · ` +
           `${s.result.hits.length} hit${s.result.hits.length === 1 ? '' : 's'}</span>`);
-        row.addEventListener('click', () => {
-          [...list.querySelectorAll('.tr-row')].forEach(n => n.classList.remove('active'));
-          row.classList.add('active');
-          drawShow(s);
-        });
+        row.addEventListener('click', () => showAt(i));
         list.appendChild(row);
-      }
-      // keep a show open so the panel is never empty
-      const first = list.querySelector('.tr-row');
-      if (first) { first.classList.add('active'); drawShow(matches[0]); }
+      });
+      showAt(0); // most recent match, so the panel is never empty
     }
     search.addEventListener('input', drawList);
 
     body.appendChild(search);
     body.appendChild(list);
+    body.appendChild(nav);
     body.appendChild(detail);
     drawList(); // opens the most recent graded show by default
   }
