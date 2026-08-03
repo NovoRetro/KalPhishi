@@ -1,0 +1,56 @@
+name: Deploy
+
+# Deploys the Worker whenever main changes — merging a PR is what publishes.
+# Also runnable by hand from the Actions tab (workflow_dispatch), which is the escape
+# hatch for redeploying after a data refresh that touched nothing else.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time. Without this, two quick merges can race and the older build can
+# land last, silently reverting the newer one.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Skip runs where nothing deployable changed — a README-only merge doesn't need to
+    # ship a Worker. Paths are checked on the push event.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Tests gate the deploy: a red suite must not reach production. This is the same
+      # suite `npm run deploy` runs locally, including the asset guards that catch a file
+      # referenced by index.html but missing from the publish allowlist.
+      - name: Test
+        run: npm test
+
+      # Rebuilds history.json from the committed archive, then assembles public/ from the
+      # committed data artifacts. Deliberately NOT `npm run build` — that also regenerates
+      # songmeta.json from ~14MB of raw setlist caches which are gitignored and absent here.
+      - name: Build
+        run: npm run build:ci
+
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # No `--var`/secret flags: PHISHNET_API_KEY and ADMIN_TOKEN already live on the
+          # Worker and are preserved across deploys. Nothing secret needs to exist here.
+          command: deploy
+
+# Deliberately NOT run here: `wrangler d1 migrations apply --remote`. Schema changes are
+# irreversible against live user data and should stay a deliberate manual step, run and
+# checked before the code depending on them is merged.

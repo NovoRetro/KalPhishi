@@ -9,6 +9,16 @@ node_modules/
 # committed on purpose. Do not broaden this to data/**/*.json.
 data/*.json
 
+# ...except the five files the site actually serves. Committed so a deploy is
+# reproducible from the repo alone: CI has no phish.net key and should not spend minutes
+# re-fetching 14MB of raw setlists on every merge. Only these small published outputs are
+# tracked — the raw caches they are derived FROM stay ignored above.
+!data/analysis.json
+!data/songs.json
+!data/venues.json
+!data/songmeta.json
+!data/history.json
+
 # user accounts, password hashes, sessions, predictions — never publish
 data/db.json
 
