@@ -171,6 +171,33 @@
   .p-profilecard { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
   .p-boardrow { cursor: pointer; }
   .p-boardrow:hover { background: var(--accent-wash); }
+  /* ---- track record (past predictions, graded) ---- */
+  .tr-summary { margin: 6px 0 12px; font-size: 13px; }
+  .tr-list { max-height: 190px; overflow-y: auto; margin: 8px 0; border: 1px solid var(--border); border-radius: 8px; }
+  .tr-row { display: block; width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid var(--grid);
+    color: var(--ink); font: inherit; font-size: 12px; padding: 8px 10px; min-height: 44px; cursor: pointer; }
+  .tr-row:last-child { border-bottom: none; }
+  .tr-row:hover { background: var(--accent-wash); }
+  .tr-row.active { background: var(--accent-wash); box-shadow: inset 3px 0 0 var(--series-1); }
+  .tr-row-metrics { color: var(--muted); }
+  .tr-detail { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-top: 10px; }
+  .tr-metrics { font-size: 13px; margin: 8px 0 10px; }
+  .tr-songs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .tr-song { font-size: 11px; padding: 2px 7px; border-radius: 99px; border: 1px solid currentColor; }
+  .tr-hit { color: var(--series-1); }
+  .tr-miss { color: var(--muted); }
+  .tr-surprise { color: var(--series-2); }
+  .tr-slot { font-size: 12px; color: var(--ink-2); padding: 2px 0; }
+  /* Phones: the 3-up hit/miss/surprise columns stack, and the show list gets more room
+     since it is the primary way to move between shows on a small screen. Must follow the
+     base rules above — same specificity, so source order decides. */
+  @media (max-width: 560px) {
+    .tr-detail .cols-3 { grid-template-columns: 1fr; }
+    .tr-list { max-height: 240px; }
+    .tr-row { font-size: 12px; }
+    /* 16px stops iOS Safari zooming the page when the field takes focus. */
+    .tr-search { font-size: 16px; }
+  }
   .footer { margin-top: 28px; padding: 14px 0 6px; border-top: 1px solid var(--grid); color: var(--muted); font-size: 12px; text-align: center; }
   .footer .nr { font-weight: 700; color: var(--ink-2); letter-spacing: 0.02em; }
 
@@ -456,6 +483,12 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   pred.dataset.section = 'Prediction';
   app.appendChild(pred);
 
+  // ---- track record: how past predictions actually did
+  const track = el('div', 'card card-overflow');
+  track.dataset.section = 'Prediction';
+  app.appendChild(track);
+  renderTrackRecord(track);
+
   // ---- user predictor
   const up = el('div', 'card card-overflow');
   up.dataset.section = 'Prediction';
@@ -721,6 +754,122 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     }
   }
   renderTabs();
+
+  // ---- track record: the model's own past predictions, graded
+  // Loaded separately from analysis.json because it grows with every show while
+  // analysis.json is always only about the next one.
+  async function renderTrackRecord(host) {
+    host.appendChild(el('h2', null, 'Track record <span class="hint">— how past predictions actually did</span>'));
+    const body = el('div');
+    host.appendChild(body);
+    body.appendChild(el('div', 'hint', 'Loading…'));
+
+    let H;
+    try {
+      const res = await fetch('/data/history.json');
+      if (!res.ok) throw new Error(String(res.status));
+      H = await res.json();
+    } catch {
+      body.innerHTML = '';
+      body.appendChild(el('div', 'hint', 'No prediction history available yet.'));
+      return;
+    }
+
+    const graded = H.shows.filter(s => s.result).sort((a, b) => b.showdate.localeCompare(a.showdate));
+    body.innerHTML = '';
+    if (!graded.length) {
+      body.appendChild(el('div', 'hint',
+        'No graded predictions yet — a show is scored once its setlist is posted.'));
+      return;
+    }
+
+    // headline: lifetime accuracy across every graded show
+    const sum = H.summary;
+    body.appendChild(el('div', 'tr-summary',
+      `<b>${sum.showsGraded}</b> show${sum.showsGraded === 1 ? '' : 's'} graded · ` +
+      `mean precision <b>${pct(sum.meanPrecision)}</b> <span class="hint">(of what we predicted, how much played)</span> · ` +
+      `mean recall <b>${pct(sum.meanRecall)}</b> <span class="hint">(of what played, how much we called)</span>`));
+
+    const detail = el('div');
+
+    function drawShow(s) {
+      detail.innerHTML = '';
+      const r = s.result;
+      const card = el('div', 'tr-detail');
+      card.appendChild(el('div', 'setlabel',
+        `${esc(s.showdate)} — ${esc(s.venue)}${s.city ? ', ' + esc(s.city) : ''}`));
+      card.appendChild(el('div', 'hint',
+        `Predicted using data through ${esc(s.asOf)} — before the show was played.`));
+
+      card.appendChild(el('div', 'tr-metrics',
+        `Precision <b>${pct(r.precision)}</b> · Recall <b>${pct(r.recall)}</b> · ` +
+        `Correct set placement <b>${r.setPlacementHits.length}/${r.hits.length}</b>` +
+        (r.top40Hits != null ? ` · Top-40 coverage <b>${r.top40Hits}/${r.uniqueActualCount}</b>` : '')));
+
+      const lists = el('div', 'grid cols-3');
+      for (const [label, items, cls] of [
+        [`Hits (${r.hits.length})`, r.hits, 'tr-hit'],
+        [`Missed calls (${r.misses.length})`, r.misses, 'tr-miss'],
+        [`Surprises (${r.surprises.length})`, r.surprises, 'tr-surprise'],
+      ]) {
+        const col = el('div');
+        col.appendChild(el('div', 'setlabel', label));
+        col.appendChild(el('div', 'tr-songs',
+          items.length ? items.map(n => `<span class="tr-song ${cls}">${esc(n)}</span>`).join('') : '<span class="hint">none</span>'));
+        lists.appendChild(col);
+      }
+      card.appendChild(lists);
+
+      for (const c of r.slotChecks || []) {
+        card.appendChild(el('div', 'tr-slot', `${c.ok ? '✓' : '✗'} <b>${esc(c.check)}</b> — ${esc(c.detail)}`));
+      }
+      detail.appendChild(card);
+    }
+
+    // search across every archived show: date, venue, or any song named in it
+    const search = el('input', 'ta-input tr-search');
+    search.placeholder = 'search past predictions — date, venue, or song…';
+    const list = el('div', 'tr-list');
+
+    function drawList() {
+      const q = search.value.trim().toLowerCase();
+      list.innerHTML = '';
+      const matches = graded.filter(s => {
+        if (!q) return true;
+        const hay = [
+          s.showdate, s.venue, s.city,
+          ...s.predicted.set1, ...s.predicted.set2, ...s.predicted.encore,
+          ...(s.result.hits || []), ...(s.result.surprises || []),
+        ].join(' ').toLowerCase();
+        return hay.includes(q);
+      });
+      if (!matches.length) {
+        list.appendChild(el('div', 'hint', 'No past predictions match that.'));
+        return;
+      }
+      for (const s of matches) {
+        const row = el('button', 'tr-row',
+          `<b>${esc(s.showdate)}</b> <span class="hint">${esc(s.venue)}</span> ` +
+          `<span class="tr-row-metrics">P ${pct(s.result.precision)} · R ${pct(s.result.recall)} · ` +
+          `${s.result.hits.length} hit${s.result.hits.length === 1 ? '' : 's'}</span>`);
+        row.addEventListener('click', () => {
+          [...list.querySelectorAll('.tr-row')].forEach(n => n.classList.remove('active'));
+          row.classList.add('active');
+          drawShow(s);
+        });
+        list.appendChild(row);
+      }
+      // keep a show open so the panel is never empty
+      const first = list.querySelector('.tr-row');
+      if (first) { first.classList.add('active'); drawShow(matches[0]); }
+    }
+    search.addEventListener('input', drawList);
+
+    body.appendChild(search);
+    body.appendChild(list);
+    body.appendChild(detail);
+    drawList(); // opens the most recent graded show by default
+  }
 
   function num(v) { return v == null ? '—' : v; }
   function pct(v) { return v == null ? '—' : Math.round(v * 100) + '%'; }

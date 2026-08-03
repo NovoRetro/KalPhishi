@@ -9,7 +9,8 @@
     "analyze": "node scripts/analyze.js",
     "score": "node scripts/score.js",
     "build:songmeta": "node scripts/build-songmeta.js",
-    "build": "node scripts/build-songmeta.js && node scripts/build-public.js",
+    "build:history": "node scripts/build-history.js",
+    "build": "node scripts/build-songmeta.js && node scripts/build-history.js && node scripts/build-public.js",
     "dev": "wrangler dev",
     "test": "node --test \"test/**/*.test.mjs\"",
     "deploy": "npm test && npm run build && wrangler deploy"

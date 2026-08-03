@@ -8,8 +8,22 @@ const dataDir = path.join(root, 'data');
 const KEY = fs.readFileSync(path.join(root, '.env'), 'utf8').match(/PHISHNET_API_KEY=(\S+)/)[1];
 
 async function main() {
-  const A = JSON.parse(fs.readFileSync(path.join(dataDir, 'analysis.json'), 'utf8'));
-  const showdate = process.argv[2] || A.nextShow.date;
+  const showdate = process.argv[2] || JSON.parse(fs.readFileSync(path.join(dataDir, 'analysis.json'), 'utf8')).nextShow.date;
+
+  // Grade the ARCHIVED prediction for this show, not whatever analysis.json currently
+  // holds — once NEXT_SHOW moves on, analysis.json is about a different show entirely,
+  // and scoring against it would compare a prediction to the wrong setlist.
+  const archiveFile = path.join(dataDir, 'archive', `${showdate}.json`);
+  let A, archived = null;
+  if (fs.existsSync(archiveFile)) {
+    archived = JSON.parse(fs.readFileSync(archiveFile, 'utf8'));
+    A = { prediction: archived.prediction, candidates: archived.topCandidates, nextShow: { date: showdate } };
+  } else {
+    A = JSON.parse(fs.readFileSync(path.join(dataDir, 'analysis.json'), 'utf8'));
+    if (A.nextShow.date !== showdate) {
+      throw new Error(`No archived prediction for ${showdate}, and analysis.json is about ${A.nextShow.date}. Refusing to score a prediction against the wrong show.`);
+    }
+  }
 
   const res = await fetch(`https://api.phish.net/v5/setlists/showdate/${showdate}.json?apikey=${KEY}`);
   const json = await res.json();
@@ -31,7 +45,12 @@ async function main() {
   // song-level hits
   const hits = predAll.filter(p => actualSlugs.has(p.slug));
   const misses = predAll.filter(p => !actualSlugs.has(p.slug));
-  const surprises = actual.filter(a => !predSlugs.has(a.slug));
+  // Deduped by slug: a song can legitimately appear several times in one show (the
+  // 2026-08-01 Tweezer sandwich hit three times), and listing it once per placement
+  // reads as noise rather than three separate surprises.
+  const surprises = [...new Map(
+    actual.filter(a => !predSlugs.has(a.slug)).map(a => [a.slug, a])
+  ).values()];
 
   // set-placement accuracy among hits
   const actualSetOf = new Map(actual.map(a => [a.slug, a.set]));
@@ -53,7 +72,10 @@ async function main() {
 
   // where did actual songs sit in our ranked candidate list?
   const rankOf = new Map(A.candidates.map((c, i) => [c.slug, i + 1]));
-  const ranks = actual.map(a => ({ song: a.song, rank: rankOf.get(a.slug) ?? null }));
+  // Unique songs, so a song played more than once isn't counted repeatedly against
+  // (or in favour of) coverage.
+  const uniqueActual = [...new Map(actual.map(a => [a.slug, a])).values()];
+  const ranks = uniqueActual.map(a => ({ song: a.song, rank: rankOf.get(a.slug) ?? null }));
   const ranked = ranks.filter(r => r.rank !== null);
   const inTop40 = ranked.filter(r => r.rank <= 40).length;
 
@@ -72,9 +94,20 @@ async function main() {
     setPlacementHits: setHits.map(h => h.name),
     slotChecks: slotChecks.map(([name, ok, detail]) => ({ check: name, ok, detail })),
     actualSongRanks: ranks,
-    top40Coverage: `${inTop40}/${actual.length} actual songs were in our top-40 candidates`,
+    top40Coverage: `${inTop40}/${uniqueActual.length} actual songs were in our top-40 candidates`,
+    top40Hits: inTop40,
+    uniqueActualCount: uniqueActual.length,
   };
   fs.writeFileSync(path.join(dataDir, `scorecard-${showdate}.json`), JSON.stringify(report, null, 1));
+
+  // Fold the result back into the archive entry so the app has prediction + outcome in
+  // one committed place, without needing the gitignored scorecard-*.json files.
+  if (archived) {
+    archived.scorecard = report;
+    archived.actual = actual.map(a => ({ slug: a.slug, name: a.song, set: a.set }));
+    fs.writeFileSync(archiveFile, JSON.stringify(archived, null, 1));
+    console.log(`Merged scorecard into data/archive/${showdate}.json`);
+  }
 
   console.log(`\n=== KALPHISH SCORECARD — ${showdate} ===`);
   console.log(`Predicted ${predAll.length} songs; actual show had ${actualSlugs.size} unique songs.`);
