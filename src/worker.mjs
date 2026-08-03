@@ -10,6 +10,7 @@ import {
 import {
   rowToPrediction, userStats, publicUser, ownUser, publicName,
   getUser, getUserByEmail, getUserByHandle, anyUserLacksEmail, attendedShows,
+  friendsOf, areFriends,
 } from './db.mjs';
 import { venueSlice } from './phishnet.mjs';
 
@@ -237,6 +238,101 @@ async function api(request, env, ctx, { p, m, q, url }) {
     ).bind(`${user.id}-${showdate}-${type}`, user.id, showdate, type, JSON.stringify(payload), now).run();
 
     if (!res.meta.changes) return err(409, 'already scored — cannot edit');
+    return json({ ok: true });
+  }
+
+  if (p === '/api/friends' && m === 'GET') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    return json({ friends: await friendsOf(env, user.id) });
+  }
+
+  if (p.startsWith('/api/friends/') && m === 'DELETE') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const other = await getUserByHandle(env, decodeURIComponent(p.split('/').pop()));
+    if (!other) return err(404, 'no such user');
+    // Both directions, or the two of them would disagree about being friends.
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM friendships WHERE user_id = ?1 AND friend_id = ?2').bind(user.id, other.id),
+      env.DB.prepare('DELETE FROM friendships WHERE user_id = ?1 AND friend_id = ?2').bind(other.id, user.id),
+    ]);
+    return json({ ok: true });
+  }
+
+  if (p === '/api/invites' && m === 'GET') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const { results } = await env.DB.prepare(
+      'SELECT code, created, expires, max_uses, uses FROM invites WHERE owner_id = ?1 ORDER BY created DESC'
+    ).bind(user.id).all();
+    return json({
+      invites: results.map(r => ({
+        code: r.code, created: r.created, expires: r.expires,
+        maxUses: r.max_uses, uses: r.uses,
+        // Computed server-side so the UI doesn't re-derive expiry rules and drift.
+        spent: r.max_uses != null && r.uses >= r.max_uses,
+        expired: r.expires != null && r.expires < Date.now(),
+      })),
+    });
+  }
+
+  if (p === '/api/invites' && m === 'POST') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const { maxUses, expiresInDays } = await body(request).catch(() => ({}));
+    // 16 bytes of randomness, hex — a bearer token, so unguessable matters more than short.
+    const code = [...crypto.getRandomValues(new Uint8Array(16))]
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    const expires = Number.isFinite(expiresInDays) && expiresInDays > 0
+      ? Date.now() + expiresInDays * 86_400_000 : null;
+    const max = Number.isInteger(maxUses) && maxUses > 0 ? maxUses : null;
+    await env.DB.prepare(
+      'INSERT INTO invites (code, owner_id, created, expires, max_uses, uses) VALUES (?1, ?2, ?3, ?4, ?5, 0)'
+    ).bind(code, user.id, new Date().toISOString(), expires, max).run();
+    return json({ code, url: `${url.origin}/?invite=${code}` });
+  }
+
+  if (p.startsWith('/api/invites/') && p.endsWith('/redeem') && m === 'POST') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const code = decodeURIComponent(p.split('/').slice(-2)[0]);
+    const inv = await env.DB.prepare(
+      'SELECT code, owner_id, expires, max_uses, uses FROM invites WHERE code = ?1'
+    ).bind(code).first();
+    if (!inv) return err(404, 'that invite link is not valid');
+    if (inv.owner_id === user.id) return err(400, "that's your own invite link");
+    if (inv.expires != null && inv.expires < Date.now()) return err(410, 'that invite link has expired');
+    if (inv.max_uses != null && inv.uses >= inv.max_uses) return err(410, 'that invite link has been used up');
+
+    const owner = await getUser(env, inv.owner_id);
+    if (!owner) return err(404, 'that invite link is not valid');
+
+    // Already friends is a no-op success, not an error: re-opening a link you already
+    // redeemed should be reassuring, not a failure. Doesn't burn a use.
+    if (await areFriends(env, user.id, owner.id)) {
+      return json({ ok: true, already: true, friend: { handle: owner.handle, name: publicName(owner) } });
+    }
+
+    const now = new Date().toISOString();
+    // One batch: a friendship can never be half-formed, and a redeem can never succeed
+    // without also being counted against max_uses.
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO friendships (user_id, friend_id, created) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING')
+        .bind(user.id, owner.id, now),
+      env.DB.prepare('INSERT INTO friendships (user_id, friend_id, created) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING')
+        .bind(owner.id, user.id, now),
+      env.DB.prepare('UPDATE invites SET uses = uses + 1 WHERE code = ?1').bind(code),
+    ]);
+    return json({ ok: true, friend: { handle: owner.handle, name: publicName(owner) } });
+  }
+
+  if (p.startsWith('/api/invites/') && m === 'DELETE') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    // Scoped to owner_id so a code can only be revoked by whoever created it.
+    await env.DB.prepare('DELETE FROM invites WHERE code = ?1 AND owner_id = ?2')
+      .bind(decodeURIComponent(p.split('/').pop()), user.id).run();
     return json({ ok: true });
   }
 

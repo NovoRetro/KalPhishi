@@ -227,6 +227,8 @@ function initPredictor(mount, A) {
           if (after && user.needsEmail) pendingAfterAuth = after;
           else if (after) await after();
           await loadExisting();
+          // An invite that was waiting on sign-in can now be redeemed.
+          if (!user.needsEmail) await redeemPendingInvite();
         } catch (e) {
           err.textContent = e.message === 'claimable'
             ? 'This name has no password yet and can’t be claimed from here right now — ask the site owner for help signing in.'
@@ -774,8 +776,54 @@ function initPredictor(mount, A) {
     setTimeout(() => f.remove(), 2500);
   }
 
+  // ---------- invite links ----------
+  // A /?invite=CODE link can be opened by someone who isn't signed in — and most will be,
+  // since the whole point is sharing with people who don't have accounts yet. The code is
+  // stashed so it survives the sign-in/registration round trip, then redeemed once there
+  // is a session. Stripped from the URL either way so a refresh (or a shared screenshot
+  // of the address bar) doesn't re-run it.
+  const INVITE_KEY = 'kalphishi-pending-invite';
+
+  function takePendingInvite() {
+    const fromUrl = new URLSearchParams(location.search).get('invite');
+    if (fromUrl) {
+      try { sessionStorage.setItem(INVITE_KEY, fromUrl); } catch { /* private mode */ }
+      const clean = new URL(location.href);
+      clean.searchParams.delete('invite');
+      history.replaceState({}, '', clean);
+    }
+    try { return sessionStorage.getItem(INVITE_KEY); } catch { return fromUrl; }
+  }
+
+  function clearPendingInvite() {
+    try { sessionStorage.removeItem(INVITE_KEY); } catch { /* private mode */ }
+  }
+
+  async function redeemPendingInvite() {
+    const code = takePendingInvite();
+    if (!code) return;
+    if (!user) {
+      // Hold it and ask them to sign in; redeem runs again after auth succeeds.
+      authPrompt = {
+        tab: 'register',
+        message: 'Sign in or create an account to accept this invite.',
+        onAuthed: null,
+      };
+      render();
+      return;
+    }
+    clearPendingInvite();
+    try {
+      const j = await api(`/api/invites/${encodeURIComponent(code)}/redeem`, 'POST', {});
+      flash(j.already ? `You're already friends with ${j.friend.name}.` : `You and ${j.friend.name} are now friends.`);
+    } catch (e) {
+      flash(e.message, true);
+    }
+  }
+
   // bootstrap: resolve session, then load any existing predictions
   api('/api/me')
     .then(j => { user = j.user; return loadExisting(); })
-    .catch(() => { localStorage.removeItem('kalphish-user'); render(); });
+    .catch(() => { localStorage.removeItem('kalphish-user'); render(); })
+    .then(() => redeemPendingInvite());
 }

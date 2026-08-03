@@ -75,6 +75,30 @@ export async function attendedShows(env, userId) {
   return results.map(r => r.showdate);
 }
 
+// Friendships are stored in both directions, so one lookup on user_id is enough.
+// Returns the public shape of each friend — never their id or email.
+export async function friendsOf(env, userId) {
+  const { results } = await env.DB.prepare(
+    `SELECT u.name, u.handle, u.profile, f.created
+       FROM friendships f JOIN users u ON u.id = f.friend_id
+      WHERE f.user_id = ?1
+      ORDER BY f.created DESC`
+  ).bind(userId).all();
+  return results.map(r => ({
+    handle: r.handle,
+    name: publicName(r),
+    profile: parse(r.profile, {}) || {},
+    since: r.created,
+  }));
+}
+
+export async function areFriends(env, a, b) {
+  const row = await env.DB.prepare(
+    'SELECT 1 AS ok FROM friendships WHERE user_id = ?1 AND friend_id = ?2'
+  ).bind(a, b).first();
+  return !!row;
+}
+
 // What anyone may see about a user. No id, no email — including an email hiding in name.
 export async function publicUser(env, u) {
   return {

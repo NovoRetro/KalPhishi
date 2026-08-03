@@ -258,9 +258,16 @@ the profile.
 
 ---
 
-## Phase 4 — Friends via invite links
+## Phase 4 — Friends via invite links ✅ (shipped 2026-08-02)
 
 **Goal:** invite, accept, remove.
+
+*Done and deployed, built as planned below. Notes: redeeming an invite you've already
+redeemed is a no-op success rather than an error (re-opening a link should reassure, not
+fail) and doesn't burn a use. Revoking is scoped by owner_id, so someone else's code is a
+silent no-op rather than a 403 that would confirm the code exists. The pending invite is
+held in sessionStorage and the `?invite=` param is stripped immediately, so a refresh or a
+shared screenshot of the address bar can't re-trigger it.*
 
 **Schema** — `migrations/0004_friends.sql`:
 ```sql
