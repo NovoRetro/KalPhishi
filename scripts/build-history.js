@@ -10,9 +10,21 @@ const path = require('path');
 const dataDir = path.join(__dirname, '..', 'data');
 const archiveDir = path.join(dataDir, 'archive');
 
-const files = fs.existsSync(archiveDir)
+// The track record is a claim about what THIS app predicted in advance, so it must only
+// ever contain shows it actually ran on. Kalphishi's first live prediction was the
+// 2026-07-31 Fenway show; anything dated earlier could only be a backfill scored against
+// a setlist that already existed, which would flatter the numbers and misrepresent the
+// model as having called shows it never saw.
+const APP_EPOCH = '2026-07-31';
+
+const allFiles = fs.existsSync(archiveDir)
   ? fs.readdirSync(archiveDir).filter(f => /^\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort()
   : [];
+const files = allFiles.filter(f => f.slice(0, 10) >= APP_EPOCH);
+const skipped = allFiles.length - files.length;
+if (skipped) {
+  console.warn(`skipped ${skipped} archived show(s) dated before ${APP_EPOCH} — predates the app`);
+}
 
 const shows = files.map(f => {
   const a = JSON.parse(fs.readFileSync(path.join(archiveDir, f), 'utf8'));

@@ -300,6 +300,25 @@
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+// Show dates are stored and compared as ISO (YYYY-MM-DD) everywhere — sorting, object
+// keys, API params and search all depend on that — so this is display-only. Parsed from
+// the parts rather than `new Date('2026-09-04')`, which JS reads as UTC midnight and then
+// renders as the previous day for anyone west of Greenwich.
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+function fmtDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''));
+  if (!m) return String(iso ?? ''); // not a plain date — leave it untouched
+  return `${MONTHS[+m[2] - 1]} ${+m[3]}, ${m[1]}`;
+}
+// Compact variant for axis labels and dense rows, where the full form will not fit.
+function fmtDateShort(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''));
+  if (!m) return String(iso ?? '');
+  return `${MONTHS[+m[2] - 1].slice(0, 3)} ${+m[3]}`;
+}
+window.fmtDate = fmtDate; // predictor.js renders dates too
+
 // ---- account menu ----
 // Shell + open/close semantics live here; predictor.js pushes state into it via
 // window.KalphishiMenu.update(user, actions) on every render.
@@ -701,9 +720,9 @@ function bindTip(node, name, why) {
 }
 
 fetch('/data/analysis.json').then(r => r.json()).then(A => {
-  document.getElementById('asof').textContent = 'data through ' + A.asOf;
+  document.getElementById('asof').textContent = 'data through ' + fmtDate(A.asOf);
   document.getElementById('nextshow').textContent =
-    `Next show: ${A.nextShow.date} — ${A.nextShow.venue}, ${A.nextShow.city} · ` +
+    `Next show: ${fmtDate(A.nextShow.date)} — ${A.nextShow.venue}, ${A.nextShow.city} · ` +
     `${A.tour.name}: ${A.tour.shows.length} shows played, ${A.tour.songCount} unique songs · ` +
     `era window ${A.eraWindow.from} → ${A.eraWindow.to} (${A.eraWindow.totalShows} shows)`;
 
@@ -711,7 +730,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
 
   // ---- predicted setlist marquee
   const pred = el('div', 'card marquee');
-  pred.appendChild(el('h2', null, `Predicted setlist — ${esc(A.nextShow.date)} ${esc(A.nextShow.venue)} <span class="hint">(hover or tap a song for reasoning)</span>`));
+  pred.appendChild(el('h2', null, `Predicted setlist — ${esc(fmtDate(A.nextShow.date))} ${esc(A.nextShow.venue)} <span class="hint">(hover or tap a song for reasoning)</span>`));
   for (const [label, list] of [['Set 1', A.prediction.set1], ['Set 2', A.prediction.set2], ['Encore', A.prediction.encore]]) {
     pred.appendChild(el('div', 'setlabel', label));
     const row = el('div', 'setlist');
@@ -753,9 +772,11 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   const due = el('div', 'card');
   due.appendChild(el('h2', null, 'Due back up <span class="hint">— in tour rotation, repeat window open</span>'));
   due.appendChild(tableOf(
-    ['Song', 'Last tour play', 'Gap at 7/31', 'Era freq', 'Cadence'],
+    // Header follows the target show rather than a hardcoded date, which went stale the
+    // moment the prediction advanced.
+    ['Song', 'Last tour play', `Gap at ${fmtDateShort(A.nextShow.date)}`, 'Era freq', 'Cadence'],
     A.horizontal.dueBackUp.slice(0, 18).map(d => [
-      `<span class="song">${esc(d.name)}</span>`, d.lastTourPlay,
+      `<span class="song">${esc(d.name)}</span>`, fmtDateShort(d.lastTourPlay),
       num(d.gapAtNext), pct(d.eraFreq), num(d.medianInterval),
     ]), [2, 3, 4]));
   h.appendChild(due);
@@ -765,7 +786,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   abs.appendChild(tableOf(
     ['Song', 'Last played', 'Shows since', 'Cadence', 'Overdue ×'],
     A.horizontal.absent.slice(0, 18).map(d => [
-      `<span class="song">${esc(d.name)}</span>`, d.lastPlayed,
+      `<span class="song">${esc(d.name)}</span>`, fmtDate(d.lastPlayed),
       num(d.currentGap), num(d.medianInterval), num(d.overdueFactor),
     ]), [2, 3, 4]));
   h.appendChild(abs);
@@ -780,7 +801,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     ['Song', 'Plays', 'Dates'],
     A.horizontal.tourSongs.filter(t => t.plays >= 2).slice(0, 18).map(t => [
       `<span class="song">${esc(t.name)}</span>`, num(t.plays),
-      `<span class="why">${t.dates.map(d => d.slice(5)).join(', ')}</span>`,
+      `<span class="why">${t.dates.map(fmtDateShort).join(', ')}</span>`,
     ]), [1]));
   h2.appendChild(rot);
 
@@ -828,10 +849,10 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     b.appendChild(el('div', 'v', String(Math.round(s.meanYear)).slice(2)));
     const f = el('div', 'fill');
     f.style.height = ((s.meanYear - YMIN) / (2026 - YMIN) * 96) + 'px';
-    bindTip(f, `${s.date} — mean album year ${s.meanYear}`,
+    bindTip(f, `${fmtDate(s.date)} — mean album year ${s.meanYear}`,
       `Top album: ${s.topAlbum || '—'} · ${s.attributed}/${s.total} songs on a studio album`);
     b.appendChild(f);
-    b.appendChild(el('div', 'x', s.date.slice(5)));
+    b.appendChild(el('div', 'x', fmtDateShort(s.date)));
     eraBars.appendChild(b);
   }
   era.appendChild(eraBars);
@@ -850,7 +871,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     const setNames = { 1: 'Set 1', 2: 'Set 2', 3: 'Set 3', e: 'Encore', e2: 'Encore 2' };
     for (const show of shows) {
       const card = el('div', 'venue-show');
-      card.appendChild(el('div', null, `<span class="date">${esc(show.date)}</span><span class="tour">${esc(show.tour || '')}</span>`));
+      card.appendChild(el('div', null, `<span class="date">${esc(fmtDate(show.date))}</span><span class="tour">${esc(show.tour || '')}</span>`));
       for (const [set, items] of Object.entries(show.sets)) {
         card.appendChild(el('div', 'setlabel', setNames[set] || 'Set ' + set));
         const row = el('div', 'setlist');
@@ -1090,9 +1111,9 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       const r = s.result;
       const card = el('div', 'tr-detail');
       card.appendChild(el('div', 'setlabel',
-        `${esc(s.showdate)} — ${esc(s.venue)}${s.city ? ', ' + esc(s.city) : ''}`));
+        `${esc(fmtDate(s.showdate))} — ${esc(s.venue)}${s.city ? ', ' + esc(s.city) : ''}`));
       card.appendChild(el('div', 'hint',
-        `Predicted using data through ${esc(s.asOf)} — before the show was played.`));
+        `Predicted using data through ${esc(fmtDate(s.asOf))} — before the show was played.`));
 
       card.appendChild(el('div', 'tr-metrics',
         `Precision <b>${pct(r.precision)}</b> · Recall <b>${pct(r.recall)}</b> · ` +
@@ -1170,7 +1191,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       nav.style.display = matches.length > 1 ? '' : 'none';
       matches.forEach((s, i) => {
         const row = el('button', 'tr-row',
-          `<b>${esc(s.showdate)}</b> <span class="hint">${esc(s.venue)}</span> ` +
+          `<b>${esc(fmtDate(s.showdate))}</b> <span class="hint">${esc(s.venue)}</span> ` +
           `<span class="tr-row-metrics">P ${pct(s.result.precision)} · R ${pct(s.result.recall)} · ` +
           `${s.result.hits.length} hit${s.result.hits.length === 1 ? '' : 's'}</span>`);
         row.addEventListener('click', () => showAt(i));

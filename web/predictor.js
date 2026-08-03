@@ -3,6 +3,10 @@
 function initPredictor(mount, A) {
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // Date formatting is owned by index.html so both files render dates identically.
+  // Resolved at call time (initPredictor runs after that script) and degrades to the raw
+  // ISO string rather than throwing if it is somehow absent.
+  const fmtDate = iso => (window.fmtDate ? window.fmtDate(iso) : String(iso ?? ''));
   const FREE = 12;
   const PHISH = ['P', 'H', 'I', 'S', 'H'];
 
@@ -288,7 +292,7 @@ function initPredictor(mount, A) {
     dateInput.value = showdate;
     dateInput.addEventListener('change', () => { showdate = dateInput.value.trim(); loadExisting(); });
     showRow.appendChild(dateInput);
-    showRow.appendChild(el('span', null, ` (next show: ${A.nextShow.date} — ${esc(A.nextShow.venue)})`));
+    showRow.appendChild(el('span', null, ` (next show: ${esc(fmtDate(A.nextShow.date))} — ${esc(A.nextShow.venue)})`));
     bar.appendChild(showRow);
 
     // Attendance toggle for whichever show is currently selected. Self-reported and
@@ -758,7 +762,7 @@ function initPredictor(mount, A) {
         : 'not scored yet';
       const wasThere = attendedDates.has(p.showdate)
         ? '<span class="p-there" title="You marked that you were at this show">🎟 there</span>' : '';
-      wrap.appendChild(el('div', 'p-histrow', `<b>${p.showdate}</b>${wasThere} · ${p.type} · ${line}`));
+      wrap.appendChild(el('div', 'p-histrow', `<b>${esc(fmtDate(p.showdate))}</b>${wasThere} · ${p.type} · ${line}`));
     }
     const profilePanel = el('div');
 

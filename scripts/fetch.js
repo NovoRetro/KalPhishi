@@ -17,6 +17,13 @@ async function get(endpoint, params = {}) {
   return json.data;
 }
 
+// Read an already-cached file without fetching. Used to work out which venue is next
+// from data this run has just ensured is present.
+function readCache(name) {
+  const file = path.join(dataDir, `${name}.json`);
+  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : [];
+}
+
 async function cached(name, endpoint, params) {
   const file = path.join(dataDir, `${name}.json`);
   if (fs.existsSync(file)) {
@@ -49,20 +56,38 @@ async function main() {
 
   await cached('songs', '/songs.json');
 
-  const venues = await cached('venues', '/venues.json');
-  const fenway = venues.filter(v => /fenway/i.test(v.venuename));
-  console.log('Fenway candidates:', JSON.stringify(fenway, null, 1));
+  await cached('venues', '/venues.json');
 
-  for (const v of fenway) {
-    const shows = await cached(`shows-venue-${v.venueid}`, `/shows/venueid/${v.venueid}.json`, {
-      order_by: 'showdate', direction: 'asc',
-    });
-    const phishShows = shows.filter(s => s.artistid === 1 || /^phish$/i.test(s.artist_name || ''));
-    console.log(`Venue ${v.venuename} (${v.venueid}): ${shows.length} shows, ${phishShows.length} phish`);
-    for (const s of phishShows) {
-      if (s.showdate < '2026-08-01') { // fetch only shows that have actually happened
-        await cached(`setlist-${s.showdate}`, `/setlists/showdate/${s.showdate}.json`);
-      }
+  // Venue history for whichever show is next — resolved the same way analyze.js does
+  // (first scheduled date after the last one with a published setlist) so the two agree.
+  // Previously hardcoded to Fenway, which silently went stale the moment the tour moved on.
+  const played = new Set();
+  const scheduled = [];
+  for (const year of [2022, 2023, 2024, 2025, 2026]) {
+    for (const r of readCache(`setlists-${year}`)) {
+      if (r.artistid === 1 && !r.exclude) played.add(r.showdate);
+    }
+    for (const s of readCache(`schedule-${year}`)) {
+      if (s.artistid === 1) scheduled.push(s);
+    }
+  }
+  scheduled.sort((a, b) => a.showdate.localeCompare(b.showdate));
+  const lastPlayed = [...played].sort().pop() || '';
+  const next = scheduled.find(s => s.showdate > lastPlayed) || scheduled[scheduled.length - 1];
+  if (!next) { console.warn('no scheduled shows found — skipping venue history'); return; }
+  console.log(`next show: ${next.showdate} — ${next.venue} (venue ${next.venueid})`);
+
+  const shows = await cached(`shows-venue-${next.venueid}`, `/shows/venueid/${next.venueid}.json`, {
+    order_by: 'showdate', direction: 'asc',
+  });
+  const phishShows = shows.filter(s => s.artistid === 1 || /^phish$/i.test(s.artist_name || ''));
+  console.log(`Venue ${next.venue} (${next.venueid}): ${shows.length} shows, ${phishShows.length} phish`);
+  for (const s of phishShows) {
+    // Only shows that have actually happened have a setlist to fetch. Compared against
+    // the next show's date rather than a hardcoded cutoff, so this stays correct as the
+    // tour advances.
+    if (s.showdate < next.showdate) {
+      await cached(`setlist-${s.showdate}`, `/setlists/showdate/${s.showdate}.json`);
     }
   }
 }
