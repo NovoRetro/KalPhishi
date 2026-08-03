@@ -235,6 +235,19 @@
   .menu-form { padding: 8px 6px; display: flex; flex-direction: column; gap: 8px; }
   .menu-form .ta-input { max-width: none; }
   .menu-note { font-size: 11px; color: var(--muted); padding: 0 6px; }
+  .friend-row, .invite-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 7px 6px; border-bottom: 1px solid var(--grid); font-size: 12px; }
+  .friend-row > span:first-child { flex: 1; }
+  .friend-remove { background: none; border: 1px solid var(--border); border-radius: 99px; color: var(--series-2);
+    font: inherit; font-size: 11px; padding: 4px 10px; min-height: 32px; cursor: pointer; }
+  .friend-remove:hover { background: var(--accent-wash); }
+  .friend-remove:disabled { opacity: 0.5; cursor: default; }
+  .invite-copy { flex: 1; background: var(--surface); border: 1px solid var(--baseline); border-radius: 8px;
+    color: var(--ink); font: inherit; font-size: 12px; padding: 6px 10px; min-height: 32px; cursor: pointer; }
+  .invite-copy:hover { background: var(--accent-wash); }
+  @media (max-width: 560px) {
+    .friend-remove, .invite-copy { min-height: 44px; font-size: 13px; }
+  }
   /* Phones: right-hand drawer instead of a dropdown. Must follow the base .menu-panel
      rule — same specificity, so source order decides which wins. */
   @media (max-width: 560px) {
@@ -362,8 +375,97 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
       return;
     }
 
+    if (view === 'friends') {
+      const wrap = el('div', 'menu-form');
+      const msg = el('div', 'menu-note');
+      const listHost = el('div');
+      const inviteHost = el('div');
+
+      async function drawFriends() {
+        listHost.innerHTML = '';
+        let friends = [];
+        try { friends = (await mfetch('/api/friends', 'GET')).friends; }
+        catch (e) { listHost.appendChild(el('div', 'menu-note', e.message)); return; }
+        if (!friends.length) {
+          listHost.appendChild(el('div', 'menu-note', 'No friends yet — share an invite link below.'));
+          return;
+        }
+        for (const f of friends) {
+          const row = el('div', 'friend-row',
+            `<span><span class="p-avatar">${esc(f.profile.avatar || '🎣')}</span> <b>${esc(f.name)}</b> ` +
+            `<span class="menu-stats">@${esc(f.handle)}</span></span>`);
+          const rm = el('button', 'friend-remove', 'Remove');
+          rm.title = `Remove ${f.name} — this also removes you from their list`;
+          rm.addEventListener('click', async () => {
+            rm.disabled = true;
+            try {
+              await mfetch('/api/friends/' + encodeURIComponent(f.handle), 'DELETE');
+              await drawFriends();
+            } catch (e) { rm.disabled = false; msg.textContent = e.message; }
+          });
+          row.appendChild(rm);
+          listHost.appendChild(row);
+        }
+      }
+
+      async function drawInvites() {
+        inviteHost.innerHTML = '';
+        const make = el('button', 'p-btn', 'Create invite link');
+        make.addEventListener('click', async () => {
+          make.disabled = true;
+          try { await mfetch('/api/invites', 'POST', {}); await drawInvites(); }
+          catch (e) { make.disabled = false; msg.textContent = e.message; }
+        });
+        inviteHost.appendChild(make);
+
+        let invites = [];
+        try { invites = (await mfetch('/api/invites', 'GET')).invites; } catch { /* shown below */ }
+        const live = invites.filter(i => !i.spent && !i.expired);
+        if (!live.length) return;
+        inviteHost.appendChild(el('div', 'menu-note', 'Share a link — whoever opens it becomes your friend.'));
+        for (const i of live) {
+          const url = `${location.origin}/?invite=${i.code}`;
+          const row = el('div', 'invite-row');
+          const copy = el('button', 'invite-copy', '📋 Copy link');
+          copy.addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(url);
+              copy.textContent = '✓ Copied';
+            } catch {
+              // Clipboard needs permission/secure context; fall back to selectable text.
+              copy.textContent = 'Copy manually →';
+              const box = el('input', 'ta-input');
+              box.value = url; box.readOnly = true;
+              row.appendChild(box); box.select();
+            }
+            setTimeout(() => { copy.textContent = '📋 Copy link'; }, 1800);
+          });
+          row.appendChild(copy);
+          row.appendChild(el('span', 'menu-stats', ` used ${i.uses}${i.maxUses ? '/' + i.maxUses : ''}`));
+          const rev = el('button', 'friend-remove', 'Revoke');
+          rev.addEventListener('click', async () => {
+            rev.disabled = true;
+            try { await mfetch('/api/invites/' + encodeURIComponent(i.code), 'DELETE'); await drawInvites(); }
+            catch (e) { rev.disabled = false; msg.textContent = e.message; }
+          });
+          row.appendChild(rev);
+          inviteHost.appendChild(row);
+        }
+      }
+
+      wrap.appendChild(listHost);
+      wrap.appendChild(inviteHost);
+      wrap.appendChild(msg);
+      panel.appendChild(wrap);
+      panel.appendChild(item('← Back', () => drawContent()));
+      drawFriends();
+      drawInvites();
+      return;
+    }
+
     panel.appendChild(item('My History', () => { close(); actions?.goTo('history'); }));
     panel.appendChild(item('Profile', () => { close(); actions?.goTo('profile'); }));
+    panel.appendChild(item('Friends', () => drawContent('friends')));
     panel.appendChild(item('Change password', () => drawContent('password')));
     panel.appendChild(item('Sign out', async () => { close(); await actions?.signOut(); }, 'danger'));
   }
