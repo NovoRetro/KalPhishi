@@ -307,9 +307,19 @@ symmetric.
 
 ---
 
-## Phase 5 — Friend groups & scoped leaderboards
+## Phase 5 — Friend groups & scoped leaderboards ✅ (shipped 2026-08-02)
 
 **Goal:** the actual payoff — leaderboards among people you know.
+
+*Done and deployed. Settled the two open questions this phase depended on: groups are
+owner-managed, and membership is drawn from your friends, so the invite link stays the
+single way to connect. The global board survives as one scope option rather than being
+dropped. Notes: the owner is stored as a member row too, so leaderboard queries are a
+plain join instead of "members UNION the owner" everywhere. Unfriending someone deletes
+the corresponding group memberships in the same batch — otherwise they'd be stranded in
+a friends-only group they could no longer be re-added to. The owner can't leave their own
+group (delete it instead), and deleting someone else's group is a silent no-op, matching
+how invite revocation avoids confirming what exists.*
 
 **Schema** — `migrations/0005_groups.sql`:
 ```sql
@@ -358,9 +368,11 @@ Pick this up only when the app outgrows "people you can text" — see Design Dec
 link-email flow), and handle format (auto from display name, editable in Profile). All
 three are written into Phase 1 above.*
 
-1. **Group membership** — owner-managed only, or can members add others? Owner-only is
-   simpler and probably right for now.
-3. **Attendance granularity** — Phish plays multi-night runs at one venue. Keying on
+*Also settled in Phase 5: group membership is owner-managed, groups draw only from your
+friends, and the global leaderboard stays as one scope option alongside Friends and each
+group.*
+
+1. **Attendance granularity** — Phish plays multi-night runs at one venue. Keying on
    `showdate` handles that correctly, but confirm there is never more than one show per
    date (festivals?).
 4. **Does the global leaderboard stay?** Once friend leaderboards exist, a public

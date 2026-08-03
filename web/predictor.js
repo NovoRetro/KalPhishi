@@ -19,6 +19,9 @@ function initPredictor(mount, A) {
   // Every show the signed-in user says they attended. Held as a set because the toggle
   // and My History both need "was I at this date?" without a round trip per row.
   let attendedDates = new Set();
+  // Which leaderboard the user last chose: 'everyone', 'friends', or 'group:<id>'.
+  // Kept outside renderHistory so switching tabs and back doesn't reset it.
+  let leaderboardScope = 'everyone';
 
   let meta = {};
   fetch('/data/songs.json').then(r => r.json()).then(d => {
@@ -726,9 +729,9 @@ function initPredictor(mount, A) {
   async function renderHistory() {
     const wrap = el('div');
     mount.appendChild(wrap);
-    const [preds, board] = await Promise.all([
+    const [preds, groups] = await Promise.all([
       api(`/api/predictions?user=${user.handle}`),
-      api('/api/leaderboard'),
+      api('/api/groups').then(j => j.groups).catch(() => []),
     ]);
     preds.sort((a, b) => b.showdate.localeCompare(a.showdate));
     const st = user.stats || {};
@@ -758,15 +761,57 @@ function initPredictor(mount, A) {
       wrap.appendChild(el('div', 'p-histrow', `<b>${p.showdate}</b>${wasThere} · ${p.type} · ${line}`));
     }
     const profilePanel = el('div');
-    if (board.length) {
-      wrap.appendChild(el('div', 'setlabel', 'Leaderboard — click a name for their profile'));
+
+    // Leaderboard with a scope selector: Everyone / Friends / each group you're in.
+    wrap.appendChild(el('div', 'setlabel', 'Leaderboard — click a name for their profile'));
+    const scopeRow = el('div', 'p-modes');
+    const boardHost = el('div');
+    const scopes = [
+      ['everyone', 'Everyone'],
+      ['friends', 'Friends'],
+      ...groups.map(g => [`group:${g.id}`, g.name]),
+    ];
+    wrap.appendChild(scopeRow);
+    wrap.appendChild(boardHost);
+
+    async function drawBoard() {
+      scopeRow.innerHTML = '';
+      for (const [key, label] of scopes) {
+        const b = el('button', 'p-mode' + (leaderboardScope === key ? ' active' : ''), esc(label));
+        b.addEventListener('click', () => { leaderboardScope = key; drawBoard(); });
+        scopeRow.appendChild(b);
+      }
+      boardHost.innerHTML = '';
+      let board;
+      try {
+        board = await api(`/api/leaderboard?scope=${encodeURIComponent(leaderboardScope)}`);
+      } catch (e) {
+        // A group can vanish (deleted, or you were removed) while the selector still
+        // lists it — fall back rather than leaving the panel empty and unexplained.
+        boardHost.appendChild(el('div', 'hint', e.message));
+        return;
+      }
+      if (!board.length) {
+        boardHost.appendChild(el('div', 'hint', leaderboardScope === 'everyone'
+          ? 'Nobody has a scored prediction yet.'
+          : 'Nobody here has a scored prediction yet — scores appear once a show is graded.'));
+        return;
+      }
+      // Attendance across this scope, for the show most of them predicted.
+      const attended = board.filter(u => u.showsAttended > 0).length;
+      if (leaderboardScope !== 'everyone' && attended) {
+        boardHost.appendChild(el('div', 'hint',
+          `🎟 ${attended} of ${board.length} here have marked shows they attended.`));
+      }
       board.forEach((u, i) => {
+        const att = u.showsAttended ? ` · 🎟 ${u.showsAttended}` : '';
         const row = el('div', 'p-histrow p-boardrow',
-          `#${i + 1} <span class="p-avatar">${esc(avatarOf(u))}</span> <b>${esc(displayName(u))}</b> — accuracy ${u.accuracy} over ${u.scored} scored${u.bingos ? `, ${u.bingos} 🍩` : ''}`);
+          `#${i + 1} <span class="p-avatar">${esc(avatarOf(u))}</span> <b>${esc(displayName(u))}</b> — accuracy ${u.accuracy} over ${u.scored} scored${u.bingos ? `, ${u.bingos} 🍩` : ''}${att}`);
         row.addEventListener('click', () => showPublicProfile(profilePanel, u.handle));
-        wrap.appendChild(row);
+        boardHost.appendChild(row);
       });
     }
+    await drawBoard();
     wrap.appendChild(profilePanel);
   }
 
