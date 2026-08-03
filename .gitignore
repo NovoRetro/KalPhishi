@@ -4,6 +4,9 @@
 node_modules/
 
 # cached phish.net API responses + derived analysis (regenerate with npm run fetch && npm run analyze)
+# Deliberately non-recursive: data/archive/*.json holds point-in-time model predictions
+# that CANNOT be regenerated once analysis.json moves on to the next show, so they are
+# committed on purpose. Do not broaden this to data/**/*.json.
 data/*.json
 
 # user accounts, password hashes, sessions, predictions — never publish

@@ -99,3 +99,25 @@ test('every file index.html references is in the deploy allowlist', () => {
       `index.html loads /${ref} but build-public.js does not publish it`);
   }
 });
+
+test('history.json is in the deploy allowlist', () => {
+  // The track-record UI fetches /data/history.json; if the build does not publish it,
+  // the panel silently degrades to "no history available" in production only.
+  assert.match(buildPublic, /\['data\/history\.json', 'data\/history\.json'\]/);
+});
+
+test('the archive is not swept up by the data/ gitignore', () => {
+  // data/archive/*.json holds point-in-time predictions that cannot be regenerated once
+  // analysis.json advances to the next show. A recursive data/**/*.json pattern would
+  // silently stop them being committed, losing the accuracy record permanently.
+  // Only active rules count — the file's own comment mentions the recursive pattern
+  // precisely to warn against it, and matching that would be a false positive.
+  const rules = read('.gitignore')
+    .split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  assert.ok(!rules.includes('data/**/*.json'), 'archive must stay committable');
+  assert.ok(rules.includes('data/*.json'), 'the non-recursive cache pattern should remain');
+});
+
+test('the track-record panel reads from history.json, not analysis.json', () => {
+  assert.match(html, /fetch\('\/data\/history\.json'\)/);
+});

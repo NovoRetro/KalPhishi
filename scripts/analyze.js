@@ -51,12 +51,17 @@ for (const [key, list] of setSizes) {
 // slot stats per song (modern era)
 for (const r of rows) {
   const s = songs.get(r.slug);
-  if (!s.slots) s.slots = { s1open: 0, s2open: 0, closer: 0, encore: 0, total: 0 };
+  if (!s.slots) s.slots = { s1open: 0, s2open: 0, closer: 0, encore: 0, set1: 0, set2: 0, total: 0 };
   s.slots.total++;
   if (r.set === '1' && r._setpos === 0) s.slots.s1open++;
   if (r.set === '2' && r._setpos === 0) s.slots.s2open++;
   if ((r.set === '1' || r.set === '2' || r.set === '3') && r._setpos === r._setlen - 1) s.slots.closer++;
   if (r.set === 'e' || r.set === 'e2') s.slots.encore++;
+  // Plain set-1 vs set-2 counts. Many songs are effectively set-exclusive (Stash 38/38
+  // set 1, Light 33/33 set 2), which the opener/closer stats above don't capture — they
+  // only describe the edges of a set, not which set a song belongs in at all.
+  if (r.set === '1') s.slots.set1++;
+  if (r.set === '2') s.slots.set2++;
   if (r.isjamchart === 1) s.jamchartPlays = (s.jamchartPlays || 0) + 1;
 }
 
@@ -297,16 +302,39 @@ function pick(pool, n, used, slotFilter) {
   }
   return out;
 }
+// Set placement. Songs lean hard here — of 137 songs with enough set-1/set-2 plays to
+// judge, 91 lean at least 70% one way, and plenty are effectively set-exclusive. Without
+// this, set 1 and set 2 were both filled from the same score-ranked list, which put
+// set-1-only songs (555, Stash) into set 2 purely because they scored well.
+//
+// Applied as an exclusion of strong contradictions rather than a hard split: a song only
+// gets blocked from a set if its record clearly says it doesn't go there, so score still
+// drives ordering everywhere else. Songs without enough plays to judge stay eligible for
+// both — no evidence isn't the same as evidence of no lean.
+const MIN_SET_PLAYS = 6;
+const SET_LEAN = 0.7;
+const set1Rate = c => {
+  if (!c.slots) return null;
+  const n = c.slots.set1 + c.slots.set2;
+  return n >= MIN_SET_PLAYS ? c.slots.set1 / n : null;
+};
+const fitsSet = (c, which) => {
+  const r = set1Rate(c);
+  if (r === null) return true;
+  return which === 1 ? r > 1 - SET_LEAN : r < SET_LEAN;
+};
+const notEncoreSong = c => !c.slots || c.slots.encore / c.slots.total < 0.5;
+
 const used = new Set();
-const openerPool = scored.filter(c => c.slots && c.slots.s1open / c.slots.total > 0.2 && c.score > 0);
+const openerPool = scored.filter(c => c.slots && c.slots.s1open / c.slots.total > 0.2 && c.score > 0 && fitsSet(c, 1));
 const opener = pick(openerPool.length ? openerPool : scored, 1, used);
-const set1mid = pick(scored, 6, used, c => !c.slots || c.slots.encore / c.slots.total < 0.5);
+const set1mid = pick(scored, 6, used, c => notEncoreSong(c) && fitsSet(c, 1));
 const closerPool = scored.filter(c => c.slots && c.slots.closer / c.slots.total > 0.25 && c.score > 0);
-const set1close = pick(closerPool.length ? closerPool : scored, 1, used);
-const s2openPool = scored.filter(c => c.slots && c.slots.s2open / c.slots.total > 0.15 && c.score > 0);
+const set1close = pick(closerPool.filter(c => fitsSet(c, 1)).length ? closerPool.filter(c => fitsSet(c, 1)) : scored, 1, used);
+const s2openPool = scored.filter(c => c.slots && c.slots.s2open / c.slots.total > 0.15 && c.score > 0 && fitsSet(c, 2));
 const set2open = pick(s2openPool.length ? s2openPool : scored, 1, used);
-const set2mid = pick(scored, 5, used, c => !c.slots || c.slots.encore / c.slots.total < 0.5);
-const set2close = pick(closerPool.length ? closerPool : scored, 1, used);
+const set2mid = pick(scored, 5, used, c => notEncoreSong(c) && fitsSet(c, 2));
+const set2close = pick(closerPool.filter(c => fitsSet(c, 2)).length ? closerPool.filter(c => fitsSet(c, 2)) : scored, 1, used);
 const encorePool = scored.filter(c => c.slots && c.slots.encore / c.slots.total > 0.3 && c.score > 0);
 const encore = pick(encorePool.length ? encorePool : scored, 2, used);
 
@@ -359,6 +387,35 @@ const out = {
 };
 
 fs.writeFileSync(path.join(dataDir, 'analysis.json'), JSON.stringify(out, null, 1));
+
+// ---- ARCHIVE: snapshot this prediction so it survives NEXT_SHOW moving on.
+// analysis.json is overwritten every run, so without this the prediction for a show is
+// gone the moment the next one is targeted — and a prediction can't be reconstructed
+// after the fact, since the model would then be looking at data that includes the very
+// show it was meant to predict. Committed, not gitignored (see .gitignore).
+const archiveDir = path.join(dataDir, 'archive');
+fs.mkdirSync(archiveDir, { recursive: true });
+const archiveFile = path.join(archiveDir, `${NEXT_SHOW.date}.json`);
+const prior = fs.existsSync(archiveFile) ? JSON.parse(fs.readFileSync(archiveFile, 'utf8')) : null;
+
+if (prior && prior.scorecard) {
+  // Refuse to rewrite a prediction that has already been graded — editing it after the
+  // fact would silently rewrite the accuracy record into fiction.
+  console.log(`\narchive: ${NEXT_SHOW.date} already scored — prediction left untouched.`);
+} else {
+  fs.writeFileSync(archiveFile, JSON.stringify({
+    showdate: NEXT_SHOW.date,
+    venue: NEXT_SHOW.venue,
+    city: NEXT_SHOW.city,
+    generated: out.generated,
+    asOf: out.asOf, // last show the model had data for — proves it predates the show
+    prediction: { set1: prediction.set1, set2: prediction.set2, encore: prediction.encore },
+    topCandidates: scored.slice(0, 40).map(c => ({ slug: c.slug, name: c.name, score: c.score })),
+    scorecard: prior ? prior.scorecard : null,
+  }, null, 1));
+  console.log(`\narchive: wrote data/archive/${NEXT_SHOW.date}.json (asOf ${out.asOf})`);
+}
+
 console.log('era shows:', totalShows, '| tour shows:', tourShows.length, '| tour songs:', tourSongs.size);
 console.log('median intra-tour repeat gap:', medianRepeatGap);
 console.log('\nTop 25 candidates:');

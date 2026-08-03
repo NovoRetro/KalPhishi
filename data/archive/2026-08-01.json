@@ -1,0 +1,601 @@
+{
+ "showdate": "2026-08-01",
+ "venue": "Fenway Park",
+ "city": "Boston, MA",
+ "generated": "2026-08-03T00:53:15.406Z",
+ "asOf": "2026-07-31",
+ "prediction": {
+  "set1": [
+   {
+    "name": "46 Days",
+    "slug": "46-days",
+    "score": 25.8,
+    "why": [
+     "due (12 shows since last, cadence ~5)",
+     "tour repeat window open (gap 13)",
+     "played at Fenway 1x before"
+    ]
+   },
+   {
+    "name": "Set Your Soul Free",
+    "slug": "set-your-soul-free",
+    "score": 22,
+    "why": [
+     "due (21 shows since last, cadence ~7)",
+     "played at Fenway 1x before"
+    ]
+   },
+   {
+    "name": "The Moma Dance",
+    "slug": "the-moma-dance",
+    "score": 21.9,
+    "why": [
+     "due (7 shows since last, cadence ~5)",
+     "tour repeat window open (gap 8)",
+     "played at Fenway 1x before"
+    ]
+   },
+   {
+    "name": "555",
+    "slug": "555",
+    "score": 20.8,
+    "why": [
+     "due (13 shows since last, cadence ~7)",
+     "tour repeat window open (gap 14)",
+     "played at Fenway 1x before"
+    ]
+   },
+   {
+    "name": "Bathtub Gin",
+    "slug": "bathtub-gin",
+    "score": 20.4,
+    "why": [
+     "due (4 shows since last, cadence ~5)",
+     "tour repeat window open (gap 5)",
+     "played at Fenway 1x before"
+    ]
+   },
+   {
+    "name": "Hey Stranger",
+    "slug": "hey-stranger",
+    "score": 19.8,
+    "why": [
+     "due (14 shows since last, cadence ~7)",
+     "tour repeat window open (gap 15)"
+    ]
+   },
+   {
+    "name": "Blaze On",
+    "slug": "blaze-on",
+    "score": 19.6,
+    "why": [
+     "due (6 shows since last, cadence ~5)",
+     "tour repeat window open (gap 7)",
+     "played at Fenway 1x before"
+    ]
+   },
+   {
+    "name": "Life Saving Gun",
+    "slug": "life-saving-gun",
+    "score": 17.7,
+    "why": [
+     "due (8 shows since last, cadence ~6)",
+     "tour repeat window open (gap 9)"
+    ]
+   }
+  ],
+  "set2": [
+   {
+    "name": "Chalk Dust Torture",
+    "slug": "chalk-dust-torture",
+    "score": 22.5,
+    "why": [
+     "due (4 shows since last, cadence ~4)",
+     "tour repeat window open (gap 5)",
+     "played at Fenway 1x before"
+    ]
+   },
+   {
+    "name": "Twist",
+    "slug": "twist",
+    "score": 22.1,
+    "why": [
+     "due (15 shows since last, cadence ~5)",
+     "tour repeat window open (gap 16)"
+    ]
+   },
+   {
+    "name": "Piper",
+    "slug": "piper",
+    "score": 21,
+    "why": [
+     "due (11 shows since last, cadence ~7)",
+     "tour repeat window open (gap 12)"
+    ]
+   },
+   {
+    "name": "Ruby Waves",
+    "slug": "ruby-waves",
+    "score": 20.9,
+    "why": [
+     "due (7 shows since last, cadence ~5)",
+     "tour repeat window open (gap 8)"
+    ]
+   },
+   {
+    "name": "Plasma",
+    "slug": "plasma",
+    "score": 19.3,
+    "why": [
+     "due (14 shows since last, cadence ~8)",
+     "tour repeat window open (gap 15)"
+    ]
+   },
+   {
+    "name": "Sand",
+    "slug": "sand",
+    "score": 19.2,
+    "why": [
+     "due (6 shows since last, cadence ~4)",
+     "tour repeat window open (gap 7)",
+     "already 3+ tour plays",
+     "played at Fenway 1x before"
+    ]
+   },
+   {
+    "name": "First Tube",
+    "slug": "first-tube",
+    "score": 17.1,
+    "why": [
+     "due (7 shows since last, cadence ~5)",
+     "tour repeat window open (gap 8)"
+    ]
+   }
+  ],
+  "encore": [
+   {
+    "name": "Wading in the Velvet Sea",
+    "slug": "wading-in-the-velvet-sea",
+    "score": 13.2,
+    "why": [
+     "due (17 shows since last, cadence ~18)",
+     "played at Fenway 2x before"
+    ]
+   },
+   {
+    "name": "When the Circus Comes",
+    "slug": "when-the-circus-comes",
+    "score": 13,
+    "why": [
+     "due (54 shows since last, cadence ~19.5)"
+    ]
+   }
+  ]
+ },
+ "topCandidates": [
+  {
+   "slug": "46-days",
+   "name": "46 Days",
+   "score": 25.8
+  },
+  {
+   "slug": "chalk-dust-torture",
+   "name": "Chalk Dust Torture",
+   "score": 22.5
+  },
+  {
+   "slug": "twist",
+   "name": "Twist",
+   "score": 22.1
+  },
+  {
+   "slug": "set-your-soul-free",
+   "name": "Set Your Soul Free",
+   "score": 22
+  },
+  {
+   "slug": "the-moma-dance",
+   "name": "The Moma Dance",
+   "score": 21.9
+  },
+  {
+   "slug": "piper",
+   "name": "Piper",
+   "score": 21
+  },
+  {
+   "slug": "ruby-waves",
+   "name": "Ruby Waves",
+   "score": 20.9
+  },
+  {
+   "slug": "555",
+   "name": "555",
+   "score": 20.8
+  },
+  {
+   "slug": "bathtub-gin",
+   "name": "Bathtub Gin",
+   "score": 20.4
+  },
+  {
+   "slug": "hey-stranger",
+   "name": "Hey Stranger",
+   "score": 19.8
+  },
+  {
+   "slug": "blaze-on",
+   "name": "Blaze On",
+   "score": 19.6
+  },
+  {
+   "slug": "stash",
+   "name": "Stash",
+   "score": 19.6
+  },
+  {
+   "slug": "evolve",
+   "name": "Evolve",
+   "score": 19.4
+  },
+  {
+   "slug": "plasma",
+   "name": "Plasma",
+   "score": 19.3
+  },
+  {
+   "slug": "sand",
+   "name": "Sand",
+   "score": 19.2
+  },
+  {
+   "slug": "cities",
+   "name": "Cities",
+   "score": 19.1
+  },
+  {
+   "slug": "pillow-jets",
+   "name": "Pillow Jets",
+   "score": 19.1
+  },
+  {
+   "slug": "light",
+   "name": "Light",
+   "score": 18.6
+  },
+  {
+   "slug": "oblivion",
+   "name": "Oblivion",
+   "score": 18.6
+  },
+  {
+   "slug": "sigma-oasis",
+   "name": "Sigma Oasis",
+   "score": 18.5
+  },
+  {
+   "slug": "a-song-i-heard-the-ocean-sing",
+   "name": "A Song I Heard the Ocean Sing",
+   "score": 18.2
+  },
+  {
+   "slug": "life-saving-gun",
+   "name": "Life Saving Gun",
+   "score": 17.7
+  },
+  {
+   "slug": "down-with-disease",
+   "name": "Down with Disease",
+   "score": 17.3
+  },
+  {
+   "slug": "roggae",
+   "name": "Roggae",
+   "score": 17.3
+  },
+  {
+   "slug": "tweezer",
+   "name": "Tweezer",
+   "score": 17.2
+  },
+  {
+   "slug": "first-tube",
+   "name": "First Tube",
+   "score": 17.1
+  },
+  {
+   "slug": "leaves",
+   "name": "Leaves",
+   "score": 17.1
+  },
+  {
+   "slug": "no-men-in-no-mans-land",
+   "name": "No Men In No Man's Land",
+   "score": 17
+  },
+  {
+   "slug": "scents-and-subtle-sounds",
+   "name": "Scents and Subtle Sounds",
+   "score": 15.7
+  },
+  {
+   "slug": "mercury",
+   "name": "Mercury",
+   "score": 15.7
+  },
+  {
+   "slug": "about-to-run",
+   "name": "About to Run",
+   "score": 15.5
+  },
+  {
+   "slug": "ghost",
+   "name": "Ghost",
+   "score": 15.4
+  },
+  {
+   "slug": "mountains-in-the-mist",
+   "name": "Mountains in the Mist",
+   "score": 15.4
+  },
+  {
+   "slug": "simple",
+   "name": "Simple",
+   "score": 15.2
+  },
+  {
+   "slug": "birds-of-a-feather",
+   "name": "Birds of a Feather",
+   "score": 15.1
+  },
+  {
+   "slug": "lonely-trip",
+   "name": "Lonely Trip",
+   "score": 15
+  },
+  {
+   "slug": "wolfmans-brother",
+   "name": "Wolfman's Brother",
+   "score": 14.9
+  },
+  {
+   "slug": "the-well",
+   "name": "The Well",
+   "score": 14.5
+  },
+  {
+   "slug": "strawberry-letter-23",
+   "name": "Strawberry Letter 23",
+   "score": 14.4
+  },
+  {
+   "slug": "limb-by-limb",
+   "name": "Limb By Limb",
+   "score": 14.4
+  }
+ ],
+ "scorecard": {
+  "showdate": "2026-08-01",
+  "predicted": 17,
+  "actualUnique": 16,
+  "hits": [
+   "Chalk Dust Torture",
+   "Ruby Waves",
+   "Sand",
+   "Wading in the Velvet Sea"
+  ],
+  "misses": [
+   "46 Days",
+   "Set Your Soul Free",
+   "The Moma Dance",
+   "555",
+   "Bathtub Gin",
+   "Hey Stranger",
+   "Blaze On",
+   "Life Saving Gun",
+   "Twist",
+   "Piper",
+   "Plasma",
+   "First Tube",
+   "When the Circus Comes"
+  ],
+  "surprises": [
+   "My Friend, My Friend",
+   "Tweezer",
+   "Sigma Oasis",
+   "Stash",
+   "Mike's Song",
+   "No Men In No Man's Land",
+   "Light",
+   "Weekapaug Groove",
+   "Ghost",
+   "Possum",
+   "Character Zero",
+   "Tweezer Reprise"
+  ],
+  "precision": 0.235,
+  "recall": 0.25,
+  "setPlacementHits": [
+   "Ruby Waves",
+   "Wading in the Velvet Sea"
+  ],
+  "slotChecks": [
+   {
+    "check": "Show opener",
+    "ok": false,
+    "detail": "predicted 46 Days, actual My Friend, My Friend"
+   },
+   {
+    "check": "Set 2 opener",
+    "ok": false,
+    "detail": "predicted Chalk Dust Torture, actual Mike's Song"
+   },
+   {
+    "check": "Encore (any overlap)",
+    "ok": true,
+    "detail": "predicted Wading in the Velvet Sea, When the Circus Comes, actual Wading in the Velvet Sea, Character Zero, Tweezer Reprise"
+   }
+  ],
+  "actualSongRanks": [
+   {
+    "song": "My Friend, My Friend",
+    "rank": null
+   },
+   {
+    "song": "Tweezer",
+    "rank": 25
+   },
+   {
+    "song": "Sigma Oasis",
+    "rank": 20
+   },
+   {
+    "song": "Chalk Dust Torture",
+    "rank": 2
+   },
+   {
+    "song": "Stash",
+    "rank": 12
+   },
+   {
+    "song": "Sand",
+    "rank": 15
+   },
+   {
+    "song": "Mike's Song",
+    "rank": null
+   },
+   {
+    "song": "Ruby Waves",
+    "rank": 7
+   },
+   {
+    "song": "No Men In No Man's Land",
+    "rank": 28
+   },
+   {
+    "song": "Light",
+    "rank": 18
+   },
+   {
+    "song": "Weekapaug Groove",
+    "rank": null
+   },
+   {
+    "song": "Ghost",
+    "rank": 32
+   },
+   {
+    "song": "Possum",
+    "rank": null
+   },
+   {
+    "song": "Wading in the Velvet Sea",
+    "rank": null
+   },
+   {
+    "song": "Character Zero",
+    "rank": null
+   },
+   {
+    "song": "Tweezer Reprise",
+    "rank": null
+   }
+  ],
+  "top40Coverage": "9/16 actual songs were in our top-40 candidates",
+  "top40Hits": 9,
+  "uniqueActualCount": 16
+ },
+ "actual": [
+  {
+   "slug": "my-friend-my-friend",
+   "name": "My Friend, My Friend",
+   "set": "1"
+  },
+  {
+   "slug": "tweezer",
+   "name": "Tweezer",
+   "set": "1"
+  },
+  {
+   "slug": "sigma-oasis",
+   "name": "Sigma Oasis",
+   "set": "1"
+  },
+  {
+   "slug": "tweezer",
+   "name": "Tweezer",
+   "set": "1"
+  },
+  {
+   "slug": "chalk-dust-torture",
+   "name": "Chalk Dust Torture",
+   "set": "1"
+  },
+  {
+   "slug": "stash",
+   "name": "Stash",
+   "set": "1"
+  },
+  {
+   "slug": "tweezer",
+   "name": "Tweezer",
+   "set": "1"
+  },
+  {
+   "slug": "sand",
+   "name": "Sand",
+   "set": "1"
+  },
+  {
+   "slug": "mikes-song",
+   "name": "Mike's Song",
+   "set": "2"
+  },
+  {
+   "slug": "ruby-waves",
+   "name": "Ruby Waves",
+   "set": "2"
+  },
+  {
+   "slug": "no-men-in-no-mans-land",
+   "name": "No Men In No Man's Land",
+   "set": "2"
+  },
+  {
+   "slug": "light",
+   "name": "Light",
+   "set": "2"
+  },
+  {
+   "slug": "weekapaug-groove",
+   "name": "Weekapaug Groove",
+   "set": "2"
+  },
+  {
+   "slug": "ghost",
+   "name": "Ghost",
+   "set": "2"
+  },
+  {
+   "slug": "possum",
+   "name": "Possum",
+   "set": "2"
+  },
+  {
+   "slug": "wading-in-the-velvet-sea",
+   "name": "Wading in the Velvet Sea",
+   "set": "e"
+  },
+  {
+   "slug": "character-zero",
+   "name": "Character Zero",
+   "set": "e"
+  },
+  {
+   "slug": "tweezer-reprise",
+   "name": "Tweezer Reprise",
+   "set": "e"
+  }
+ ]
+}
