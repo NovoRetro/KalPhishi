@@ -2,181 +2,183 @@
  "showdate": "2026-09-04",
  "venue": "Dick's Sporting Goods Park",
  "city": "Commerce City, CO",
- "generated": "2026-08-03T14:33:43.917Z",
+ "generated": "2026-08-04T10:51:07.747Z",
  "asOf": "2026-08-01",
  "prediction": {
   "set1": [
    {
     "name": "46 Days",
     "slug": "46-days",
-    "score": 48,
+    "score": 47.8,
     "why": [
      "due (13 shows since last, cadence ~5)",
-     "tour repeat window open (gap 14)",
+     "54 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 11x before"
     ]
    },
    {
     "name": "The Moma Dance",
     "slug": "the-moma-dance",
-    "score": 48.3,
+    "score": 48.1,
     "why": [
      "due (8 shows since last, cadence ~5)",
-     "tour repeat window open (gap 9)",
+     "47 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 12x before"
     ]
    },
    {
     "name": "Bathtub Gin",
     "slug": "bathtub-gin",
-    "score": 44.3,
+    "score": 44.1,
     "why": [
      "due (5 shows since last, cadence ~5)",
-     "tour repeat window open (gap 6)",
+     "42 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 12x before"
     ]
    },
    {
     "name": "Wolfman's Brother",
     "slug": "wolfmans-brother",
-    "score": 41,
+    "score": 40.8,
     "why": [
      "due (4 shows since last, cadence ~5)",
-     "tour repeat window open (gap 5)",
+     "41 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 11x before"
     ]
    },
    {
     "name": "Blaze On",
     "slug": "blaze-on",
-    "score": 39.8,
+    "score": 39.6,
     "why": [
      "due (7 shows since last, cadence ~5)",
-     "tour repeat window open (gap 8)",
+     "45 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 9x before"
+    ]
+   },
+   {
+    "name": "Ghost",
+    "slug": "ghost",
+    "score": 38.4,
+    "why": [
+     "already 3+ tour plays",
+     "34 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 14x before"
     ]
    },
    {
     "name": "Tube",
     "slug": "tube",
-    "score": 38,
+    "score": 37.8,
     "why": [
      "due (5 shows since last, cadence ~6)",
-     "tour repeat window open (gap 6)",
+     "42 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 10x before"
-    ]
-   },
-   {
-    "name": "Steam",
-    "slug": "steam",
-    "score": 36.9,
-    "why": [
-     "due (12 shows since last, cadence ~8.5)",
-     "tour repeat window open (gap 13)",
-     "played at Dick's Sporting Goods Park 9x before"
     ]
    },
    {
     "name": "First Tube",
     "slug": "first-tube",
-    "score": 35.6,
+    "score": 35.4,
     "why": [
      "due (8 shows since last, cadence ~5)",
-     "tour repeat window open (gap 9)",
+     "47 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 7x before"
     ]
    }
   ],
   "set2": [
    {
-    "name": "A Song I Heard the Ocean Sing",
-    "slug": "a-song-i-heard-the-ocean-sing",
-    "score": 23.8,
+    "name": "Chalk Dust Torture",
+    "slug": "chalk-dust-torture",
+    "score": 38.2,
     "why": [
-     "due (11 shows since last, cadence ~10)",
-     "tour repeat window open (gap 12)",
-     "played at Dick's Sporting Goods Park 5x before"
+     "already 3+ tour plays",
+     "34 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 14x before"
     ]
    },
    {
     "name": "Piper",
     "slug": "piper",
-    "score": 45.1,
+    "score": 44.9,
     "why": [
      "due (12 shows since last, cadence ~7)",
-     "tour repeat window open (gap 13)",
+     "52 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 11x before"
     ]
    },
    {
     "name": "Down with Disease",
     "slug": "down-with-disease",
-    "score": 40.8,
+    "score": 40.6,
     "why": [
      "due (4 shows since last, cadence ~5)",
-     "tour repeat window open (gap 5)",
+     "41 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 11x before"
-    ]
-   },
-   {
-    "name": "Also Sprach Zarathustra",
-    "slug": "also-sprach-zarathustra",
-    "score": 34.6,
-    "why": [
-     "due (5 shows since last, cadence ~5)",
-     "tour repeat window open (gap 6)",
-     "already 3+ tour plays",
-     "played at Dick's Sporting Goods Park 10x before"
-    ]
-   },
-   {
-    "name": "The Wedge",
-    "slug": "the-wedge",
-    "score": 30.8,
-    "why": [
-     "tour repeat window open (gap 6)",
-     "played at Dick's Sporting Goods Park 10x before"
     ]
    },
    {
     "name": "Harry Hood",
     "slug": "harry-hood",
-    "score": 29.6,
+    "score": 35.9,
     "why": [
-     "just played 2026-07-31",
      "already 3+ tour plays",
+     "35 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 13x before"
+    ]
+   },
+   {
+    "name": "Also Sprach Zarathustra",
+    "slug": "also-sprach-zarathustra",
+    "score": 34.4,
+    "why": [
+     "due (5 shows since last, cadence ~5)",
+     "already 3+ tour plays",
+     "42 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 10x before"
+    ]
+   },
+   {
+    "name": "Sand",
+    "slug": "sand",
+    "score": 33.4,
+    "why": [
+     "already 3+ tour plays",
+     "34 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 12x before"
     ]
    },
    {
     "name": "Slave to the Traffic Light",
     "slug": "slave-to-the-traffic-light",
-    "score": 43.6,
+    "score": 43.4,
     "why": [
      "due (5 shows since last, cadence ~5.5)",
-     "tour repeat window open (gap 6)",
+     "42 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 12x before"
     ]
    }
   ],
   "encore": [
    {
-    "name": "More",
-    "slug": "more",
-    "score": 26.9,
+    "name": "Character Zero",
+    "slug": "character-zero",
+    "score": 30,
     "why": [
-     "due (7 shows since last, cadence ~8)",
-     "tour repeat window open (gap 8)",
-     "played at Dick's Sporting Goods Park 6x before"
+     "already 3+ tour plays",
+     "34 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 11x before"
     ]
    },
    {
-    "name": "Silent in the Morning",
-    "slug": "silent-in-the-morning",
-    "score": 23.7,
+    "name": "Tweezer Reprise",
+    "slug": "tweezer-reprise",
+    "score": 29.5,
     "why": [
-     "tour repeat window open (gap 7)",
-     "played at Dick's Sporting Goods Park 8x before"
+     "already 3+ tour plays",
+     "34 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 11x before"
     ]
    }
   ]
@@ -185,202 +187,202 @@
   {
    "slug": "the-moma-dance",
    "name": "The Moma Dance",
-   "score": 48.3
+   "score": 48.1
   },
   {
    "slug": "46-days",
    "name": "46 Days",
-   "score": 48
+   "score": 47.8
   },
   {
    "slug": "piper",
    "name": "Piper",
-   "score": 45.1
+   "score": 44.9
   },
   {
    "slug": "bathtub-gin",
    "name": "Bathtub Gin",
-   "score": 44.3
+   "score": 44.1
   },
   {
    "slug": "slave-to-the-traffic-light",
    "name": "Slave to the Traffic Light",
-   "score": 43.6
+   "score": 43.4
   },
   {
    "slug": "wolfmans-brother",
    "name": "Wolfman's Brother",
-   "score": 41
+   "score": 40.8
   },
   {
    "slug": "down-with-disease",
    "name": "Down with Disease",
-   "score": 40.8
+   "score": 40.6
   },
   {
    "slug": "blaze-on",
    "name": "Blaze On",
-   "score": 39.8
-  },
-  {
-   "slug": "tube",
-   "name": "Tube",
-   "score": 38
-  },
-  {
-   "slug": "steam",
-   "name": "Steam",
-   "score": 36.9
-  },
-  {
-   "slug": "first-tube",
-   "name": "First Tube",
-   "score": 35.6
-  },
-  {
-   "slug": "also-sprach-zarathustra",
-   "name": "Also Sprach Zarathustra",
-   "score": 34.6
-  },
-  {
-   "slug": "the-wedge",
-   "name": "The Wedge",
-   "score": 30.8
-  },
-  {
-   "slug": "555",
-   "name": "555",
-   "score": 29.7
-  },
-  {
-   "slug": "harry-hood",
-   "name": "Harry Hood",
-   "score": 29.6
-  },
-  {
-   "slug": "twist",
-   "name": "Twist",
-   "score": 28.2
-  },
-  {
-   "slug": "theme-from-the-bottom",
-   "name": "Theme from the Bottom",
-   "score": 27.8
-  },
-  {
-   "slug": "walls-of-the-cave",
-   "name": "Walls of the Cave",
-   "score": 27.6
-  },
-  {
-   "slug": "split-open-and-melt",
-   "name": "Split Open and Melt",
-   "score": 27.3
-  },
-  {
-   "slug": "more",
-   "name": "More",
-   "score": 26.9
-  },
-  {
-   "slug": "roggae",
-   "name": "Roggae",
-   "score": 26.5
-  },
-  {
-   "slug": "cavern",
-   "name": "Cavern",
-   "score": 26.4
-  },
-  {
-   "slug": "mercury",
-   "name": "Mercury",
-   "score": 25.8
-  },
-  {
-   "slug": "undermind",
-   "name": "Undermind",
-   "score": 25.1
-  },
-  {
-   "slug": "simple",
-   "name": "Simple",
-   "score": 24.4
-  },
-  {
-   "slug": "david-bowie",
-   "name": "David Bowie",
-   "score": 24.3
-  },
-  {
-   "slug": "evolve",
-   "name": "Evolve",
-   "score": 24.1
-  },
-  {
-   "slug": "halleys-comet",
-   "name": "Halley's Comet",
-   "score": 23.9
-  },
-  {
-   "slug": "a-song-i-heard-the-ocean-sing",
-   "name": "A Song I Heard the Ocean Sing",
-   "score": 23.8
-  },
-  {
-   "slug": "silent-in-the-morning",
-   "name": "Silent in the Morning",
-   "score": 23.7
-  },
-  {
-   "slug": "birds-of-a-feather",
-   "name": "Birds of a Feather",
-   "score": 23.5
-  },
-  {
-   "slug": "whats-the-use",
-   "name": "What's the Use?",
-   "score": 23.4
-  },
-  {
-   "slug": "ocelot",
-   "name": "Ocelot",
-   "score": 22.5
-  },
-  {
-   "slug": "limb-by-limb",
-   "name": "Limb By Limb",
-   "score": 22.4
-  },
-  {
-   "slug": "reba",
-   "name": "Reba",
-   "score": 22.2
+   "score": 39.6
   },
   {
    "slug": "ghost",
    "name": "Ghost",
-   "score": 22.1
+   "score": 38.4
   },
   {
    "slug": "chalk-dust-torture",
    "name": "Chalk Dust Torture",
-   "score": 21.9
+   "score": 38.2
   },
   {
-   "slug": "bouncing-around-the-room",
-   "name": "Bouncing Around the Room",
-   "score": 21.8
+   "slug": "tube",
+   "name": "Tube",
+   "score": 37.8
+  },
+  {
+   "slug": "steam",
+   "name": "Steam",
+   "score": 36.7
+  },
+  {
+   "slug": "harry-hood",
+   "name": "Harry Hood",
+   "score": 35.9
+  },
+  {
+   "slug": "first-tube",
+   "name": "First Tube",
+   "score": 35.4
+  },
+  {
+   "slug": "also-sprach-zarathustra",
+   "name": "Also Sprach Zarathustra",
+   "score": 34.4
+  },
+  {
+   "slug": "sand",
+   "name": "Sand",
+   "score": 33.4
+  },
+  {
+   "slug": "light",
+   "name": "Light",
+   "score": 31.5
+  },
+  {
+   "slug": "the-wedge",
+   "name": "The Wedge",
+   "score": 30.6
+  },
+  {
+   "slug": "character-zero",
+   "name": "Character Zero",
+   "score": 30
+  },
+  {
+   "slug": "tweezer",
+   "name": "Tweezer",
+   "score": 29.6
+  },
+  {
+   "slug": "tweezer-reprise",
+   "name": "Tweezer Reprise",
+   "score": 29.5
+  },
+  {
+   "slug": "555",
+   "name": "555",
+   "score": 29.5
+  },
+  {
+   "slug": "twist",
+   "name": "Twist",
+   "score": 28
   },
   {
    "slug": "free",
    "name": "Free",
-   "score": 21.5
+   "score": 27.8
   },
   {
-   "slug": "oblivion",
-   "name": "Oblivion",
-   "score": 21.5
+   "slug": "theme-from-the-bottom",
+   "name": "Theme from the Bottom",
+   "score": 27.6
+  },
+  {
+   "slug": "carini",
+   "name": "Carini",
+   "score": 27.5
+  },
+  {
+   "slug": "walls-of-the-cave",
+   "name": "Walls of the Cave",
+   "score": 27.4
+  },
+  {
+   "slug": "split-open-and-melt",
+   "name": "Split Open and Melt",
+   "score": 27.1
+  },
+  {
+   "slug": "more",
+   "name": "More",
+   "score": 26.7
+  },
+  {
+   "slug": "run-like-an-antelope",
+   "name": "Run Like an Antelope",
+   "score": 26.4
+  },
+  {
+   "slug": "roggae",
+   "name": "Roggae",
+   "score": 26.3
+  },
+  {
+   "slug": "cavern",
+   "name": "Cavern",
+   "score": 26.2
+  },
+  {
+   "slug": "mercury",
+   "name": "Mercury",
+   "score": 25.6
+  },
+  {
+   "slug": "back-on-the-train",
+   "name": "Back on the Train",
+   "score": 24.9
+  },
+  {
+   "slug": "undermind",
+   "name": "Undermind",
+   "score": 24.9
+  },
+  {
+   "slug": "simple",
+   "name": "Simple",
+   "score": 24.2
+  },
+  {
+   "slug": "david-bowie",
+   "name": "David Bowie",
+   "score": 24.1
+  },
+  {
+   "slug": "evolve",
+   "name": "Evolve",
+   "score": 23.9
+  },
+  {
+   "slug": "fuego",
+   "name": "Fuego",
+   "score": 23.9
+  },
+  {
+   "slug": "kill-devil-falls",
+   "name": "Kill Devil Falls",
+   "score": 23.8
   }
  ],
  "scorecard": null

@@ -47,10 +47,17 @@ const N = +arg('--n', 17);          // prediction budget, matching the model's 8
 const WARMUP = +arg('--warmup', 40); // era shows required before we start grading
 const TRAIL = +arg('--trail', 30);   // baseline lookback window, in shows
 const WRITE_JSON = argv.includes('--json');
-const EXPERIMENTS = argv.includes('--experiments');
+// --tune sweeps the day-curve weight on a training window and reports the winner's score
+// on a window it never saw. Picking k by looking at the whole backtest would be fitting a
+// hyperparameter on the test set, which is exactly the mistake this project is trying to
+// stop making.
+const TUNE = argv.includes('--tune');
+const TRAIN_END = arg('--train-end', '2024-12-31');
+const EXPERIMENTS = TUNE || argv.includes('--experiments');
 // Score-unit weights for the day-repeat curve, tested side by side. The curve supplies
 // multiplicative evidence; k decides how loudly it speaks next to the existing terms.
-const K_VALUES = [3, 6, 10];
+// k=0 is a control: recency off entirely, no curve.
+const K_VALUES = TUNE ? [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 60] : [3, 6, 10];
 
 // ---------------------------------------------------------------- metrics
 
@@ -135,15 +142,18 @@ function venueHistory(venueid) {
 }
 
 const arms = {
-  model: [],        // full model: score + slot-aware assembly
+  model: [],        // production model: score + slot-aware assembly
   modelTopN: [],    // same scores, but just take the top N — isolates the slot logic
+  modelShowGap: [], // the pre-day-curve model, kept so the change stays visible
   freq: [],         // baseline A: most-played in the trailing window
   freqNoRepeat: [], // baseline B: same, minus anything played in the last 3 days
 };
 if (EXPERIMENTS) {
-  arms.dayHard = [];                              // model + hard-drop suppressed buckets
-  for (const k of K_VALUES) arms[`dayCurve${k}`] = []; // model + curve, on top of show-gap
-  for (const k of K_VALUES) arms[`dayOnly${k}`] = [];  // curve INSTEAD of show-gap
+  if (!TUNE) {
+    arms.dayHard = [];                                 // model + hard-drop suppressed buckets
+    for (const k of K_VALUES) arms[`dayCurve${k}`] = []; // model + curve, on top of show-gap
+  }
+  for (const k of K_VALUES) arms[`dayOnly${k}`] = [];   // curve INSTEAD of show-gap
 }
 const perShow = [];
 const venueCoverage = { cache: 0, 'in-window': 0 };
@@ -210,9 +220,22 @@ for (let i = 0; i < showDates.length; i++) {
     if (days <= 3) for (const s of setOf.get(d)) recentlyPlayed.add(s);
   }
 
+  const showGap = buildModel({
+    rows: history,
+    target: { date: target, venue: meta.venue, venueid: meta.venueid },
+    tourName: meta.tourname,
+    venueSongCounts,
+    scheduleRows,
+    recency: 'shows',
+  });
+
   const g = {
     model: grade(predSlugs, actual),
     modelTopN: grade(topNSlugs, actual),
+    modelShowGap: grade(
+      [...showGap.prediction.set1, ...showGap.prediction.set2, ...showGap.prediction.encore].map(s => s.slug),
+      actual,
+    ),
     freq: grade(byFreq.slice(0, N), actual),
     freqNoRepeat: grade(byFreq.filter(s => !recentlyPlayed.has(s)).slice(0, N), actual),
   };
@@ -232,11 +255,13 @@ for (let i = 0; i < showDates.length; i++) {
       .sort((a, b) => b.s - a.s || a.slug.localeCompare(b.slug))
       .slice(0, N).map(c => c.slug);
 
-    g.dayHard = grade(
-      M.scored.filter(c => !isSuppressed(curve, daysFor(c.slug))).slice(0, N).map(c => c.slug),
-      actual,
-    );
-    for (const k of K_VALUES) g[`dayCurve${k}`] = grade(rerank(M.scored, k), actual);
+    if (!TUNE) {
+      g.dayHard = grade(
+        M.scored.filter(c => !isSuppressed(curve, daysFor(c.slug))).slice(0, N).map(c => c.slug),
+        actual,
+      );
+      for (const k of K_VALUES) g[`dayCurve${k}`] = grade(rerank(M.scored, k), actual);
+    }
 
     // Replacement arm: the show-gap penalty off, the day curve in its place.
     const Moff = buildModel({
@@ -288,18 +313,26 @@ if (!perShow.length) {
 }
 
 const LABELS = {
-  model: 'MODEL (score + slot assembly)',
+  model: 'MODEL (day curve, shipping)',
   modelTopN: 'MODEL top-N (no slot logic)',
+  modelShowGap: 'MODEL before the day curve (show-gap)',
   freq: `baseline: top-${N} by trailing-${TRAIL} frequency`,
   freqNoRepeat: `baseline: same, minus played <=3d ago`,
 };
 if (EXPERIMENTS) {
-  LABELS.dayHard = 'EXP day-repeat: drop suppressed buckets';
-  for (const k of K_VALUES) LABELS[`dayCurve${k}`] = `EXP day-curve k=${k} (on top of show-gap)`;
+  if (!TUNE) {
+    LABELS.dayHard = 'EXP day-repeat: drop suppressed buckets';
+    for (const k of K_VALUES) LABELS[`dayCurve${k}`] = `EXP day-curve k=${k} (on top of show-gap)`;
+  }
   for (const k of K_VALUES) LABELS[`dayOnly${k}`] = `EXP day-curve k=${k} (replacing show-gap)`;
 }
-const ARM_ORDER = ['model', 'modelTopN', 'freqNoRepeat', 'freq',
-  ...(EXPERIMENTS ? ['dayHard', ...K_VALUES.map(k => `dayCurve${k}`), ...K_VALUES.map(k => `dayOnly${k}`)] : [])];
+// Only ever list arms that were actually populated — in --tune the on-top and hard-drop
+// variants are skipped, and naming them here would index into an undefined arm.
+const ARM_ORDER = ['model', 'modelTopN', 'modelShowGap', 'freqNoRepeat', 'freq',
+  ...(EXPERIMENTS ? [
+    ...(TUNE ? [] : ['dayHard', ...K_VALUES.map(k => `dayCurve${k}`)]),
+    ...K_VALUES.map(k => `dayOnly${k}`),
+  ] : [])].filter(k => arms[k]);
 
 console.log(`\nWalk-forward backtest — ${perShow.length} shows graded` +
   (skipped ? ` (${skipped} skipped)` : '') +
@@ -330,6 +363,54 @@ for (const k of ARM_ORDER.filter(a => a !== ref)) {
     `  se ${(p.se * 100).toFixed(2)}pp  z ${p.z.toFixed(2)}` +
     `  wins ${pct(p.winRate)}  ties ${pct(p.ties)}   ${verdict}`
   );
+}
+
+if (TUNE) {
+  // Pick k using ONLY the training window, then report what that choice scores on the
+  // held-out window. The held-out number is the one worth believing: nothing about it
+  // influenced the choice of k.
+  const train = perShow.filter(s => s.date <= TRAIN_END);
+  const test = perShow.filter(s => s.date > TRAIN_END);
+  if (!train.length || !test.length) {
+    console.error(`\n--tune needs shows on both sides of ${TRAIN_END} (train ${train.length}, test ${test.length})`);
+    process.exit(1);
+  }
+
+  const recallOf = (sub, arm) => mean(sub.map(s => s.arms[arm].r));
+  console.log(`\nTuning the day-curve weight k`);
+  console.log(`  train: ${train.length} shows through ${TRAIN_END}   |   held out: ${test.length} shows after\n`);
+  console.log('     K'.padEnd(8), 'TRAIN RECALL'.padStart(14), 'HELD-OUT RECALL'.padStart(17));
+  let peakK = null, peakTrain = -Infinity;
+  for (const k of K_VALUES) {
+    const tr = recallOf(train, `dayOnly${k}`);
+    if (tr > peakTrain) { peakTrain = tr; peakK = k; }
+    console.log(`  ${String(k).padStart(4)}`.padEnd(8), pct(tr).padStart(14), pct(recallOf(test, `dayOnly${k}`)).padStart(17));
+  }
+
+  // One-standard-error rule. The training curve plateaus, and taking its bare argmax
+  // means chasing noise across a flat top — with the smallest k inside one SE of the peak
+  // we get the same measured performance from the weakest assumption. Decided entirely on
+  // the training window; the held-out numbers below play no part in it.
+  const bestK = K_VALUES.find(k => {
+    const p = paired(train.map(s => s.arms[`dayOnly${k}`].r), train.map(s => s.arms[`dayOnly${peakK}`].r));
+    return p.delta >= -p.se;
+  }) ?? peakK;
+  const bestTrain = recallOf(train, `dayOnly${bestK}`);
+  if (bestK !== peakK) {
+    console.log(`\n  train peak is k=${peakK} (${pct(peakTrain)}), but the top is flat — taking the`);
+    console.log(`  smallest k within one standard error of it: k=${bestK} (${pct(bestTrain)}).`);
+  }
+
+  const arm = `dayOnly${bestK}`;
+  const heldPaired = paired(test.map(s => s.arms[arm].r), test.map(s => s.arms.model.r));
+  const trainModel = recallOf(train, 'model');
+  console.log(`\n  k = ${bestK} wins on the training window (${pct(bestTrain)} vs model ${pct(trainModel)}).`);
+  console.log(`  On the ${test.length} held-out shows it was never tuned against:`);
+  console.log(`    model    ${pct(recallOf(test, 'model'))}`);
+  console.log(`    k=${bestK}      ${pct(recallOf(test, arm))}`);
+  console.log(`    gain     ${(heldPaired.delta * 100 >= 0 ? '+' : '') + (heldPaired.delta * 100).toFixed(2)}pp` +
+    `  se ${(heldPaired.se * 100).toFixed(2)}pp  z ${heldPaired.z.toFixed(2)}  wins ${pct(heldPaired.winRate)}`);
+  console.log(`    ${Math.abs(heldPaired.z) < 2 ? 'NOT CONFIRMED — inside noise on held-out data' : 'CONFIRMED on data that did not choose k'}`);
 }
 
 if (EXPERIMENTS) {

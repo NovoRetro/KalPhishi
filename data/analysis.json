@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-03T14:33:43.917Z",
+ "generated": "2026-08-04T10:51:07.747Z",
  "asOf": "2026-08-01",
  "nextShow": {
   "date": "2026-09-04",
@@ -7171,14 +7171,14 @@
     "year": 2016
    },
    {
+    "song": "Ghost",
+    "album": "The Story of the Ghost",
+    "year": 1998
+   },
+   {
     "song": "Tube",
     "album": null,
     "year": null
-   },
-   {
-    "song": "Steam",
-    "album": "Sigma Oasis",
-    "year": 2020
    },
    {
     "song": "First Tube",
@@ -7186,9 +7186,9 @@
     "year": 2000
    },
    {
-    "song": "A Song I Heard the Ocean Sing",
-    "album": "Undermind",
-    "year": 2004
+    "song": "Chalk Dust Torture",
+    "album": "A Picture of Nectar",
+    "year": 1992
    },
    {
     "song": "Piper",
@@ -7201,19 +7201,19 @@
     "year": 1994
    },
    {
+    "song": "Harry Hood",
+    "album": null,
+    "year": null
+   },
+   {
     "song": "Also Sprach Zarathustra",
     "album": null,
     "year": null
    },
    {
-    "song": "The Wedge",
-    "album": "Rift",
-    "year": 1993
-   },
-   {
-    "song": "Harry Hood",
-    "album": null,
-    "year": null
+    "song": "Sand",
+    "album": "Farmhouse",
+    "year": 2000
    },
    {
     "song": "Slave to the Traffic Light",
@@ -7221,14 +7221,14 @@
     "year": null
    },
    {
-    "song": "More",
-    "album": "Big Boat",
-    "year": 2016
+    "song": "Character Zero",
+    "album": "Billy Breathes",
+    "year": 1996
    },
    {
-    "song": "Silent in the Morning",
-    "album": "Rift",
-    "year": 1993
+    "song": "Tweezer Reprise",
+    "album": "A Picture of Nectar",
+    "year": 1992
    }
   ]
  },
@@ -7236,10 +7236,10 @@
   {
    "slug": "the-moma-dance",
    "name": "The Moma Dance",
-   "score": 48.3,
+   "score": 48.1,
    "why": [
     "due (8 shows since last, cadence ~5)",
-    "tour repeat window open (gap 9)",
+    "47 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
    "eraFreq": 0.192,
@@ -7265,10 +7265,10 @@
   {
    "slug": "46-days",
    "name": "46 Days",
-   "score": 48,
+   "score": 47.8,
    "why": [
     "due (13 shows since last, cadence ~5)",
-    "tour repeat window open (gap 14)",
+    "54 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
    "eraFreq": 0.182,
@@ -7294,10 +7294,10 @@
   {
    "slug": "piper",
    "name": "Piper",
-   "score": 45.1,
+   "score": 44.9,
    "why": [
     "due (12 shows since last, cadence ~7)",
-    "tour repeat window open (gap 13)",
+    "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
    "eraFreq": 0.145,
@@ -7323,10 +7323,10 @@
   {
    "slug": "bathtub-gin",
    "name": "Bathtub Gin",
-   "score": 44.3,
+   "score": 44.1,
    "why": [
     "due (5 shows since last, cadence ~5)",
-    "tour repeat window open (gap 6)",
+    "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
    "eraFreq": 0.178,
@@ -7352,10 +7352,10 @@
   {
    "slug": "slave-to-the-traffic-light",
    "name": "Slave to the Traffic Light",
-   "score": 43.6,
+   "score": 43.4,
    "why": [
     "due (5 shows since last, cadence ~5.5)",
-    "tour repeat window open (gap 6)",
+    "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
    "eraFreq": 0.173,
@@ -7381,10 +7381,10 @@
   {
    "slug": "wolfmans-brother",
    "name": "Wolfman's Brother",
-   "score": 41,
+   "score": 40.8,
    "why": [
     "due (4 shows since last, cadence ~5)",
-    "tour repeat window open (gap 5)",
+    "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
    "eraFreq": 0.192,
@@ -7410,10 +7410,10 @@
   {
    "slug": "down-with-disease",
    "name": "Down with Disease",
-   "score": 40.8,
+   "score": 40.6,
    "why": [
     "due (4 shows since last, cadence ~5)",
-    "tour repeat window open (gap 5)",
+    "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
    "eraFreq": 0.182,
@@ -7439,10 +7439,10 @@
   {
    "slug": "blaze-on",
    "name": "Blaze On",
-   "score": 39.8,
+   "score": 39.6,
    "why": [
     "due (7 shows since last, cadence ~5)",
-    "tour repeat window open (gap 8)",
+    "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 9x before"
    ],
    "eraFreq": 0.196,
@@ -7466,786 +7466,12 @@
    }
   },
   {
-   "slug": "tube",
-   "name": "Tube",
-   "score": 38,
-   "why": [
-    "due (5 shows since last, cadence ~6)",
-    "tour repeat window open (gap 6)",
-    "played at Dick's Sporting Goods Park 10x before"
-   ],
-   "eraFreq": 0.168,
-   "currentGap": 5,
-   "medianInterval": 6,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-24",
-   "slots": {
-    "s1open": 0,
-    "s2open": 1,
-    "closer": 1,
-    "encore": 4,
-    "set1": 30,
-    "set2": 4,
-    "total": 38
-   },
-   "catalog": {
-    "timesPlayed": 205,
-    "debut": "1990-09-13",
-    "allTimeGap": 5
-   }
-  },
-  {
-   "slug": "steam",
-   "name": "Steam",
-   "score": 36.9,
-   "why": [
-    "due (12 shows since last, cadence ~8.5)",
-    "tour repeat window open (gap 13)",
-    "played at Dick's Sporting Goods Park 9x before"
-   ],
-   "eraFreq": 0.098,
-   "currentGap": 12,
-   "medianInterval": 8.5,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-14",
-   "slots": {
-    "s1open": 1,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 22,
-    "set2": 0,
-    "total": 22
-   },
-   "catalog": {
-    "timesPlayed": 69,
-    "debut": "2011-06-04",
-    "allTimeGap": 12
-   }
-  },
-  {
-   "slug": "first-tube",
-   "name": "First Tube",
-   "score": 35.6,
-   "why": [
-    "due (8 shows since last, cadence ~5)",
-    "tour repeat window open (gap 9)",
-    "played at Dick's Sporting Goods Park 7x before"
-   ],
-   "eraFreq": 0.182,
-   "currentGap": 8,
-   "medianInterval": 5,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-19",
-   "slots": {
-    "s1open": 5,
-    "s2open": 2,
-    "closer": 10,
-    "encore": 22,
-    "set1": 6,
-    "set2": 10,
-    "total": 39
-   },
-   "catalog": {
-    "timesPlayed": 147,
-    "debut": "1999-09-09",
-    "allTimeGap": 8
-   }
-  },
-  {
-   "slug": "also-sprach-zarathustra",
-   "name": "Also Sprach Zarathustra",
-   "score": 34.6,
-   "why": [
-    "due (5 shows since last, cadence ~5)",
-    "tour repeat window open (gap 6)",
-    "already 3+ tour plays",
-    "played at Dick's Sporting Goods Park 10x before"
-   ],
-   "eraFreq": 0.187,
-   "currentGap": 5,
-   "medianInterval": 5,
-   "tourPlays": 3,
-   "lastTourPlay": "2026-07-24",
-   "slots": {
-    "s1open": 1,
-    "s2open": 3,
-    "closer": 1,
-    "encore": 1,
-    "set1": 8,
-    "set2": 31,
-    "total": 41
-   },
-   "catalog": {
-    "timesPlayed": 279,
-    "debut": "1993-07-16",
-    "allTimeGap": 5
-   }
-  },
-  {
-   "slug": "the-wedge",
-   "name": "The Wedge",
-   "score": 30.8,
-   "why": [
-    "tour repeat window open (gap 6)",
-    "played at Dick's Sporting Goods Park 10x before"
-   ],
-   "eraFreq": 0.093,
-   "currentGap": 5,
-   "medianInterval": 8,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-24",
-   "slots": {
-    "s1open": 1,
-    "s2open": 2,
-    "closer": 0,
-    "encore": 3,
-    "set1": 9,
-    "set2": 8,
-    "total": 20
-   },
-   "catalog": {
-    "timesPlayed": 136,
-    "debut": "1993-02-03",
-    "allTimeGap": 5
-   }
-  },
-  {
-   "slug": "555",
-   "name": "555",
-   "score": 29.7,
-   "why": [
-    "due (14 shows since last, cadence ~7)",
-    "tour repeat window open (gap 15)",
-    "played at Dick's Sporting Goods Park 5x before"
-   ],
-   "eraFreq": 0.075,
-   "currentGap": 14,
-   "medianInterval": 7,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-11",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 16,
-    "set2": 0,
-    "total": 16
-   },
-   "catalog": {
-    "timesPlayed": 72,
-    "debut": "2013-10-31",
-    "allTimeGap": 14
-   }
-  },
-  {
-   "slug": "harry-hood",
-   "name": "Harry Hood",
-   "score": 29.6,
-   "why": [
-    "just played 2026-07-31",
-    "already 3+ tour plays",
-    "played at Dick's Sporting Goods Park 13x before"
-   ],
-   "eraFreq": 0.22,
-   "currentGap": 1,
-   "medianInterval": 4,
-   "tourPlays": 4,
-   "lastTourPlay": "2026-07-31",
-   "slots": {
-    "s1open": 2,
-    "s2open": 1,
-    "closer": 22,
-    "encore": 16,
-    "set1": 7,
-    "set2": 24,
-    "total": 48
-   },
-   "catalog": {
-    "timesPlayed": 443,
-    "debut": "1985-10-30",
-    "allTimeGap": 1
-   }
-  },
-  {
-   "slug": "twist",
-   "name": "Twist",
-   "score": 28.2,
-   "why": [
-    "tour repeat window open (gap 17)",
-    "played at Dick's Sporting Goods Park 8x before"
-   ],
-   "eraFreq": 0.173,
-   "currentGap": 16,
-   "medianInterval": 5,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-08",
-   "slots": {
-    "s1open": 1,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 1,
-    "set1": 8,
-    "set2": 28,
-    "total": 37
-   },
-   "catalog": {
-    "timesPlayed": 189,
-    "debut": "1997-06-14",
-    "allTimeGap": 16
-   }
-  },
-  {
-   "slug": "theme-from-the-bottom",
-   "name": "Theme from the Bottom",
-   "score": 27.8,
-   "why": [
-    "tour repeat window open (gap 4)",
-    "played at Dick's Sporting Goods Park 8x before"
-   ],
-   "eraFreq": 0.159,
-   "currentGap": 3,
-   "medianInterval": 6,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-27",
-   "slots": {
-    "s1open": 2,
-    "s2open": 0,
-    "closer": 1,
-    "encore": 1,
-    "set1": 32,
-    "set2": 1,
-    "total": 34
-   },
-   "catalog": {
-    "timesPlayed": 201,
-    "debut": "1995-05-16",
-    "allTimeGap": 3
-   }
-  },
-  {
-   "slug": "walls-of-the-cave",
-   "name": "Walls of the Cave",
-   "score": 27.6,
-   "why": [
-    "due (12 shows since last, cadence ~10)",
-    "tour repeat window open (gap 13)",
-    "played at Dick's Sporting Goods Park 6x before"
-   ],
-   "eraFreq": 0.079,
-   "currentGap": 12,
-   "medianInterval": 10,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-14",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 13,
-    "encore": 0,
-    "set1": 15,
-    "set2": 2,
-    "total": 17
-   },
-   "catalog": {
-    "timesPlayed": 82,
-    "debut": "2002-12-31",
-    "allTimeGap": 12
-   }
-  },
-  {
-   "slug": "split-open-and-melt",
-   "name": "Split Open and Melt",
-   "score": 27.3,
-   "why": [
-    "due (6 shows since last, cadence ~7)",
-    "tour repeat window open (gap 7)",
-    "played at Dick's Sporting Goods Park 6x before"
-   ],
-   "eraFreq": 0.14,
-   "currentGap": 6,
-   "medianInterval": 7,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-22",
-   "slots": {
-    "s1open": 0,
-    "s2open": 1,
-    "closer": 18,
-    "encore": 1,
-    "set1": 16,
-    "set2": 11,
-    "total": 30
-   },
-   "catalog": {
-    "timesPlayed": 355,
-    "debut": "1989-02-17",
-    "allTimeGap": 6
-   }
-  },
-  {
-   "slug": "more",
-   "name": "More",
-   "score": 26.9,
-   "why": [
-    "due (7 shows since last, cadence ~8)",
-    "tour repeat window open (gap 8)",
-    "played at Dick's Sporting Goods Park 6x before"
-   ],
-   "eraFreq": 0.121,
-   "currentGap": 7,
-   "medianInterval": 8,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-21",
-   "slots": {
-    "s1open": 0,
-    "s2open": 3,
-    "closer": 7,
-    "encore": 9,
-    "set1": 7,
-    "set2": 10,
-    "total": 26
-   },
-   "catalog": {
-    "timesPlayed": 56,
-    "debut": "2016-10-14",
-    "allTimeGap": 7
-   }
-  },
-  {
-   "slug": "roggae",
-   "name": "Roggae",
-   "score": 26.5,
-   "why": [
-    "due (15 shows since last, cadence ~8.5)",
-    "tour repeat window open (gap 16)",
-    "played at Dick's Sporting Goods Park 4x before"
-   ],
-   "eraFreq": 0.098,
-   "currentGap": 15,
-   "medianInterval": 8.5,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-10",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 20,
-    "set2": 1,
-    "total": 21
-   },
-   "catalog": {
-    "timesPlayed": 118,
-    "debut": "1998-06-30",
-    "allTimeGap": 15
-   }
-  },
-  {
-   "slug": "cavern",
-   "name": "Cavern",
-   "score": 26.4,
-   "why": [
-    "tour repeat window open (gap 5)",
-    "played at Dick's Sporting Goods Park 8x before"
-   ],
-   "eraFreq": 0.112,
-   "currentGap": 4,
-   "medianInterval": 9,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-25",
-   "slots": {
-    "s1open": 0,
-    "s2open": 1,
-    "closer": 12,
-    "encore": 1,
-    "set1": 14,
-    "set2": 9,
-    "total": 24
-   },
-   "catalog": {
-    "timesPlayed": 485,
-    "debut": "1990-03-28",
-    "allTimeGap": 4
-   }
-  },
-  {
-   "slug": "mercury",
-   "name": "Mercury",
-   "score": 25.8,
-   "why": [
-    "due (10 shows since last, cadence ~11)",
-    "tour repeat window open (gap 11)",
-    "played at Dick's Sporting Goods Park 6x before"
-   ],
-   "eraFreq": 0.079,
-   "currentGap": 10,
-   "medianInterval": 11,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-17",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 5,
-    "set2": 12,
-    "total": 17
-   },
-   "catalog": {
-    "timesPlayed": 47,
-    "debut": "2015-07-22",
-    "allTimeGap": 10
-   }
-  },
-  {
-   "slug": "undermind",
-   "name": "Undermind",
-   "score": 25.1,
-   "why": [
-    "tour repeat window open (gap 9)",
-    "played at Dick's Sporting Goods Park 8x before"
-   ],
-   "eraFreq": 0.07,
-   "currentGap": 8,
-   "medianInterval": 11,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-19",
-   "slots": {
-    "s1open": 1,
-    "s2open": 0,
-    "closer": 1,
-    "encore": 0,
-    "set1": 14,
-    "set2": 1,
-    "total": 15
-   },
-   "catalog": {
-    "timesPlayed": 63,
-    "debut": "2009-03-08",
-    "allTimeGap": 8
-   }
-  },
-  {
-   "slug": "simple",
-   "name": "Simple",
-   "score": 24.4,
-   "why": [
-    "tour repeat window open (gap 5)",
-    "played at Dick's Sporting Goods Park 7x before"
-   ],
-   "eraFreq": 0.131,
-   "currentGap": 4,
-   "medianInterval": 7,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-25",
-   "slots": {
-    "s1open": 3,
-    "s2open": 2,
-    "closer": 0,
-    "encore": 0,
-    "set1": 8,
-    "set2": 23,
-    "total": 31
-   },
-   "catalog": {
-    "timesPlayed": 212,
-    "debut": "1994-05-27",
-    "allTimeGap": 4
-   }
-  },
-  {
-   "slug": "david-bowie",
-   "name": "David Bowie",
-   "score": 24.3,
-   "why": [
-    "due (6 shows since last, cadence ~7)",
-    "tour repeat window open (gap 7)",
-    "played at Dick's Sporting Goods Park 5x before"
-   ],
-   "eraFreq": 0.121,
-   "currentGap": 6,
-   "medianInterval": 7,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-22",
-   "slots": {
-    "s1open": 1,
-    "s2open": 1,
-    "closer": 12,
-    "encore": 4,
-    "set1": 15,
-    "set2": 8,
-    "total": 27
-   },
-   "catalog": {
-    "timesPlayed": 481,
-    "debut": "1986-10-31",
-    "allTimeGap": 6
-   }
-  },
-  {
-   "slug": "evolve",
-   "name": "Evolve",
-   "score": 24.1,
-   "why": [
-    "due (13 shows since last, cadence ~5)",
-    "tour repeat window open (gap 14)",
-    "played at Dick's Sporting Goods Park 2x before"
-   ],
-   "eraFreq": 0.136,
-   "currentGap": 13,
-   "medianInterval": 5,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-12",
-   "slots": {
-    "s1open": 1,
-    "s2open": 1,
-    "closer": 0,
-    "encore": 1,
-    "set1": 25,
-    "set2": 3,
-    "total": 29
-   },
-   "catalog": {
-    "timesPlayed": 31,
-    "debut": "2021-08-04",
-    "allTimeGap": 13
-   }
-  },
-  {
-   "slug": "halleys-comet",
-   "name": "Halley's Comet",
-   "score": 23.9,
-   "why": [
-    "tour repeat window open (gap 4)",
-    "played at Dick's Sporting Goods Park 7x before"
-   ],
-   "eraFreq": 0.112,
-   "currentGap": 3,
-   "medianInterval": 7,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-27",
-   "slots": {
-    "s1open": 0,
-    "s2open": 2,
-    "closer": 0,
-    "encore": 0,
-    "set1": 22,
-    "set2": 2,
-    "total": 24
-   },
-   "catalog": {
-    "timesPlayed": 161,
-    "debut": "1986-05-17",
-    "allTimeGap": 3
-   }
-  },
-  {
-   "slug": "a-song-i-heard-the-ocean-sing",
-   "name": "A Song I Heard the Ocean Sing",
-   "score": 23.8,
-   "why": [
-    "due (11 shows since last, cadence ~10)",
-    "tour repeat window open (gap 12)",
-    "played at Dick's Sporting Goods Park 5x before"
-   ],
-   "eraFreq": 0.056,
-   "currentGap": 11,
-   "medianInterval": 10,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-15",
-   "slots": {
-    "s1open": 1,
-    "s2open": 3,
-    "closer": 1,
-    "encore": 0,
-    "set1": 1,
-    "set2": 11,
-    "total": 12
-   },
-   "catalog": {
-    "timesPlayed": 53,
-    "debut": "2004-06-17",
-    "allTimeGap": 11
-   }
-  },
-  {
-   "slug": "silent-in-the-morning",
-   "name": "Silent in the Morning",
-   "score": 23.7,
-   "why": [
-    "tour repeat window open (gap 7)",
-    "played at Dick's Sporting Goods Park 8x before"
-   ],
-   "eraFreq": 0.023,
-   "currentGap": 6,
-   "medianInterval": 43.5,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-22",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 3,
-    "set1": 1,
-    "set2": 1,
-    "total": 5
-   },
-   "catalog": {
-    "timesPlayed": 189,
-    "debut": "1992-03-07",
-    "allTimeGap": 6
-   }
-  },
-  {
-   "slug": "birds-of-a-feather",
-   "name": "Birds of a Feather",
-   "score": 23.5,
-   "why": [
-    "due (12 shows since last, cadence ~9)",
-    "tour repeat window open (gap 13)",
-    "played at Dick's Sporting Goods Park 4x before"
-   ],
-   "eraFreq": 0.084,
-   "currentGap": 12,
-   "medianInterval": 9,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-14",
-   "slots": {
-    "s1open": 1,
-    "s2open": 1,
-    "closer": 0,
-    "encore": 0,
-    "set1": 16,
-    "set2": 2,
-    "total": 18
-   },
-   "catalog": {
-    "timesPlayed": 143,
-    "debut": "1998-04-02",
-    "allTimeGap": 12
-   }
-  },
-  {
-   "slug": "whats-the-use",
-   "name": "What's the Use?",
-   "score": 23.4,
-   "why": [
-    "tour repeat window open (gap 8)",
-    "played at Dick's Sporting Goods Park 7x before"
-   ],
-   "eraFreq": 0.098,
-   "currentGap": 7,
-   "medianInterval": 10.5,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-21",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 1,
-    "set1": 1,
-    "set2": 19,
-    "total": 21
-   },
-   "catalog": {
-    "timesPlayed": 74,
-    "debut": "1999-07-04",
-    "allTimeGap": 7
-   }
-  },
-  {
-   "slug": "ocelot",
-   "name": "Ocelot",
-   "score": 22.5,
-   "why": [
-    "tour repeat window open (gap 8)",
-    "played at Dick's Sporting Goods Park 7x before"
-   ],
-   "eraFreq": 0.065,
-   "currentGap": 7,
-   "medianInterval": 13,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-21",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 14,
-    "set2": 0,
-    "total": 14
-   },
-   "catalog": {
-    "timesPlayed": 104,
-    "debut": "2009-05-31",
-    "allTimeGap": 7
-   }
-  },
-  {
-   "slug": "limb-by-limb",
-   "name": "Limb By Limb",
-   "score": 22.4,
-   "why": [
-    "due (15 shows since last, cadence ~11.5)",
-    "tour repeat window open (gap 16)",
-    "played at Dick's Sporting Goods Park 4x before"
-   ],
-   "eraFreq": 0.051,
-   "currentGap": 15,
-   "medianInterval": 11.5,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-10",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 8,
-    "set2": 3,
-    "total": 11
-   },
-   "catalog": {
-    "timesPlayed": 161,
-    "debut": "1997-06-13",
-    "allTimeGap": 15
-   }
-  },
-  {
-   "slug": "reba",
-   "name": "Reba",
-   "score": 22.2,
-   "why": [
-    "due (6 shows since last, cadence ~7)",
-    "tour repeat window open (gap 7)",
-    "played at Dick's Sporting Goods Park 4x before"
-   ],
-   "eraFreq": 0.136,
-   "currentGap": 6,
-   "medianInterval": 7,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-22",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 26,
-    "set2": 3,
-    "total": 29
-   },
-   "catalog": {
-    "timesPlayed": 420,
-    "debut": "1989-10-01",
-    "allTimeGap": 6
-   }
-  },
-  {
    "slug": "ghost",
    "name": "Ghost",
-   "score": 22.1,
+   "score": 38.4,
    "why": [
-    "just played 2026-08-01",
     "already 3+ tour plays",
+    "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 14x before"
    ],
    "eraFreq": 0.22,
@@ -8271,10 +7497,10 @@
   {
    "slug": "chalk-dust-torture",
    "name": "Chalk Dust Torture",
-   "score": 21.9,
+   "score": 38.2,
    "why": [
-    "just played 2026-08-01",
     "already 3+ tour plays",
+    "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 14x before"
    ],
    "eraFreq": 0.215,
@@ -8298,41 +7524,388 @@
    }
   },
   {
-   "slug": "bouncing-around-the-room",
-   "name": "Bouncing Around the Room",
-   "score": 21.8,
+   "slug": "tube",
+   "name": "Tube",
+   "score": 37.8,
    "why": [
-    "due (6 shows since last, cadence ~7)",
-    "tour repeat window open (gap 7)",
-    "played at Dick's Sporting Goods Park 4x before"
+    "due (5 shows since last, cadence ~6)",
+    "42 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.121,
-   "currentGap": 6,
-   "medianInterval": 7,
+   "eraFreq": 0.168,
+   "currentGap": 5,
+   "medianInterval": 6,
    "tourPlays": 2,
-   "lastTourPlay": "2026-07-22",
+   "lastTourPlay": "2026-07-24",
    "slots": {
-    "s1open": 1,
+    "s1open": 0,
     "s2open": 1,
     "closer": 1,
-    "encore": 2,
-    "set1": 20,
+    "encore": 4,
+    "set1": 30,
     "set2": 4,
-    "total": 26
+    "total": 38
    },
    "catalog": {
-    "timesPlayed": 499,
-    "debut": "1990-01-20",
-    "allTimeGap": 6
+    "timesPlayed": 205,
+    "debut": "1990-09-13",
+    "allTimeGap": 5
+   }
+  },
+  {
+   "slug": "steam",
+   "name": "Steam",
+   "score": 36.7,
+   "why": [
+    "due (12 shows since last, cadence ~8.5)",
+    "52 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 9x before"
+   ],
+   "eraFreq": 0.098,
+   "currentGap": 12,
+   "medianInterval": 8.5,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-14",
+   "slots": {
+    "s1open": 1,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 0,
+    "set1": 22,
+    "set2": 0,
+    "total": 22
+   },
+   "catalog": {
+    "timesPlayed": 69,
+    "debut": "2011-06-04",
+    "allTimeGap": 12
+   }
+  },
+  {
+   "slug": "harry-hood",
+   "name": "Harry Hood",
+   "score": 35.9,
+   "why": [
+    "already 3+ tour plays",
+    "35 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 13x before"
+   ],
+   "eraFreq": 0.22,
+   "currentGap": 1,
+   "medianInterval": 4,
+   "tourPlays": 4,
+   "lastTourPlay": "2026-07-31",
+   "slots": {
+    "s1open": 2,
+    "s2open": 1,
+    "closer": 22,
+    "encore": 16,
+    "set1": 7,
+    "set2": 24,
+    "total": 48
+   },
+   "catalog": {
+    "timesPlayed": 443,
+    "debut": "1985-10-30",
+    "allTimeGap": 1
+   }
+  },
+  {
+   "slug": "first-tube",
+   "name": "First Tube",
+   "score": 35.4,
+   "why": [
+    "due (8 shows since last, cadence ~5)",
+    "47 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 7x before"
+   ],
+   "eraFreq": 0.182,
+   "currentGap": 8,
+   "medianInterval": 5,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-19",
+   "slots": {
+    "s1open": 5,
+    "s2open": 2,
+    "closer": 10,
+    "encore": 22,
+    "set1": 6,
+    "set2": 10,
+    "total": 39
+   },
+   "catalog": {
+    "timesPlayed": 147,
+    "debut": "1999-09-09",
+    "allTimeGap": 8
+   }
+  },
+  {
+   "slug": "also-sprach-zarathustra",
+   "name": "Also Sprach Zarathustra",
+   "score": 34.4,
+   "why": [
+    "due (5 shows since last, cadence ~5)",
+    "already 3+ tour plays",
+    "42 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 10x before"
+   ],
+   "eraFreq": 0.187,
+   "currentGap": 5,
+   "medianInterval": 5,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-07-24",
+   "slots": {
+    "s1open": 1,
+    "s2open": 3,
+    "closer": 1,
+    "encore": 1,
+    "set1": 8,
+    "set2": 31,
+    "total": 41
+   },
+   "catalog": {
+    "timesPlayed": 279,
+    "debut": "1993-07-16",
+    "allTimeGap": 5
+   }
+  },
+  {
+   "slug": "sand",
+   "name": "Sand",
+   "score": 33.4,
+   "why": [
+    "already 3+ tour plays",
+    "34 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 12x before"
+   ],
+   "eraFreq": 0.22,
+   "currentGap": 0,
+   "medianInterval": 4,
+   "tourPlays": 4,
+   "lastTourPlay": "2026-08-01",
+   "slots": {
+    "s1open": 4,
+    "s2open": 8,
+    "closer": 9,
+    "encore": 1,
+    "set1": 22,
+    "set2": 24,
+    "total": 48
+   },
+   "catalog": {
+    "timesPlayed": 166,
+    "debut": "1999-09-11",
+    "allTimeGap": 0
+   }
+  },
+  {
+   "slug": "light",
+   "name": "Light",
+   "score": 31.5,
+   "why": [
+    "already 3+ tour plays",
+    "34 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 12x before"
+   ],
+   "eraFreq": 0.159,
+   "currentGap": 0,
+   "medianInterval": 6,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-08-01",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 1,
+    "encore": 0,
+    "set1": 0,
+    "set2": 34,
+    "total": 34
+   },
+   "catalog": {
+    "timesPlayed": 138,
+    "debut": "2009-05-31",
+    "allTimeGap": 0
+   }
+  },
+  {
+   "slug": "the-wedge",
+   "name": "The Wedge",
+   "score": 30.6,
+   "why": [
+    "42 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 10x before"
+   ],
+   "eraFreq": 0.093,
+   "currentGap": 5,
+   "medianInterval": 8,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-24",
+   "slots": {
+    "s1open": 1,
+    "s2open": 2,
+    "closer": 0,
+    "encore": 3,
+    "set1": 9,
+    "set2": 8,
+    "total": 20
+   },
+   "catalog": {
+    "timesPlayed": 136,
+    "debut": "1993-02-03",
+    "allTimeGap": 5
+   }
+  },
+  {
+   "slug": "character-zero",
+   "name": "Character Zero",
+   "score": 30,
+   "why": [
+    "already 3+ tour plays",
+    "34 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 11x before"
+   ],
+   "eraFreq": 0.192,
+   "currentGap": 0,
+   "medianInterval": 5,
+   "tourPlays": 4,
+   "lastTourPlay": "2026-08-01",
+   "slots": {
+    "s1open": 1,
+    "s2open": 0,
+    "closer": 20,
+    "encore": 14,
+    "set1": 14,
+    "set2": 13,
+    "total": 42
+   },
+   "catalog": {
+    "timesPlayed": 267,
+    "debut": "1996-06-06",
+    "allTimeGap": 0
+   }
+  },
+  {
+   "slug": "tweezer",
+   "name": "Tweezer",
+   "score": 29.6,
+   "why": [
+    "already 3+ tour plays",
+    "34 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 11x before"
+   ],
+   "eraFreq": 0.178,
+   "currentGap": 0,
+   "medianInterval": 6,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-08-01",
+   "slots": {
+    "s1open": 1,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 1,
+    "set1": 7,
+    "set2": 51,
+    "total": 61
+   },
+   "catalog": {
+    "timesPlayed": 418,
+    "debut": "1990-03-28",
+    "allTimeGap": 0
+   }
+  },
+  {
+   "slug": "tweezer-reprise",
+   "name": "Tweezer Reprise",
+   "score": 29.5,
+   "why": [
+    "already 3+ tour plays",
+    "34 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 11x before"
+   ],
+   "eraFreq": 0.173,
+   "currentGap": 0,
+   "medianInterval": 6,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-08-01",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 4,
+    "encore": 34,
+    "set1": 4,
+    "set2": 4,
+    "total": 42
+   },
+   "catalog": {
+    "timesPlayed": 332,
+    "debut": "1991-02-01",
+    "allTimeGap": 0
+   }
+  },
+  {
+   "slug": "555",
+   "name": "555",
+   "score": 29.5,
+   "why": [
+    "due (14 shows since last, cadence ~7)",
+    "55 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 5x before"
+   ],
+   "eraFreq": 0.075,
+   "currentGap": 14,
+   "medianInterval": 7,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-11",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 0,
+    "set1": 16,
+    "set2": 0,
+    "total": 16
+   },
+   "catalog": {
+    "timesPlayed": 72,
+    "debut": "2013-10-31",
+    "allTimeGap": 14
+   }
+  },
+  {
+   "slug": "twist",
+   "name": "Twist",
+   "score": 28,
+   "why": [
+    "58 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 8x before"
+   ],
+   "eraFreq": 0.173,
+   "currentGap": 16,
+   "medianInterval": 5,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-08",
+   "slots": {
+    "s1open": 1,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 1,
+    "set1": 8,
+    "set2": 28,
+    "total": 37
+   },
+   "catalog": {
+    "timesPlayed": 189,
+    "debut": "1997-06-14",
+    "allTimeGap": 16
    }
   },
   {
    "slug": "free",
    "name": "Free",
-   "score": 21.5,
+   "score": 27.8,
    "why": [
-    "just played 2026-07-31",
     "already 3+ tour plays",
+    "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
    "eraFreq": 0.201,
@@ -8356,98 +7929,40 @@
    }
   },
   {
-   "slug": "oblivion",
-   "name": "Oblivion",
-   "score": 21.5,
+   "slug": "theme-from-the-bottom",
+   "name": "Theme from the Bottom",
+   "score": 27.6,
    "why": [
-    "due (8 shows since last, cadence ~5)",
-    "tour repeat window open (gap 9)",
-    "played at Dick's Sporting Goods Park 2x before"
+    "39 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.131,
-   "currentGap": 8,
-   "medianInterval": 5,
+   "eraFreq": 0.159,
+   "currentGap": 3,
+   "medianInterval": 6,
    "tourPlays": 2,
-   "lastTourPlay": "2026-07-19",
+   "lastTourPlay": "2026-07-27",
    "slots": {
-    "s1open": 0,
-    "s2open": 7,
-    "closer": 0,
-    "encore": 0,
-    "set1": 8,
-    "set2": 20,
-    "total": 28
-   },
-   "catalog": {
-    "timesPlayed": 28,
-    "debut": "2023-07-11",
-    "allTimeGap": 8
-   }
-  },
-  {
-   "slug": "halfway-to-the-moon",
-   "name": "Halfway to the Moon",
-   "score": 21.3,
-   "why": [
-    "due (20 shows since last, cadence ~16.5)",
-    "played at Dick's Sporting Goods Park 5x before"
-   ],
-   "eraFreq": 0.051,
-   "currentGap": 20,
-   "medianInterval": 16.5,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
+    "s1open": 2,
     "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 11,
-    "set2": 0,
-    "total": 11
+    "closer": 1,
+    "encore": 1,
+    "set1": 32,
+    "set2": 1,
+    "total": 34
    },
    "catalog": {
-    "timesPlayed": 56,
-    "debut": "2010-06-19",
-    "allTimeGap": 20
-   }
-  },
-  {
-   "slug": "most-events-arent-planned",
-   "name": "Most Events Aren't Planned",
-   "score": 21.3,
-   "why": [
-    "due (14 shows since last, cadence ~10)",
-    "tour repeat window open (gap 15)",
-    "played at Dick's Sporting Goods Park 3x before"
-   ],
-   "eraFreq": 0.079,
-   "currentGap": 14,
-   "medianInterval": 10,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-11",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 12,
-    "encore": 0,
-    "set1": 11,
-    "set2": 6,
-    "total": 17
-   },
-   "catalog": {
-    "timesPlayed": 24,
-    "debut": "2017-08-06",
-    "allTimeGap": 14
+    "timesPlayed": 201,
+    "debut": "1995-05-16",
+    "allTimeGap": 3
    }
   },
   {
    "slug": "carini",
    "name": "Carini",
-   "score": 21.2,
+   "score": 27.5,
    "why": [
-    "just played 2026-07-31",
     "already 3+ tour plays",
+    "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
    "eraFreq": 0.192,
@@ -8471,39 +7986,786 @@
    }
   },
   {
-   "slug": "martian-monster",
-   "name": "Martian Monster",
-   "score": 21.1,
+   "slug": "walls-of-the-cave",
+   "name": "Walls of the Cave",
+   "score": 27.4,
    "why": [
-    "due (25 shows since last, cadence ~13)",
-    "played at Dick's Sporting Goods Park 3x before"
+    "due (12 shows since last, cadence ~10)",
+    "52 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.07,
-   "currentGap": 25,
-   "medianInterval": 13,
-   "tourPlays": 0,
-   "lastTourPlay": null,
+   "eraFreq": 0.079,
+   "currentGap": 12,
+   "medianInterval": 10,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-14",
    "slots": {
-    "s1open": 2,
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 13,
+    "encore": 0,
+    "set1": 15,
+    "set2": 2,
+    "total": 17
+   },
+   "catalog": {
+    "timesPlayed": 82,
+    "debut": "2002-12-31",
+    "allTimeGap": 12
+   }
+  },
+  {
+   "slug": "split-open-and-melt",
+   "name": "Split Open and Melt",
+   "score": 27.1,
+   "why": [
+    "due (6 shows since last, cadence ~7)",
+    "44 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 6x before"
+   ],
+   "eraFreq": 0.14,
+   "currentGap": 6,
+   "medianInterval": 7,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-22",
+   "slots": {
+    "s1open": 0,
+    "s2open": 1,
+    "closer": 18,
+    "encore": 1,
+    "set1": 16,
+    "set2": 11,
+    "total": 30
+   },
+   "catalog": {
+    "timesPlayed": 355,
+    "debut": "1989-02-17",
+    "allTimeGap": 6
+   }
+  },
+  {
+   "slug": "more",
+   "name": "More",
+   "score": 26.7,
+   "why": [
+    "due (7 shows since last, cadence ~8)",
+    "45 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 6x before"
+   ],
+   "eraFreq": 0.121,
+   "currentGap": 7,
+   "medianInterval": 8,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-21",
+   "slots": {
+    "s1open": 0,
+    "s2open": 3,
+    "closer": 7,
+    "encore": 9,
+    "set1": 7,
+    "set2": 10,
+    "total": 26
+   },
+   "catalog": {
+    "timesPlayed": 56,
+    "debut": "2016-10-14",
+    "allTimeGap": 7
+   }
+  },
+  {
+   "slug": "run-like-an-antelope",
+   "name": "Run Like an Antelope",
+   "score": 26.4,
+   "why": [
+    "already 3+ tour plays",
+    "35 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 10x before"
+   ],
+   "eraFreq": 0.154,
+   "currentGap": 1,
+   "medianInterval": 6,
+   "tourPlays": 4,
+   "lastTourPlay": "2026-07-31",
+   "slots": {
+    "s1open": 0,
+    "s2open": 1,
+    "closer": 14,
+    "encore": 15,
+    "set1": 11,
+    "set2": 7,
+    "total": 33
+   },
+   "catalog": {
+    "timesPlayed": 495,
+    "debut": "1985-04-06",
+    "allTimeGap": 1
+   }
+  },
+  {
+   "slug": "roggae",
+   "name": "Roggae",
+   "score": 26.3,
+   "why": [
+    "due (15 shows since last, cadence ~8.5)",
+    "56 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 4x before"
+   ],
+   "eraFreq": 0.098,
+   "currentGap": 15,
+   "medianInterval": 8.5,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-10",
+   "slots": {
+    "s1open": 0,
     "s2open": 0,
     "closer": 0,
     "encore": 0,
-    "set1": 13,
-    "set2": 3,
-    "total": 16
+    "set1": 20,
+    "set2": 1,
+    "total": 21
    },
    "catalog": {
-    "timesPlayed": 51,
-    "debut": "2014-10-31",
-    "allTimeGap": 25
+    "timesPlayed": 118,
+    "debut": "1998-06-30",
+    "allTimeGap": 15
+   }
+  },
+  {
+   "slug": "cavern",
+   "name": "Cavern",
+   "score": 26.2,
+   "why": [
+    "41 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 8x before"
+   ],
+   "eraFreq": 0.112,
+   "currentGap": 4,
+   "medianInterval": 9,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-25",
+   "slots": {
+    "s1open": 0,
+    "s2open": 1,
+    "closer": 12,
+    "encore": 1,
+    "set1": 14,
+    "set2": 9,
+    "total": 24
+   },
+   "catalog": {
+    "timesPlayed": 485,
+    "debut": "1990-03-28",
+    "allTimeGap": 4
+   }
+  },
+  {
+   "slug": "mercury",
+   "name": "Mercury",
+   "score": 25.6,
+   "why": [
+    "due (10 shows since last, cadence ~11)",
+    "49 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 6x before"
+   ],
+   "eraFreq": 0.079,
+   "currentGap": 10,
+   "medianInterval": 11,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-17",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 0,
+    "set1": 5,
+    "set2": 12,
+    "total": 17
+   },
+   "catalog": {
+    "timesPlayed": 47,
+    "debut": "2015-07-22",
+    "allTimeGap": 10
+   }
+  },
+  {
+   "slug": "back-on-the-train",
+   "name": "Back on the Train",
+   "score": 24.9,
+   "why": [
+    "already 3+ tour plays",
+    "35 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 9x before"
+   ],
+   "eraFreq": 0.187,
+   "currentGap": 1,
+   "medianInterval": 5,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-07-31",
+   "slots": {
+    "s1open": 5,
+    "s2open": 1,
+    "closer": 1,
+    "encore": 0,
+    "set1": 35,
+    "set2": 5,
+    "total": 40
+   },
+   "catalog": {
+    "timesPlayed": 171,
+    "debut": "1999-06-30",
+    "allTimeGap": 1
+   }
+  },
+  {
+   "slug": "undermind",
+   "name": "Undermind",
+   "score": 24.9,
+   "why": [
+    "47 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 8x before"
+   ],
+   "eraFreq": 0.07,
+   "currentGap": 8,
+   "medianInterval": 11,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-19",
+   "slots": {
+    "s1open": 1,
+    "s2open": 0,
+    "closer": 1,
+    "encore": 0,
+    "set1": 14,
+    "set2": 1,
+    "total": 15
+   },
+   "catalog": {
+    "timesPlayed": 63,
+    "debut": "2009-03-08",
+    "allTimeGap": 8
+   }
+  },
+  {
+   "slug": "simple",
+   "name": "Simple",
+   "score": 24.2,
+   "why": [
+    "41 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 7x before"
+   ],
+   "eraFreq": 0.131,
+   "currentGap": 4,
+   "medianInterval": 7,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-25",
+   "slots": {
+    "s1open": 3,
+    "s2open": 2,
+    "closer": 0,
+    "encore": 0,
+    "set1": 8,
+    "set2": 23,
+    "total": 31
+   },
+   "catalog": {
+    "timesPlayed": 212,
+    "debut": "1994-05-27",
+    "allTimeGap": 4
+   }
+  },
+  {
+   "slug": "david-bowie",
+   "name": "David Bowie",
+   "score": 24.1,
+   "why": [
+    "due (6 shows since last, cadence ~7)",
+    "44 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 5x before"
+   ],
+   "eraFreq": 0.121,
+   "currentGap": 6,
+   "medianInterval": 7,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-22",
+   "slots": {
+    "s1open": 1,
+    "s2open": 1,
+    "closer": 12,
+    "encore": 4,
+    "set1": 15,
+    "set2": 8,
+    "total": 27
+   },
+   "catalog": {
+    "timesPlayed": 481,
+    "debut": "1986-10-31",
+    "allTimeGap": 6
+   }
+  },
+  {
+   "slug": "evolve",
+   "name": "Evolve",
+   "score": 23.9,
+   "why": [
+    "due (13 shows since last, cadence ~5)",
+    "54 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 2x before"
+   ],
+   "eraFreq": 0.136,
+   "currentGap": 13,
+   "medianInterval": 5,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-12",
+   "slots": {
+    "s1open": 1,
+    "s2open": 1,
+    "closer": 0,
+    "encore": 1,
+    "set1": 25,
+    "set2": 3,
+    "total": 29
+   },
+   "catalog": {
+    "timesPlayed": 31,
+    "debut": "2021-08-04",
+    "allTimeGap": 13
+   }
+  },
+  {
+   "slug": "fuego",
+   "name": "Fuego",
+   "score": 23.9,
+   "why": [
+    "already 3+ tour plays",
+    "35 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 9x before"
+   ],
+   "eraFreq": 0.154,
+   "currentGap": 1,
+   "medianInterval": 6,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-07-31",
+   "slots": {
+    "s1open": 1,
+    "s2open": 0,
+    "closer": 1,
+    "encore": 2,
+    "set1": 3,
+    "set2": 30,
+    "total": 35
+   },
+   "catalog": {
+    "timesPlayed": 102,
+    "debut": "2013-10-31",
+    "allTimeGap": 1
+   }
+  },
+  {
+   "slug": "kill-devil-falls",
+   "name": "Kill Devil Falls",
+   "score": 23.8,
+   "why": [
+    "35 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 7x before"
+   ],
+   "eraFreq": 0.15,
+   "currentGap": 1,
+   "medianInterval": 6,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-31",
+   "slots": {
+    "s1open": 2,
+    "s2open": 2,
+    "closer": 2,
+    "encore": 0,
+    "set1": 20,
+    "set2": 12,
+    "total": 32
+   },
+   "catalog": {
+    "timesPlayed": 126,
+    "debut": "2009-06-02",
+    "allTimeGap": 1
+   }
+  },
+  {
+   "slug": "halleys-comet",
+   "name": "Halley's Comet",
+   "score": 23.7,
+   "why": [
+    "39 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 7x before"
+   ],
+   "eraFreq": 0.112,
+   "currentGap": 3,
+   "medianInterval": 7,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-27",
+   "slots": {
+    "s1open": 0,
+    "s2open": 2,
+    "closer": 0,
+    "encore": 0,
+    "set1": 22,
+    "set2": 2,
+    "total": 24
+   },
+   "catalog": {
+    "timesPlayed": 161,
+    "debut": "1986-05-17",
+    "allTimeGap": 3
+   }
+  },
+  {
+   "slug": "a-song-i-heard-the-ocean-sing",
+   "name": "A Song I Heard the Ocean Sing",
+   "score": 23.6,
+   "why": [
+    "due (11 shows since last, cadence ~10)",
+    "51 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 5x before"
+   ],
+   "eraFreq": 0.056,
+   "currentGap": 11,
+   "medianInterval": 10,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-15",
+   "slots": {
+    "s1open": 1,
+    "s2open": 3,
+    "closer": 1,
+    "encore": 0,
+    "set1": 1,
+    "set2": 11,
+    "total": 12
+   },
+   "catalog": {
+    "timesPlayed": 53,
+    "debut": "2004-06-17",
+    "allTimeGap": 11
+   }
+  },
+  {
+   "slug": "silent-in-the-morning",
+   "name": "Silent in the Morning",
+   "score": 23.5,
+   "why": [
+    "44 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 8x before"
+   ],
+   "eraFreq": 0.023,
+   "currentGap": 6,
+   "medianInterval": 43.5,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-22",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 3,
+    "set1": 1,
+    "set2": 1,
+    "total": 5
+   },
+   "catalog": {
+    "timesPlayed": 189,
+    "debut": "1992-03-07",
+    "allTimeGap": 6
+   }
+  },
+  {
+   "slug": "birds-of-a-feather",
+   "name": "Birds of a Feather",
+   "score": 23.3,
+   "why": [
+    "due (12 shows since last, cadence ~9)",
+    "52 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 4x before"
+   ],
+   "eraFreq": 0.084,
+   "currentGap": 12,
+   "medianInterval": 9,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-14",
+   "slots": {
+    "s1open": 1,
+    "s2open": 1,
+    "closer": 0,
+    "encore": 0,
+    "set1": 16,
+    "set2": 2,
+    "total": 18
+   },
+   "catalog": {
+    "timesPlayed": 143,
+    "debut": "1998-04-02",
+    "allTimeGap": 12
+   }
+  },
+  {
+   "slug": "whats-the-use",
+   "name": "What's the Use?",
+   "score": 23.2,
+   "why": [
+    "45 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 7x before"
+   ],
+   "eraFreq": 0.098,
+   "currentGap": 7,
+   "medianInterval": 10.5,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-21",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 1,
+    "set1": 1,
+    "set2": 19,
+    "total": 21
+   },
+   "catalog": {
+    "timesPlayed": 74,
+    "debut": "1999-07-04",
+    "allTimeGap": 7
+   }
+  },
+  {
+   "slug": "ocelot",
+   "name": "Ocelot",
+   "score": 22.3,
+   "why": [
+    "45 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 7x before"
+   ],
+   "eraFreq": 0.065,
+   "currentGap": 7,
+   "medianInterval": 13,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-21",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 0,
+    "set1": 14,
+    "set2": 0,
+    "total": 14
+   },
+   "catalog": {
+    "timesPlayed": 104,
+    "debut": "2009-05-31",
+    "allTimeGap": 7
+   }
+  },
+  {
+   "slug": "limb-by-limb",
+   "name": "Limb By Limb",
+   "score": 22.2,
+   "why": [
+    "due (15 shows since last, cadence ~11.5)",
+    "56 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 4x before"
+   ],
+   "eraFreq": 0.051,
+   "currentGap": 15,
+   "medianInterval": 11.5,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-10",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 0,
+    "set1": 8,
+    "set2": 3,
+    "total": 11
+   },
+   "catalog": {
+    "timesPlayed": 161,
+    "debut": "1997-06-13",
+    "allTimeGap": 15
+   }
+  },
+  {
+   "slug": "no-men-in-no-mans-land",
+   "name": "No Men In No Man's Land",
+   "score": 22,
+   "why": [
+    "already 3+ tour plays",
+    "34 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 8x before"
+   ],
+   "eraFreq": 0.173,
+   "currentGap": 0,
+   "medianInterval": 6,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-08-01",
+   "slots": {
+    "s1open": 1,
+    "s2open": 9,
+    "closer": 1,
+    "encore": 0,
+    "set1": 11,
+    "set2": 27,
+    "total": 38
+   },
+   "catalog": {
+    "timesPlayed": 90,
+    "debut": "2015-07-21",
+    "allTimeGap": 0
+   }
+  },
+  {
+   "slug": "reba",
+   "name": "Reba",
+   "score": 22,
+   "why": [
+    "due (6 shows since last, cadence ~7)",
+    "44 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 4x before"
+   ],
+   "eraFreq": 0.136,
+   "currentGap": 6,
+   "medianInterval": 7,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-22",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 0,
+    "set1": 26,
+    "set2": 3,
+    "total": 29
+   },
+   "catalog": {
+    "timesPlayed": 420,
+    "debut": "1989-10-01",
+    "allTimeGap": 6
+   }
+  },
+  {
+   "slug": "bouncing-around-the-room",
+   "name": "Bouncing Around the Room",
+   "score": 21.6,
+   "why": [
+    "due (6 shows since last, cadence ~7)",
+    "44 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 4x before"
+   ],
+   "eraFreq": 0.121,
+   "currentGap": 6,
+   "medianInterval": 7,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-22",
+   "slots": {
+    "s1open": 1,
+    "s2open": 1,
+    "closer": 1,
+    "encore": 2,
+    "set1": 20,
+    "set2": 4,
+    "total": 26
+   },
+   "catalog": {
+    "timesPlayed": 499,
+    "debut": "1990-01-20",
+    "allTimeGap": 6
+   }
+  },
+  {
+   "slug": "weekapaug-groove",
+   "name": "Weekapaug Groove",
+   "score": 21.4,
+   "why": [
+    "already 3+ tour plays",
+    "34 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 8x before"
+   ],
+   "eraFreq": 0.154,
+   "currentGap": 0,
+   "medianInterval": 6.5,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-08-01",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 4,
+    "encore": 3,
+    "set1": 16,
+    "set2": 15,
+    "total": 34
+   },
+   "catalog": {
+    "timesPlayed": 522,
+    "debut": "1988-07-23",
+    "allTimeGap": 0
+   }
+  },
+  {
+   "slug": "oblivion",
+   "name": "Oblivion",
+   "score": 21.3,
+   "why": [
+    "due (8 shows since last, cadence ~5)",
+    "47 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 2x before"
+   ],
+   "eraFreq": 0.131,
+   "currentGap": 8,
+   "medianInterval": 5,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-19",
+   "slots": {
+    "s1open": 0,
+    "s2open": 7,
+    "closer": 0,
+    "encore": 0,
+    "set1": 8,
+    "set2": 20,
+    "total": 28
+   },
+   "catalog": {
+    "timesPlayed": 28,
+    "debut": "2023-07-11",
+    "allTimeGap": 8
+   }
+  },
+  {
+   "slug": "most-events-arent-planned",
+   "name": "Most Events Aren't Planned",
+   "score": 21.1,
+   "why": [
+    "due (14 shows since last, cadence ~10)",
+    "55 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 3x before"
+   ],
+   "eraFreq": 0.079,
+   "currentGap": 14,
+   "medianInterval": 10,
+   "tourPlays": 1,
+   "lastTourPlay": "2026-07-11",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 12,
+    "encore": 0,
+    "set1": 11,
+    "set2": 6,
+    "total": 17
+   },
+   "catalog": {
+    "timesPlayed": 24,
+    "debut": "2017-08-06",
+    "allTimeGap": 14
    }
   },
   {
    "slug": "suzy-greenberg",
    "name": "Suzy Greenberg",
-   "score": 20.7,
+   "score": 20.5,
    "why": [
-    "tour repeat window open (gap 6)",
+    "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
    "eraFreq": 0.089,
@@ -8529,10 +8791,10 @@
   {
    "slug": "mountains-in-the-mist",
    "name": "Mountains in the Mist",
-   "score": 20.7,
+   "score": 20.5,
    "why": [
     "due (13 shows since last, cadence ~8)",
-    "tour repeat window open (gap 14)",
+    "54 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
    "eraFreq": 0.098,
@@ -8556,12 +8818,41 @@
    }
   },
   {
+   "slug": "everythings-right",
+   "name": "Everything's Right",
+   "score": 20.3,
+   "why": [
+    "already 3+ tour plays",
+    "35 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 7x before"
+   ],
+   "eraFreq": 0.201,
+   "currentGap": 1,
+   "medianInterval": 5,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-07-31",
+   "slots": {
+    "s1open": 3,
+    "s2open": 6,
+    "closer": 11,
+    "encore": 0,
+    "set1": 15,
+    "set2": 28,
+    "total": 43
+   },
+   "catalog": {
+    "timesPlayed": 76,
+    "debut": "2017-07-14",
+    "allTimeGap": 1
+   }
+  },
+  {
    "slug": "drift-while-youre-sleeping",
    "name": "Drift While You're Sleeping",
-   "score": 20.4,
+   "score": 20.2,
    "why": [
     "due (11 shows since last, cadence ~9.5)",
-    "tour repeat window open (gap 12)",
+    "51 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
    "eraFreq": 0.098,
@@ -8587,9 +8878,9 @@
   {
    "slug": "funky-bitch",
    "name": "Funky Bitch",
-   "score": 20.2,
+   "score": 20,
    "why": [
-    "tour repeat window open (gap 4)",
+    "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
    "eraFreq": 0.075,
@@ -8613,12 +8904,41 @@
    }
   },
   {
+   "slug": "possum",
+   "name": "Possum",
+   "score": 20,
+   "why": [
+    "already 3+ tour plays",
+    "34 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 7x before"
+   ],
+   "eraFreq": 0.192,
+   "currentGap": 0,
+   "medianInterval": 5,
+   "tourPlays": 4,
+   "lastTourPlay": "2026-08-01",
+   "slots": {
+    "s1open": 3,
+    "s2open": 2,
+    "closer": 13,
+    "encore": 12,
+    "set1": 14,
+    "set2": 14,
+    "total": 41
+   },
+   "catalog": {
+    "timesPlayed": 582,
+    "debut": "1985-09-27",
+    "allTimeGap": 0
+   }
+  },
+  {
    "slug": "hey-stranger",
    "name": "Hey Stranger",
-   "score": 20.2,
+   "score": 20,
    "why": [
     "due (15 shows since last, cadence ~7)",
-    "tour repeat window open (gap 16)",
+    "56 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
    "eraFreq": 0.089,
@@ -8642,68 +8962,40 @@
    }
   },
   {
-   "slug": "run-like-an-antelope",
-   "name": "Run Like an Antelope",
-   "score": 20.1,
+   "slug": "stash",
+   "name": "Stash",
+   "score": 19.9,
    "why": [
-    "just played 2026-07-31",
     "already 3+ tour plays",
-    "played at Dick's Sporting Goods Park 10x before"
+    "34 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.154,
-   "currentGap": 1,
-   "medianInterval": 6,
-   "tourPlays": 4,
-   "lastTourPlay": "2026-07-31",
-   "slots": {
-    "s1open": 0,
-    "s2open": 1,
-    "closer": 14,
-    "encore": 15,
-    "set1": 11,
-    "set2": 7,
-    "total": 33
-   },
-   "catalog": {
-    "timesPlayed": 495,
-    "debut": "1985-04-06",
-    "allTimeGap": 1
-   }
-  },
-  {
-   "slug": "sleeping-monkey",
-   "name": "Sleeping Monkey",
-   "score": 20.1,
-   "why": [
-    "due (72 shows since last, cadence ~29)",
-    "played at Dick's Sporting Goods Park 3x before"
-   ],
-   "eraFreq": 0.019,
-   "currentGap": 72,
-   "medianInterval": 29,
-   "tourPlays": 0,
-   "lastTourPlay": null,
+   "eraFreq": 0.187,
+   "currentGap": 0,
+   "medianInterval": 5,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-08-01",
    "slots": {
     "s1open": 0,
     "s2open": 0,
-    "closer": 0,
-    "encore": 4,
-    "set1": 0,
+    "closer": 1,
+    "encore": 1,
+    "set1": 39,
     "set2": 0,
-    "total": 4
+    "total": 40
    },
    "catalog": {
-    "timesPlayed": 96,
-    "debut": "1992-03-06",
-    "allTimeGap": 72
+    "timesPlayed": 463,
+    "debut": "1990-09-13",
+    "allTimeGap": 0
    }
   },
   {
    "slug": "maze",
    "name": "Maze",
-   "score": 19.7,
+   "score": 19.5,
    "why": [
-    "tour repeat window open (gap 6)",
+    "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
    "eraFreq": 0.14,
@@ -8729,10 +9021,10 @@
   {
    "slug": "plasma",
    "name": "Plasma",
-   "score": 19.6,
+   "score": 19.4,
    "why": [
     "due (15 shows since last, cadence ~8)",
-    "tour repeat window open (gap 16)",
+    "56 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
    "eraFreq": 0.093,
@@ -8758,9 +9050,9 @@
   {
    "slug": "fluffhead",
    "name": "Fluffhead",
-   "score": 19.6,
+   "score": 19.4,
    "why": [
-    "tour repeat window open (gap 6)",
+    "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
    "eraFreq": 0.136,
@@ -8784,13 +9076,99 @@
    }
   },
   {
+   "slug": "mikes-song",
+   "name": "Mike's Song",
+   "score": 18.9,
+   "why": [
+    "already 3+ tour plays",
+    "34 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 7x before"
+   ],
+   "eraFreq": 0.154,
+   "currentGap": 0,
+   "medianInterval": 7,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-08-01",
+   "slots": {
+    "s1open": 6,
+    "s2open": 11,
+    "closer": 0,
+    "encore": 0,
+    "set1": 18,
+    "set2": 16,
+    "total": 34
+   },
+   "catalog": {
+    "timesPlayed": 548,
+    "debut": "1985-03-16",
+    "allTimeGap": 0
+   }
+  },
+  {
+   "slug": "golden-age",
+   "name": "Golden Age",
+   "score": 18.9,
+   "why": [
+    "35 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 5x before"
+   ],
+   "eraFreq": 0.154,
+   "currentGap": 1,
+   "medianInterval": 6.5,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-31",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 1,
+    "encore": 0,
+    "set1": 3,
+    "set2": 30,
+    "total": 33
+   },
+   "catalog": {
+    "timesPlayed": 91,
+    "debut": "2009-11-27",
+    "allTimeGap": 1
+   }
+  },
+  {
+   "slug": "halfway-to-the-moon",
+   "name": "Halfway to the Moon",
+   "score": 18.8,
+   "why": [
+    "due (20 shows since last, cadence ~16.5)",
+    "127 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 5x before"
+   ],
+   "eraFreq": 0.051,
+   "currentGap": 20,
+   "medianInterval": 16.5,
+   "tourPlays": 0,
+   "lastTourPlay": null,
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 0,
+    "set1": 11,
+    "set2": 0,
+    "total": 11
+   },
+   "catalog": {
+    "timesPlayed": 56,
+    "debut": "2010-06-19",
+    "allTimeGap": 20
+   }
+  },
+  {
    "slug": "runaway-jim",
    "name": "Runaway Jim",
-   "score": 19,
+   "score": 18.8,
    "why": [
     "due (6 shows since last, cadence ~7)",
-    "tour repeat window open (gap 7)",
     "already 3+ tour plays",
+    "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
    "eraFreq": 0.112,
@@ -8814,11 +9192,40 @@
    }
   },
   {
+   "slug": "martian-monster",
+   "name": "Martian Monster",
+   "score": 18.6,
+   "why": [
+    "due (25 shows since last, cadence ~13)",
+    "140 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 3x before"
+   ],
+   "eraFreq": 0.07,
+   "currentGap": 25,
+   "medianInterval": 13,
+   "tourPlays": 0,
+   "lastTourPlay": null,
+   "slots": {
+    "s1open": 2,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 0,
+    "set1": 13,
+    "set2": 3,
+    "total": 16
+   },
+   "catalog": {
+    "timesPlayed": 51,
+    "debut": "2014-10-31",
+    "allTimeGap": 25
+   }
+  },
+  {
    "slug": "rift",
    "name": "Rift",
-   "score": 18.7,
+   "score": 18.5,
    "why": [
-    "tour repeat window open (gap 5)",
+    "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
    "eraFreq": 0.107,
@@ -8844,9 +9251,9 @@
   {
    "slug": "the-horse",
    "name": "The Horse",
-   "score": 18.7,
+   "score": 18.5,
    "why": [
-    "tour repeat window open (gap 7)",
+    "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
    "eraFreq": 0.023,
@@ -8870,68 +9277,12 @@
    }
   },
   {
-   "slug": "back-on-the-train",
-   "name": "Back on the Train",
-   "score": 18.6,
-   "why": [
-    "just played 2026-07-31",
-    "already 3+ tour plays",
-    "played at Dick's Sporting Goods Park 9x before"
-   ],
-   "eraFreq": 0.187,
-   "currentGap": 1,
-   "medianInterval": 5,
-   "tourPlays": 3,
-   "lastTourPlay": "2026-07-31",
-   "slots": {
-    "s1open": 5,
-    "s2open": 1,
-    "closer": 1,
-    "encore": 0,
-    "set1": 35,
-    "set2": 5,
-    "total": 40
-   },
-   "catalog": {
-    "timesPlayed": 171,
-    "debut": "1999-06-30",
-    "allTimeGap": 1
-   }
-  },
-  {
-   "slug": "set-your-soul-free",
-   "name": "Set Your Soul Free",
-   "score": 18.4,
-   "why": [
-    "played at Dick's Sporting Goods Park 6x before"
-   ],
-   "eraFreq": 0.112,
-   "currentGap": 22,
-   "medianInterval": 7,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 4,
-    "s2open": 10,
-    "closer": 0,
-    "encore": 0,
-    "set1": 9,
-    "set2": 15,
-    "total": 24
-   },
-   "catalog": {
-    "timesPlayed": 48,
-    "debut": "2018-07-20",
-    "allTimeGap": 22
-   }
-  },
-  {
    "slug": "leaves",
    "name": "Leaves",
-   "score": 18.3,
+   "score": 18.1,
    "why": [
     "due (16 shows since last, cadence ~9)",
-    "tour repeat window open (gap 17)",
+    "58 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
    "eraFreq": 0.07,
@@ -8955,69 +9306,41 @@
    }
   },
   {
-   "slug": "lawn-boy",
-   "name": "Lawn Boy",
-   "score": 17.8,
+   "slug": "sleeping-monkey",
+   "name": "Sleeping Monkey",
+   "score": 17.5,
    "why": [
-    "due (45 shows since last, cadence ~20)",
-    "played at Dick's Sporting Goods Park 2x before"
+    "due (72 shows since last, cadence ~29)",
+    "503 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.028,
-   "currentGap": 45,
-   "medianInterval": 20,
+   "eraFreq": 0.019,
+   "currentGap": 72,
+   "medianInterval": 29,
    "tourPlays": 0,
    "lastTourPlay": null,
    "slots": {
     "s1open": 0,
     "s2open": 0,
     "closer": 0,
-    "encore": 1,
-    "set1": 5,
+    "encore": 4,
+    "set1": 0,
     "set2": 0,
-    "total": 6
+    "total": 4
    },
    "catalog": {
-    "timesPlayed": 221,
-    "debut": "1989-11-30",
-    "allTimeGap": 45
-   }
-  },
-  {
-   "slug": "fuego",
-   "name": "Fuego",
-   "score": 17.6,
-   "why": [
-    "just played 2026-07-31",
-    "already 3+ tour plays",
-    "played at Dick's Sporting Goods Park 9x before"
-   ],
-   "eraFreq": 0.154,
-   "currentGap": 1,
-   "medianInterval": 6,
-   "tourPlays": 3,
-   "lastTourPlay": "2026-07-31",
-   "slots": {
-    "s1open": 1,
-    "s2open": 0,
-    "closer": 1,
-    "encore": 2,
-    "set1": 3,
-    "set2": 30,
-    "total": 35
-   },
-   "catalog": {
-    "timesPlayed": 102,
-    "debut": "2013-10-31",
-    "allTimeGap": 1
+    "timesPlayed": 96,
+    "debut": "1992-03-06",
+    "allTimeGap": 72
    }
   },
   {
    "slug": "pillow-jets",
    "name": "Pillow Jets",
-   "score": 17.6,
+   "score": 17.4,
    "why": [
     "due (13 shows since last, cadence ~8)",
-    "tour repeat window open (gap 14)",
+    "54 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
    "eraFreq": 0.079,
@@ -9043,10 +9366,10 @@
   {
    "slug": "life-saving-gun",
    "name": "Life Saving Gun",
-   "score": 17.6,
+   "score": 17.4,
    "why": [
     "due (9 shows since last, cadence ~6)",
-    "tour repeat window open (gap 10)",
+    "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
    "eraFreq": 0.103,
@@ -9070,96 +9393,12 @@
    }
   },
   {
-   "slug": "kill-devil-falls",
-   "name": "Kill Devil Falls",
-   "score": 17.5,
-   "why": [
-    "just played 2026-07-31",
-    "played at Dick's Sporting Goods Park 7x before"
-   ],
-   "eraFreq": 0.15,
-   "currentGap": 1,
-   "medianInterval": 6,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-31",
-   "slots": {
-    "s1open": 2,
-    "s2open": 2,
-    "closer": 2,
-    "encore": 0,
-    "set1": 20,
-    "set2": 12,
-    "total": 32
-   },
-   "catalog": {
-    "timesPlayed": 126,
-    "debut": "2009-06-02",
-    "allTimeGap": 1
-   }
-  },
-  {
-   "slug": "lonely-trip",
-   "name": "Lonely Trip",
-   "score": 17.4,
-   "why": [
-    "due (20 shows since last, cadence ~8)",
-    "played at Dick's Sporting Goods Park 1x before"
-   ],
-   "eraFreq": 0.098,
-   "currentGap": 20,
-   "medianInterval": 8,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 2,
-    "set1": 1,
-    "set2": 18,
-    "total": 21
-   },
-   "catalog": {
-    "timesPlayed": 27,
-    "debut": "2021-08-11",
-    "allTimeGap": 20
-   }
-  },
-  {
-   "slug": "sugar-shack",
-   "name": "Sugar Shack",
-   "score": 17.4,
-   "why": [
-    "due (88 shows since last, cadence ~44)",
-    "played at Dick's Sporting Goods Park 2x before"
-   ],
-   "eraFreq": 0.014,
-   "currentGap": 88,
-   "medianInterval": 44,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 3,
-    "set2": 0,
-    "total": 3
-   },
-   "catalog": {
-    "timesPlayed": 33,
-    "debut": "2009-06-07",
-    "allTimeGap": 88
-   }
-  },
-  {
    "slug": "boogie-on-reggae-woman",
    "name": "Boogie On Reggae Woman",
-   "score": 17.2,
+   "score": 17,
    "why": [
     "due (9 shows since last, cadence ~11)",
-    "tour repeat window open (gap 10)",
+    "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
    "eraFreq": 0.061,
@@ -9183,40 +9422,11 @@
    }
   },
   {
-   "slug": "sand",
-   "name": "Sand",
-   "score": 17.1,
-   "why": [
-    "just played 2026-08-01",
-    "already 3+ tour plays",
-    "played at Dick's Sporting Goods Park 12x before"
-   ],
-   "eraFreq": 0.22,
-   "currentGap": 0,
-   "medianInterval": 4,
-   "tourPlays": 4,
-   "lastTourPlay": "2026-08-01",
-   "slots": {
-    "s1open": 4,
-    "s2open": 8,
-    "closer": 9,
-    "encore": 1,
-    "set1": 22,
-    "set2": 24,
-    "total": 48
-   },
-   "catalog": {
-    "timesPlayed": 166,
-    "debut": "1999-09-11",
-    "allTimeGap": 0
-   }
-  },
-  {
    "slug": "meatstick",
    "name": "Meatstick",
-   "score": 17,
+   "score": 16.8,
    "why": [
-    "tour repeat window open (gap 11)",
+    "49 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
    "eraFreq": 0.051,
@@ -9240,40 +9450,12 @@
    }
   },
   {
-   "slug": "poor-heart",
-   "name": "Poor Heart",
-   "score": 17,
-   "why": [
-    "due (81 shows since last, cadence ~42)",
-    "played at Dick's Sporting Goods Park 2x before"
-   ],
-   "eraFreq": 0.014,
-   "currentGap": 81,
-   "medianInterval": 42,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 3,
-    "set2": 0,
-    "total": 3
-   },
-   "catalog": {
-    "timesPlayed": 310,
-    "debut": "1988-08-04",
-    "allTimeGap": 81
-   }
-  },
-  {
    "slug": "cities",
    "name": "Cities",
-   "score": 16.5,
+   "score": 16.3,
    "why": [
     "due (16 shows since last, cadence ~11)",
-    "tour repeat window open (gap 17)",
+    "58 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
    "eraFreq": 0.075,
@@ -9299,9 +9481,9 @@
   {
    "slug": "divided-sky",
    "name": "Divided Sky",
-   "score": 16.2,
+   "score": 16,
    "why": [
-    "tour repeat window open (gap 6)",
+    "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
    "eraFreq": 0.107,
@@ -9327,10 +9509,10 @@
   {
    "slug": "scents-and-subtle-sounds",
    "name": "Scents and Subtle Sounds",
-   "score": 16.2,
+   "score": 16,
    "why": [
     "due (11 shows since last, cadence ~11)",
-    "tour repeat window open (gap 12)",
+    "51 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
    "eraFreq": 0.075,
@@ -9356,10 +9538,10 @@
   {
    "slug": "about-to-run",
    "name": "About to Run",
-   "score": 16.2,
+   "score": 16,
    "why": [
     "due (12 shows since last, cadence ~9)",
-    "tour repeat window open (gap 13)",
+    "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
    "eraFreq": 0.089,
@@ -9385,10 +9567,10 @@
   {
    "slug": "ether-edge",
    "name": "Ether Edge",
-   "score": 16.1,
+   "score": 15.9,
    "why": [
     "due (9 shows since last, cadence ~9)",
-    "tour repeat window open (gap 10)",
+    "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
    "eraFreq": 0.07,
@@ -9412,38 +9594,67 @@
    }
   },
   {
-   "slug": "stealing-time-from-the-faulty-plan",
-   "name": "Stealing Time From the Faulty Plan",
-   "score": 16,
+   "slug": "set-your-soul-free",
+   "name": "Set Your Soul Free",
+   "score": 15.8,
    "why": [
+    "133 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.033,
-   "currentGap": 19,
-   "medianInterval": 33,
+   "eraFreq": 0.112,
+   "currentGap": 22,
+   "medianInterval": 7,
    "tourPlays": 0,
    "lastTourPlay": null,
    "slots": {
-    "s1open": 0,
-    "s2open": 0,
+    "s1open": 4,
+    "s2open": 10,
     "closer": 0,
     "encore": 0,
-    "set1": 7,
-    "set2": 0,
-    "total": 7
+    "set1": 9,
+    "set2": 15,
+    "total": 24
    },
    "catalog": {
-    "timesPlayed": 83,
-    "debut": "2009-06-02",
-    "allTimeGap": 19
+    "timesPlayed": 48,
+    "debut": "2018-07-20",
+    "allTimeGap": 22
+   }
+  },
+  {
+   "slug": "crosseyed-and-painless",
+   "name": "Crosseyed and Painless",
+   "score": 15.6,
+   "why": [
+    "37 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 4x before"
+   ],
+   "eraFreq": 0.093,
+   "currentGap": 2,
+   "medianInterval": 9,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-29",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 1,
+    "encore": 0,
+    "set1": 0,
+    "set2": 20,
+    "total": 21
+   },
+   "catalog": {
+    "timesPlayed": 73,
+    "debut": "1996-10-31",
+    "allTimeGap": 2
    }
   },
   {
    "slug": "gumbo",
    "name": "Gumbo",
-   "score": 15.7,
+   "score": 15.5,
    "why": [
-    "tour repeat window open (gap 6)",
+    "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
    "eraFreq": 0.089,
@@ -9469,9 +9680,9 @@
   {
    "slug": "bug",
    "name": "Bug",
-   "score": 15.7,
+   "score": 15.5,
    "why": [
-    "tour repeat window open (gap 8)",
+    "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
    "eraFreq": 0.089,
@@ -9495,40 +9706,12 @@
    }
   },
   {
-   "slug": "sneakin-sally-thru-the-alley",
-   "name": "Sneakin' Sally Thru the Alley",
-   "score": 15.7,
-   "why": [
-    "due (20 shows since last, cadence ~17)",
-    "played at Dick's Sporting Goods Park 3x before"
-   ],
-   "eraFreq": 0.037,
-   "currentGap": 20,
-   "medianInterval": 17,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 2,
-    "set1": 0,
-    "set2": 6,
-    "total": 8
-   },
-   "catalog": {
-    "timesPlayed": 86,
-    "debut": "1985-03-08",
-    "allTimeGap": 20
-   }
-  },
-  {
    "slug": "shade",
    "name": "Shade",
-   "score": 15.6,
+   "score": 15.4,
    "why": [
     "due (9 shows since last, cadence ~10)",
-    "tour repeat window open (gap 10)",
+    "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
    "eraFreq": 0.075,
@@ -9552,67 +9735,40 @@
    }
   },
   {
-   "slug": "winterqueen",
-   "name": "Winterqueen",
-   "score": 15.6,
+   "slug": "lawn-boy",
+   "name": "Lawn Boy",
+   "score": 15.3,
    "why": [
-    "due (79 shows since last, cadence ~62)",
-    "played at Dick's Sporting Goods Park 3x before"
+    "due (45 shows since last, cadence ~20)",
+    "406 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.014,
-   "currentGap": 79,
-   "medianInterval": 62,
+   "eraFreq": 0.028,
+   "currentGap": 45,
+   "medianInterval": 20,
    "tourPlays": 0,
    "lastTourPlay": null,
    "slots": {
     "s1open": 0,
     "s2open": 0,
     "closer": 0,
-    "encore": 0,
-    "set1": 2,
-    "set2": 1,
-    "total": 3
+    "encore": 1,
+    "set1": 5,
+    "set2": 0,
+    "total": 6
    },
    "catalog": {
-    "timesPlayed": 25,
-    "debut": "2013-10-31",
-    "allTimeGap": 79
-   }
-  },
-  {
-   "slug": "when-the-circus-comes",
-   "name": "When the Circus Comes",
-   "score": 15.5,
-   "why": [
-    "due (55 shows since last, cadence ~19.5)",
-    "played at Dick's Sporting Goods Park 1x before"
-   ],
-   "eraFreq": 0.033,
-   "currentGap": 55,
-   "medianInterval": 19.5,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 4,
-    "set1": 2,
-    "set2": 1,
-    "total": 7
-   },
-   "catalog": {
-    "timesPlayed": 76,
-    "debut": "1997-02-13",
-    "allTimeGap": 55
+    "timesPlayed": 221,
+    "debut": "1989-11-30",
+    "allTimeGap": 45
    }
   },
   {
    "slug": "llama",
    "name": "Llama",
-   "score": 15.4,
+   "score": 15.2,
    "why": [
-    "tour repeat window open (gap 6)",
+    "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
    "eraFreq": 0.079,
@@ -9636,68 +9792,11 @@
    }
   },
   {
-   "slug": "icculus",
-   "name": "Icculus",
-   "score": 15.4,
-   "why": [
-    "due (78 shows since last, cadence ~47)",
-    "played at Dick's Sporting Goods Park 2x before"
-   ],
-   "eraFreq": 0.014,
-   "currentGap": 78,
-   "medianInterval": 47,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 3,
-    "set1": 0,
-    "set2": 0,
-    "total": 3
-   },
-   "catalog": {
-    "timesPlayed": 30,
-    "debut": "1986-04-01",
-    "allTimeGap": 78
-   }
-  },
-  {
-   "slug": "light",
-   "name": "Light",
-   "score": 15.3,
-   "why": [
-    "just played 2026-08-01",
-    "already 3+ tour plays",
-    "played at Dick's Sporting Goods Park 12x before"
-   ],
-   "eraFreq": 0.159,
-   "currentGap": 0,
-   "medianInterval": 6,
-   "tourPlays": 3,
-   "lastTourPlay": "2026-08-01",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 1,
-    "encore": 0,
-    "set1": 0,
-    "set2": 34,
-    "total": 34
-   },
-   "catalog": {
-    "timesPlayed": 138,
-    "debut": "2009-05-31",
-    "allTimeGap": 0
-   }
-  },
-  {
    "slug": "loving-cup",
    "name": "Loving Cup",
-   "score": 15.2,
+   "score": 15,
    "why": [
-    "tour repeat window open (gap 4)",
+    "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
    "eraFreq": 0.075,
@@ -9721,72 +9820,75 @@
    }
   },
   {
-   "slug": "train-song",
-   "name": "Train Song",
+   "slug": "backwards-down-the-number-line",
+   "name": "Backwards Down the Number Line",
    "score": 14.9,
    "why": [
-    "due (97 shows since last, cadence ~32.5)",
+    "already 3+ tour plays",
+    "37 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 5x before"
+   ],
+   "eraFreq": 0.154,
+   "currentGap": 2,
+   "medianInterval": 6,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-07-29",
+   "slots": {
+    "s1open": 1,
+    "s2open": 1,
+    "closer": 6,
+    "encore": 2,
+    "set1": 6,
+    "set2": 25,
+    "total": 33
+   },
+   "catalog": {
+    "timesPlayed": 151,
+    "debut": "2009-03-06",
+    "allTimeGap": 2
+   }
+  },
+  {
+   "slug": "lonely-trip",
+   "name": "Lonely Trip",
+   "score": 14.9,
+   "why": [
+    "due (20 shows since last, cadence ~8)",
+    "127 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.014,
-   "currentGap": 97,
-   "medianInterval": 32.5,
+   "eraFreq": 0.098,
+   "currentGap": 20,
+   "medianInterval": 8,
    "tourPlays": 0,
    "lastTourPlay": null,
    "slots": {
     "s1open": 0,
     "s2open": 0,
     "closer": 0,
-    "encore": 1,
-    "set1": 2,
-    "set2": 0,
-    "total": 3
+    "encore": 2,
+    "set1": 1,
+    "set2": 18,
+    "total": 21
    },
    "catalog": {
-    "timesPlayed": 59,
-    "debut": "1996-07-21",
-    "allTimeGap": 97
+    "timesPlayed": 27,
+    "debut": "2021-08-11",
+    "allTimeGap": 20
    }
   },
   {
-   "slug": "the-oh-kee-pa-ceremony",
-   "name": "The Oh Kee Pa Ceremony",
-   "score": 14.8,
+   "slug": "sugar-shack",
+   "name": "Sugar Shack",
+   "score": 14.9,
    "why": [
-    "due (100 shows since last, cadence ~50.5)",
-    "played at Dick's Sporting Goods Park 1x before"
+    "due (88 shows since last, cadence ~44)",
+    "736 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 2x before"
    ],
    "eraFreq": 0.014,
-   "currentGap": 100,
-   "medianInterval": 50.5,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
-    "s2open": 1,
-    "closer": 0,
-    "encore": 1,
-    "set1": 0,
-    "set2": 2,
-    "total": 3
-   },
-   "catalog": {
-    "timesPlayed": 220,
-    "debut": "1989-08-12",
-    "allTimeGap": 100
-   }
-  },
-  {
-   "slug": "guy-forget",
-   "name": "Guy Forget",
-   "score": 14.8,
-   "why": [
-    "due (99 shows since last, cadence ~38)",
-    "played at Dick's Sporting Goods Park 1x before"
-   ],
-   "eraFreq": 0.009,
-   "currentGap": 99,
-   "medianInterval": 38,
+   "currentGap": 88,
+   "medianInterval": 44,
    "tourPlays": 0,
    "lastTourPlay": null,
    "slots": {
@@ -9794,23 +9896,52 @@
     "s2open": 0,
     "closer": 0,
     "encore": 0,
-    "set1": 0,
-    "set2": 2,
-    "total": 2
+    "set1": 3,
+    "set2": 0,
+    "total": 3
    },
    "catalog": {
-    "timesPlayed": 4,
-    "debut": "2000-10-01",
-    "allTimeGap": 99
+    "timesPlayed": 33,
+    "debut": "2009-06-07",
+    "allTimeGap": 88
+   }
+  },
+  {
+   "slug": "say-it-to-me-santos",
+   "name": "Say It To Me S.A.N.T.O.S.",
+   "score": 14.6,
+   "why": [
+    "already 3+ tour plays",
+    "35 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 5x before"
+   ],
+   "eraFreq": 0.178,
+   "currentGap": 1,
+   "medianInterval": 6,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-07-31",
+   "slots": {
+    "s1open": 1,
+    "s2open": 3,
+    "closer": 15,
+    "encore": 18,
+    "set1": 7,
+    "set2": 12,
+    "total": 39
+   },
+   "catalog": {
+    "timesPlayed": 57,
+    "debut": "2018-10-31",
+    "allTimeGap": 1
    }
   },
   {
    "slug": "prince-caspian",
    "name": "Prince Caspian",
-   "score": 14.7,
+   "score": 14.5,
    "why": [
-    "tour repeat window open (gap 4)",
     "already 3+ tour plays",
+    "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
    "eraFreq": 0.14,
@@ -9834,40 +9965,41 @@
    }
   },
   {
-   "slug": "nellie-kane",
-   "name": "Nellie Kane",
-   "score": 14.6,
+   "slug": "poor-heart",
+   "name": "Poor Heart",
+   "score": 14.4,
    "why": [
-    "due (59 shows since last, cadence ~38)",
+    "due (81 shows since last, cadence ~42)",
+    "615 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.009,
-   "currentGap": 59,
-   "medianInterval": 38,
+   "eraFreq": 0.014,
+   "currentGap": 81,
+   "medianInterval": 42,
    "tourPlays": 0,
    "lastTourPlay": null,
    "slots": {
     "s1open": 0,
     "s2open": 0,
     "closer": 0,
-    "encore": 1,
-    "set1": 1,
+    "encore": 0,
+    "set1": 3,
     "set2": 0,
-    "total": 2
+    "total": 3
    },
    "catalog": {
-    "timesPlayed": 75,
-    "debut": "1993-02-23",
-    "allTimeGap": 59
+    "timesPlayed": 310,
+    "debut": "1988-08-04",
+    "allTimeGap": 81
    }
   },
   {
    "slug": "monsters",
    "name": "Monsters",
-   "score": 14.5,
+   "score": 14.3,
    "why": [
     "due (9 shows since last, cadence ~8)",
-    "tour repeat window open (gap 10)",
+    "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
    "eraFreq": 0.075,
@@ -9891,97 +10023,40 @@
    }
   },
   {
-   "slug": "joy",
-   "name": "Joy",
-   "score": 14.3,
+   "slug": "a-life-beyond-the-dream",
+   "name": "A Life Beyond The Dream",
+   "score": 13.8,
    "why": [
-    "due (25 shows since last, cadence ~19)",
-    "played at Dick's Sporting Goods Park 2x before"
+    "35 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.047,
-   "currentGap": 25,
-   "medianInterval": 19,
-   "tourPlays": 0,
-   "lastTourPlay": null,
+   "eraFreq": 0.15,
+   "currentGap": 1,
+   "medianInterval": 6,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-31",
    "slots": {
     "s1open": 0,
     "s2open": 0,
     "closer": 0,
-    "encore": 1,
-    "set1": 3,
-    "set2": 6,
-    "total": 10
+    "encore": 18,
+    "set1": 2,
+    "set2": 11,
+    "total": 32
    },
    "catalog": {
-    "timesPlayed": 59,
-    "debut": "2009-06-07",
-    "allTimeGap": 25
-   }
-  },
-  {
-   "slug": "my-soul",
-   "name": "My Soul",
-   "score": 14.2,
-   "why": [
-    "due (21 shows since last, cadence ~13)",
-    "played at Dick's Sporting Goods Park 1x before"
-   ],
-   "eraFreq": 0.065,
-   "currentGap": 21,
-   "medianInterval": 13,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 1,
-    "s2open": 1,
-    "closer": 2,
-    "encore": 0,
-    "set1": 13,
-    "set2": 1,
-    "total": 14
-   },
-   "catalog": {
-    "timesPlayed": 96,
-    "debut": "1997-02-13",
-    "allTimeGap": 21
-   }
-  },
-  {
-   "slug": "everythings-right",
-   "name": "Everything's Right",
-   "score": 14,
-   "why": [
-    "just played 2026-07-31",
-    "already 3+ tour plays",
-    "played at Dick's Sporting Goods Park 7x before"
-   ],
-   "eraFreq": 0.201,
-   "currentGap": 1,
-   "medianInterval": 5,
-   "tourPlays": 3,
-   "lastTourPlay": "2026-07-31",
-   "slots": {
-    "s1open": 3,
-    "s2open": 6,
-    "closer": 11,
-    "encore": 0,
-    "set1": 15,
-    "set2": 28,
-    "total": 43
-   },
-   "catalog": {
-    "timesPlayed": 76,
-    "debut": "2017-07-14",
+    "timesPlayed": 45,
+    "debut": "2019-06-19",
     "allTimeGap": 1
    }
   },
   {
    "slug": "gotta-jibboo",
    "name": "Gotta Jibboo",
-   "score": 14,
+   "score": 13.8,
    "why": [
     "due (9 shows since last, cadence ~9)",
-    "tour repeat window open (gap 10)",
+    "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
    "eraFreq": 0.084,
@@ -10005,39 +10080,11 @@
    }
   },
   {
-   "slug": "cars-trucks-buses",
-   "name": "Cars Trucks Buses",
-   "score": 14,
-   "why": [
-    "due (48 shows since last, cadence ~27)",
-    "played at Dick's Sporting Goods Park 1x before"
-   ],
-   "eraFreq": 0.028,
-   "currentGap": 48,
-   "medianInterval": 27,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 5,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 6,
-    "set2": 0,
-    "total": 6
-   },
-   "catalog": {
-    "timesPlayed": 89,
-    "debut": "1995-09-27",
-    "allTimeGap": 48
-   }
-  },
-  {
    "slug": "sparkle",
    "name": "Sparkle",
-   "score": 13.8,
+   "score": 13.6,
    "why": [
-    "tour repeat window open (gap 7)",
+    "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
    "eraFreq": 0.028,
@@ -10061,40 +10108,11 @@
    }
   },
   {
-   "slug": "character-zero",
-   "name": "Character Zero",
-   "score": 13.7,
-   "why": [
-    "just played 2026-08-01",
-    "already 3+ tour plays",
-    "played at Dick's Sporting Goods Park 11x before"
-   ],
-   "eraFreq": 0.192,
-   "currentGap": 0,
-   "medianInterval": 5,
-   "tourPlays": 4,
-   "lastTourPlay": "2026-08-01",
-   "slots": {
-    "s1open": 1,
-    "s2open": 0,
-    "closer": 20,
-    "encore": 14,
-    "set1": 14,
-    "set2": 13,
-    "total": 42
-   },
-   "catalog": {
-    "timesPlayed": 267,
-    "debut": "1996-06-06",
-    "allTimeGap": 0
-   }
-  },
-  {
    "slug": "acdc-bag",
    "name": "AC/DC Bag",
-   "score": 13.7,
+   "score": 13.5,
    "why": [
-    "tour repeat window open (gap 7)",
+    "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
    "eraFreq": 0.107,
@@ -10120,9 +10138,9 @@
   {
    "slug": "seven-below",
    "name": "Seven Below",
-   "score": 13.7,
+   "score": 13.5,
    "why": [
-    "tour repeat window open (gap 8)",
+    "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
    "eraFreq": 0.023,
@@ -10146,128 +10164,16 @@
    }
   },
   {
-   "slug": "the-well",
-   "name": "The Well",
-   "score": 13.5,
-   "why": [
-    "due (21 shows since last, cadence ~9)"
-   ],
-   "eraFreq": 0.051,
-   "currentGap": 21,
-   "medianInterval": 9,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
-    "s2open": 1,
-    "closer": 0,
-    "encore": 0,
-    "set1": 6,
-    "set2": 5,
-    "total": 11
-   },
-   "catalog": {
-    "timesPlayed": 11,
-    "debut": "2023-07-16",
-    "allTimeGap": 21
-   }
-  },
-  {
-   "slug": "twenty-years-later",
-   "name": "Twenty Years Later",
+   "slug": "stealing-time-from-the-faulty-plan",
+   "name": "Stealing Time From the Faulty Plan",
    "score": 13.4,
    "why": [
-    "due (26 shows since last, cadence ~22)",
-    "played at Dick's Sporting Goods Park 2x before"
+    "126 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.042,
-   "currentGap": 26,
-   "medianInterval": 22,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 1,
-    "set2": 8,
-    "total": 9
-   },
-   "catalog": {
-    "timesPlayed": 49,
-    "debut": "2009-06-05",
-    "allTimeGap": 26
-   }
-  },
-  {
-   "slug": "ya-mar",
-   "name": "Ya Mar",
-   "score": 13.4,
-   "why": [
-    "due (22 shows since last, cadence ~14.5)",
-    "played at Dick's Sporting Goods Park 1x before"
-   ],
-   "eraFreq": 0.061,
-   "currentGap": 22,
-   "medianInterval": 14.5,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 0,
-    "set1": 12,
-    "set2": 1,
-    "total": 13
-   },
-   "catalog": {
-    "timesPlayed": 238,
-    "debut": "1987-02-21",
-    "allTimeGap": 22
-   }
-  },
-  {
-   "slug": "tweezer",
-   "name": "Tweezer",
-   "score": 13.3,
-   "why": [
-    "just played 2026-08-01",
-    "already 3+ tour plays",
-    "played at Dick's Sporting Goods Park 11x before"
-   ],
-   "eraFreq": 0.178,
-   "currentGap": 0,
-   "medianInterval": 6,
-   "tourPlays": 3,
-   "lastTourPlay": "2026-08-01",
-   "slots": {
-    "s1open": 1,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 1,
-    "set1": 7,
-    "set2": 51,
-    "total": 61
-   },
-   "catalog": {
-    "timesPlayed": 418,
-    "debut": "1990-03-28",
-    "allTimeGap": 0
-   }
-  },
-  {
-   "slug": "meat",
-   "name": "Meat",
-   "score": 13.3,
-   "why": [
-    "due (35 shows since last, cadence ~22)",
-    "played at Dick's Sporting Goods Park 1x before"
-   ],
-   "eraFreq": 0.042,
-   "currentGap": 35,
-   "medianInterval": 22,
+   "eraFreq": 0.033,
+   "currentGap": 19,
+   "medianInterval": 33,
    "tourPlays": 0,
    "lastTourPlay": null,
    "slots": {
@@ -10276,21 +10182,49 @@
     "closer": 0,
     "encore": 0,
     "set1": 7,
-    "set2": 2,
-    "total": 9
+    "set2": 0,
+    "total": 7
    },
    "catalog": {
-    "timesPlayed": 51,
-    "debut": "1998-07-02",
-    "allTimeGap": 35
+    "timesPlayed": 83,
+    "debut": "2009-06-02",
+    "allTimeGap": 19
+   }
+  },
+  {
+   "slug": "waste",
+   "name": "Waste",
+   "score": 13.1,
+   "why": [
+    "37 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 3x before"
+   ],
+   "eraFreq": 0.093,
+   "currentGap": 2,
+   "medianInterval": 8,
+   "tourPlays": 2,
+   "lastTourPlay": "2026-07-29",
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 8,
+    "set1": 3,
+    "set2": 9,
+    "total": 20
+   },
+   "catalog": {
+    "timesPlayed": 110,
+    "debut": "1996-06-06",
+    "allTimeGap": 2
    }
   },
   {
    "slug": "sample-in-a-jar",
    "name": "Sample in a Jar",
-   "score": 13.3,
+   "score": 13.1,
    "why": [
-    "tour repeat window open (gap 5)",
+    "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
    "eraFreq": 0.093,
@@ -10316,9 +10250,9 @@
   {
    "slug": "golgi-apparatus",
    "name": "Golgi Apparatus",
-   "score": 13.3,
+   "score": 13.1,
    "why": [
-    "tour repeat window open (gap 6)",
+    "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
    "eraFreq": 0.093,
@@ -10342,72 +10276,16 @@
    }
   },
   {
-   "slug": "tweezer-reprise",
-   "name": "Tweezer Reprise",
-   "score": 13.2,
-   "why": [
-    "just played 2026-08-01",
-    "already 3+ tour plays",
-    "played at Dick's Sporting Goods Park 11x before"
-   ],
-   "eraFreq": 0.173,
-   "currentGap": 0,
-   "medianInterval": 6,
-   "tourPlays": 3,
-   "lastTourPlay": "2026-08-01",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 4,
-    "encore": 34,
-    "set1": 4,
-    "set2": 4,
-    "total": 42
-   },
-   "catalog": {
-    "timesPlayed": 332,
-    "debut": "1991-02-01",
-    "allTimeGap": 0
-   }
-  },
-  {
-   "slug": "grind",
-   "name": "Grind",
-   "score": 13.2,
-   "why": [
-    "due (78 shows since last, cadence ~46)",
-    "played at Dick's Sporting Goods Park 1x before"
-   ],
-   "eraFreq": 0.019,
-   "currentGap": 78,
-   "medianInterval": 46,
-   "tourPlays": 0,
-   "lastTourPlay": null,
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 0,
-    "encore": 4,
-    "set1": 0,
-    "set2": 0,
-    "total": 4
-   },
-   "catalog": {
-    "timesPlayed": 31,
-    "debut": "1998-12-30",
-    "allTimeGap": 78
-   }
-  },
-  {
-   "slug": "saw-it-again",
-   "name": "Saw It Again",
+   "slug": "sneakin-sally-thru-the-alley",
+   "name": "Sneakin' Sally Thru the Alley",
    "score": 13.1,
    "why": [
-    "due (19 shows since last, cadence ~17)",
-    "played at Dick's Sporting Goods Park 2x before"
+    "due (20 shows since last, cadence ~17)",
+    "127 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.047,
-   "currentGap": 19,
+   "eraFreq": 0.037,
+   "currentGap": 20,
    "medianInterval": 17,
    "tourPlays": 0,
    "lastTourPlay": null,
@@ -10415,50 +10293,110 @@
     "s1open": 0,
     "s2open": 0,
     "closer": 0,
-    "encore": 4,
-    "set1": 5,
-    "set2": 1,
-    "total": 10
+    "encore": 2,
+    "set1": 0,
+    "set2": 6,
+    "total": 8
    },
    "catalog": {
-    "timesPlayed": 49,
-    "debut": "1997-06-14",
-    "allTimeGap": 19
+    "timesPlayed": 86,
+    "debut": "1985-03-08",
+    "allTimeGap": 20
    }
   },
   {
-   "slug": "strawberry-letter-23",
-   "name": "Strawberry Letter 23",
+   "slug": "winterqueen",
+   "name": "Winterqueen",
    "score": 13,
    "why": [
-    "due (45 shows since last, cadence ~20.5)"
+    "due (79 shows since last, cadence ~62)",
+    "613 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.033,
-   "currentGap": 45,
-   "medianInterval": 20.5,
+   "eraFreq": 0.014,
+   "currentGap": 79,
+   "medianInterval": 62,
    "tourPlays": 0,
    "lastTourPlay": null,
    "slots": {
-    "s1open": 2,
+    "s1open": 0,
     "s2open": 0,
     "closer": 0,
     "encore": 0,
-    "set1": 7,
-    "set2": 0,
+    "set1": 2,
+    "set2": 1,
+    "total": 3
+   },
+   "catalog": {
+    "timesPlayed": 25,
+    "debut": "2013-10-31",
+    "allTimeGap": 79
+   }
+  },
+  {
+   "slug": "when-the-circus-comes",
+   "name": "When the Circus Comes",
+   "score": 12.9,
+   "why": [
+    "due (55 shows since last, cadence ~19.5)",
+    "420 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 1x before"
+   ],
+   "eraFreq": 0.033,
+   "currentGap": 55,
+   "medianInterval": 19.5,
+   "tourPlays": 0,
+   "lastTourPlay": null,
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 4,
+    "set1": 2,
+    "set2": 1,
     "total": 7
    },
    "catalog": {
-    "timesPlayed": 13,
-    "debut": "2017-07-22",
-    "allTimeGap": 45
+    "timesPlayed": 76,
+    "debut": "1997-02-13",
+    "allTimeGap": 55
+   }
+  },
+  {
+   "slug": "icculus",
+   "name": "Icculus",
+   "score": 12.8,
+   "why": [
+    "due (78 shows since last, cadence ~47)",
+    "612 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 2x before"
+   ],
+   "eraFreq": 0.014,
+   "currentGap": 78,
+   "medianInterval": 47,
+   "tourPlays": 0,
+   "lastTourPlay": null,
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 3,
+    "set1": 0,
+    "set2": 0,
+    "total": 3
+   },
+   "catalog": {
+    "timesPlayed": 30,
+    "debut": "1986-04-01",
+    "allTimeGap": 78
    }
   },
   {
    "slug": "nicu",
    "name": "NICU",
-   "score": 12.9,
+   "score": 12.7,
    "why": [
-    "tour repeat window open (gap 4)",
+    "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
    "eraFreq": 0.079,
@@ -10484,9 +10422,9 @@
   {
    "slug": "julius",
    "name": "Julius",
-   "score": 12.7,
+   "score": 12.5,
    "why": [
-    "tour repeat window open (gap 5)",
+    "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
    "eraFreq": 0.075,
@@ -10512,9 +10450,9 @@
   {
    "slug": "the-lizards",
    "name": "The Lizards",
-   "score": 12.6,
+   "score": 12.4,
    "why": [
-    "tour repeat window open (gap 7)",
+    "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
    "eraFreq": 0.07,
@@ -10538,44 +10476,104 @@
    }
   },
   {
-   "slug": "golden-age",
-   "name": "Golden Age",
-   "score": 12.6,
+   "slug": "sigma-oasis",
+   "name": "Sigma Oasis",
+   "score": 12.4,
    "why": [
-    "just played 2026-07-31",
-    "played at Dick's Sporting Goods Park 5x before"
+    "already 3+ tour plays",
+    "34 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.154,
-   "currentGap": 1,
-   "medianInterval": 6.5,
-   "tourPlays": 2,
-   "lastTourPlay": "2026-07-31",
+   "eraFreq": 0.187,
+   "currentGap": 0,
+   "medianInterval": 5,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-08-01",
    "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 1,
+    "s1open": 6,
+    "s2open": 8,
+    "closer": 3,
     "encore": 0,
-    "set1": 3,
-    "set2": 30,
-    "total": 33
+    "set1": 27,
+    "set2": 14,
+    "total": 41
    },
    "catalog": {
-    "timesPlayed": 91,
-    "debut": "2009-11-27",
-    "allTimeGap": 1
+    "timesPlayed": 51,
+    "debut": "2019-12-08",
+    "allTimeGap": 0
    }
   },
   {
-   "slug": "your-pet-cat",
-   "name": "Your Pet Cat",
-   "score": 12,
+   "slug": "train-song",
+   "name": "Train Song",
+   "score": 12.4,
    "why": [
-    "due (91 shows since last, cadence ~60)",
+    "due (97 shows since last, cadence ~32.5)",
+    "759 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
    "eraFreq": 0.014,
-   "currentGap": 91,
-   "medianInterval": 60,
+   "currentGap": 97,
+   "medianInterval": 32.5,
+   "tourPlays": 0,
+   "lastTourPlay": null,
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 1,
+    "set1": 2,
+    "set2": 0,
+    "total": 3
+   },
+   "catalog": {
+    "timesPlayed": 59,
+    "debut": "1996-07-21",
+    "allTimeGap": 97
+   }
+  },
+  {
+   "slug": "the-oh-kee-pa-ceremony",
+   "name": "The Oh Kee Pa Ceremony",
+   "score": 12.3,
+   "why": [
+    "due (100 shows since last, cadence ~50.5)",
+    "763 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 1x before"
+   ],
+   "eraFreq": 0.014,
+   "currentGap": 100,
+   "medianInterval": 50.5,
+   "tourPlays": 0,
+   "lastTourPlay": null,
+   "slots": {
+    "s1open": 0,
+    "s2open": 1,
+    "closer": 0,
+    "encore": 1,
+    "set1": 0,
+    "set2": 2,
+    "total": 3
+   },
+   "catalog": {
+    "timesPlayed": 220,
+    "debut": "1989-08-12",
+    "allTimeGap": 100
+   }
+  },
+  {
+   "slug": "guy-forget",
+   "name": "Guy Forget",
+   "score": 12.2,
+   "why": [
+    "due (99 shows since last, cadence ~38)",
+    "762 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 1x before"
+   ],
+   "eraFreq": 0.009,
+   "currentGap": 99,
+   "medianInterval": 38,
    "tourPlays": 0,
    "lastTourPlay": null,
    "slots": {
@@ -10583,22 +10581,80 @@
     "s2open": 0,
     "closer": 0,
     "encore": 0,
-    "set1": 2,
-    "set2": 1,
-    "total": 3
+    "set1": 0,
+    "set2": 2,
+    "total": 2
    },
    "catalog": {
-    "timesPlayed": 20,
-    "debut": "2014-10-31",
-    "allTimeGap": 91
+    "timesPlayed": 4,
+    "debut": "2000-10-01",
+    "allTimeGap": 99
+   }
+  },
+  {
+   "slug": "you-enjoy-myself",
+   "name": "You Enjoy Myself",
+   "score": 12.1,
+   "why": [
+    "already 3+ tour plays",
+    "37 days since last — in the repeat window",
+    "played at Dick's Sporting Goods Park 4x before"
+   ],
+   "eraFreq": 0.145,
+   "currentGap": 2,
+   "medianInterval": 6,
+   "tourPlays": 3,
+   "lastTourPlay": "2026-07-29",
+   "slots": {
+    "s1open": 0,
+    "s2open": 4,
+    "closer": 5,
+    "encore": 5,
+    "set1": 5,
+    "set2": 20,
+    "total": 31
+   },
+   "catalog": {
+    "timesPlayed": 627,
+    "debut": "1986-02-03",
+    "allTimeGap": 2
+   }
+  },
+  {
+   "slug": "nellie-kane",
+   "name": "Nellie Kane",
+   "score": 12,
+   "why": [
+    "due (59 shows since last, cadence ~38)",
+    "428 days since last — outside the usual repeat window",
+    "played at Dick's Sporting Goods Park 2x before"
+   ],
+   "eraFreq": 0.009,
+   "currentGap": 59,
+   "medianInterval": 38,
+   "tourPlays": 0,
+   "lastTourPlay": null,
+   "slots": {
+    "s1open": 0,
+    "s2open": 0,
+    "closer": 0,
+    "encore": 1,
+    "set1": 1,
+    "set2": 0,
+    "total": 2
+   },
+   "catalog": {
+    "timesPlayed": 75,
+    "debut": "1993-02-23",
+    "allTimeGap": 59
    }
   },
   {
    "slug": "farmhouse",
    "name": "Farmhouse",
-   "score": 12,
+   "score": 11.8,
    "why": [
-    "tour repeat window open (gap 12)",
+    "51 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
    "eraFreq": 0.051,
@@ -10620,34 +10676,6 @@
     "debut": "1997-11-16",
     "allTimeGap": 11
    }
-  },
-  {
-   "slug": "rock-and-roll",
-   "name": "Rock and Roll",
-   "score": 11.9,
-   "why": [
-    "tour repeat window open (gap 12)",
-    "played at Dick's Sporting Goods Park 3x before"
-   ],
-   "eraFreq": 0.047,
-   "currentGap": 11,
-   "medianInterval": 16,
-   "tourPlays": 1,
-   "lastTourPlay": "2026-07-15",
-   "slots": {
-    "s1open": 0,
-    "s2open": 0,
-    "closer": 6,
-    "encore": 4,
-    "set1": 2,
-    "set2": 4,
-    "total": 10
-   },
-   "catalog": {
-    "timesPlayed": 98,
-    "debut": "1998-10-31",
-    "allTimeGap": 11
-   }
   }
  ],
  "prediction": {
@@ -10661,174 +10689,176 @@
    {
     "name": "46 Days",
     "slug": "46-days",
-    "score": 48,
+    "score": 47.8,
     "why": [
      "due (13 shows since last, cadence ~5)",
-     "tour repeat window open (gap 14)",
+     "54 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 11x before"
     ]
    },
    {
     "name": "The Moma Dance",
     "slug": "the-moma-dance",
-    "score": 48.3,
+    "score": 48.1,
     "why": [
      "due (8 shows since last, cadence ~5)",
-     "tour repeat window open (gap 9)",
+     "47 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 12x before"
     ]
    },
    {
     "name": "Bathtub Gin",
     "slug": "bathtub-gin",
-    "score": 44.3,
+    "score": 44.1,
     "why": [
      "due (5 shows since last, cadence ~5)",
-     "tour repeat window open (gap 6)",
+     "42 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 12x before"
     ]
    },
    {
     "name": "Wolfman's Brother",
     "slug": "wolfmans-brother",
-    "score": 41,
+    "score": 40.8,
     "why": [
      "due (4 shows since last, cadence ~5)",
-     "tour repeat window open (gap 5)",
+     "41 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 11x before"
     ]
    },
    {
     "name": "Blaze On",
     "slug": "blaze-on",
-    "score": 39.8,
+    "score": 39.6,
     "why": [
      "due (7 shows since last, cadence ~5)",
-     "tour repeat window open (gap 8)",
+     "45 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 9x before"
+    ]
+   },
+   {
+    "name": "Ghost",
+    "slug": "ghost",
+    "score": 38.4,
+    "why": [
+     "already 3+ tour plays",
+     "34 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 14x before"
     ]
    },
    {
     "name": "Tube",
     "slug": "tube",
-    "score": 38,
+    "score": 37.8,
     "why": [
      "due (5 shows since last, cadence ~6)",
-     "tour repeat window open (gap 6)",
+     "42 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 10x before"
-    ]
-   },
-   {
-    "name": "Steam",
-    "slug": "steam",
-    "score": 36.9,
-    "why": [
-     "due (12 shows since last, cadence ~8.5)",
-     "tour repeat window open (gap 13)",
-     "played at Dick's Sporting Goods Park 9x before"
     ]
    },
    {
     "name": "First Tube",
     "slug": "first-tube",
-    "score": 35.6,
+    "score": 35.4,
     "why": [
      "due (8 shows since last, cadence ~5)",
-     "tour repeat window open (gap 9)",
+     "47 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 7x before"
     ]
    }
   ],
   "set2": [
    {
-    "name": "A Song I Heard the Ocean Sing",
-    "slug": "a-song-i-heard-the-ocean-sing",
-    "score": 23.8,
+    "name": "Chalk Dust Torture",
+    "slug": "chalk-dust-torture",
+    "score": 38.2,
     "why": [
-     "due (11 shows since last, cadence ~10)",
-     "tour repeat window open (gap 12)",
-     "played at Dick's Sporting Goods Park 5x before"
+     "already 3+ tour plays",
+     "34 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 14x before"
     ]
    },
    {
     "name": "Piper",
     "slug": "piper",
-    "score": 45.1,
+    "score": 44.9,
     "why": [
      "due (12 shows since last, cadence ~7)",
-     "tour repeat window open (gap 13)",
+     "52 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 11x before"
     ]
    },
    {
     "name": "Down with Disease",
     "slug": "down-with-disease",
-    "score": 40.8,
+    "score": 40.6,
     "why": [
      "due (4 shows since last, cadence ~5)",
-     "tour repeat window open (gap 5)",
+     "41 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 11x before"
-    ]
-   },
-   {
-    "name": "Also Sprach Zarathustra",
-    "slug": "also-sprach-zarathustra",
-    "score": 34.6,
-    "why": [
-     "due (5 shows since last, cadence ~5)",
-     "tour repeat window open (gap 6)",
-     "already 3+ tour plays",
-     "played at Dick's Sporting Goods Park 10x before"
-    ]
-   },
-   {
-    "name": "The Wedge",
-    "slug": "the-wedge",
-    "score": 30.8,
-    "why": [
-     "tour repeat window open (gap 6)",
-     "played at Dick's Sporting Goods Park 10x before"
     ]
    },
    {
     "name": "Harry Hood",
     "slug": "harry-hood",
-    "score": 29.6,
+    "score": 35.9,
     "why": [
-     "just played 2026-07-31",
      "already 3+ tour plays",
+     "35 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 13x before"
+    ]
+   },
+   {
+    "name": "Also Sprach Zarathustra",
+    "slug": "also-sprach-zarathustra",
+    "score": 34.4,
+    "why": [
+     "due (5 shows since last, cadence ~5)",
+     "already 3+ tour plays",
+     "42 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 10x before"
+    ]
+   },
+   {
+    "name": "Sand",
+    "slug": "sand",
+    "score": 33.4,
+    "why": [
+     "already 3+ tour plays",
+     "34 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 12x before"
     ]
    },
    {
     "name": "Slave to the Traffic Light",
     "slug": "slave-to-the-traffic-light",
-    "score": 43.6,
+    "score": 43.4,
     "why": [
      "due (5 shows since last, cadence ~5.5)",
-     "tour repeat window open (gap 6)",
+     "42 days since last — in the repeat window",
      "played at Dick's Sporting Goods Park 12x before"
     ]
    }
   ],
   "encore": [
    {
-    "name": "More",
-    "slug": "more",
-    "score": 26.9,
+    "name": "Character Zero",
+    "slug": "character-zero",
+    "score": 30,
     "why": [
-     "due (7 shows since last, cadence ~8)",
-     "tour repeat window open (gap 8)",
-     "played at Dick's Sporting Goods Park 6x before"
+     "already 3+ tour plays",
+     "34 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 11x before"
     ]
    },
    {
-    "name": "Silent in the Morning",
-    "slug": "silent-in-the-morning",
-    "score": 23.7,
+    "name": "Tweezer Reprise",
+    "slug": "tweezer-reprise",
+    "score": 29.5,
     "why": [
-     "tour repeat window open (gap 7)",
-     "played at Dick's Sporting Goods Park 8x before"
+     "already 3+ tour plays",
+     "34 days since last — in the repeat window",
+     "played at Dick's Sporting Goods Park 11x before"
     ]
    }
   ]
