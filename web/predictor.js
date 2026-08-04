@@ -9,6 +9,11 @@ function initPredictor(mount, A) {
   const fmtDate = iso => (window.fmtDate ? window.fmtDate(iso) : String(iso ?? ''));
   const FREE = 12;
   const PHISH = ['P', 'H', 'I', 'S', 'H'];
+  // Mirrors of lib/scoring.mjs. The browser cannot import it — the Worker bundles it —
+  // so these are duplicated, and test/assets.test.mjs asserts they stay in step. Drift
+  // here would show players one set of rules while the server scored them by another.
+  const SETLIST_POINTS = { call: 1, callCap: 10, placement: 2, opener: 5, s1closer: 4, s2closer: 5, encoreSong: 2, overCap: 1 };
+  const SOFT_CAP = { set1: 10, set2: 10, encore: 5 };
 
   let songs = [];
   let user = null; // resolved from the session cookie via /api/me
@@ -470,11 +475,28 @@ function initPredictor(mount, A) {
         list.appendChild(row);
       });
       col.appendChild(list);
+      // Running count against the soft cap. The cap is not enforced — Phish plays 15-song
+      // sets — but past it a wrong guess costs a point, so it has to be visible before
+      // someone saves rather than as a surprise when the show is graded.
+      const cap = SOFT_CAP[key];
+      const n = build[key].length;
+      const over = n - cap;
+      const counter = el('div', over > 0 ? 'p-cap p-cap-over' : 'p-cap', over > 0
+        ? `${n} of ${cap} — ${over} past the cap, each costs 1 point if wrong`
+        : `${n} of ${cap}`);
+      if (over > 0) counter.title = `Songs beyond ${cap} only score if you call them right. Each wrong one deducts a point. Remove them and no deduction applies.`;
+      col.appendChild(counter);
       col.appendChild(typeahead(`add to ${label}…`, usedSlugs, s => { build[key].push(s); render(); }));
       wrap.appendChild(col);
     }
     mount.appendChild(wrap);
-    mount.appendChild(el('div', 'hint', 'Stressors: show opener, Set 2 opener, both set closers, and encore calls earn bonus points (6 each; song hits are worth 70). Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder.'));
+    mount.appendChild(el('div', 'hint',
+      `Scoring: <b>1 point</b> per song you call right, anywhere in the show, up to ${SETLIST_POINTS.callCap}. `
+      + `<b>+${SETLIST_POINTS.placement}</b> more if it lands at the exact slot you put it in. `
+      + `Openers are worth <b>+${SETLIST_POINTS.opener}</b>, the Set 2 closer <b>+${SETLIST_POINTS.s2closer}</b>, the Set 1 closer <b>+${SETLIST_POINTS.s1closer}</b>, `
+      + `and each song you correctly place in the encore <b>+${SETLIST_POINTS.encoreSong}</b>. `
+      + `Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder. `
+      + `Lists longer than ${SOFT_CAP.set1}/${SOFT_CAP.set2}/${SOFT_CAP.encore} are allowed, but past that a wrong guess costs a point.`));
     const save = el('button', 'p-btn', user ? 'Save setlist prediction' : 'Sign in to save prediction');
     save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
       try {
@@ -760,9 +782,22 @@ function initPredictor(mount, A) {
       // silently blank the whole history, not just its own row.
       const hits = Array.isArray(r?.hits) ? r.hits : [];
       const stressors = r?.stressors && typeof r.stressors === 'object' ? r.stressors : {};
+      // Predictions graded before the points system have no breakdown — they fall back to
+      // the old one-line summary rather than rendering an empty tally.
+      const b = r?.breakdown;
+      const parts = [];
+      if (b) {
+        parts.push(`${b.callsCounted} call${b.callsCounted === 1 ? '' : 's'}${b.callsCapped ? ` (capped from ${b.calls})` : ''} +${b.callPoints}`);
+        if (b.placementPoints) parts.push(`${b.placements.length} placed +${b.placementPoints}`);
+        if (b.encorePoints) parts.push(`${b.encoreHits.length} in the encore +${b.encorePoints}`);
+        if (b.stressorPoints) parts.push(`${Object.entries(stressors).filter(([, v]) => v).map(([k]) => k).join(', ')} +${b.stressorPoints}`);
+        if (b.penaltyPoints) parts.push(`${b.penaltyPoints} deducted past the cap`);
+      }
       const line = r
         ? (p.type === 'setlist'
-          ? `score <b>${r.score ?? '—'}</b> — ${hits.length} hits (${hits.map(esc).join(', ') || 'none'}); stressors: ${Object.entries(stressors).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'}`
+          ? (b
+            ? `score <b>${r.score ?? '—'}</b> — ${parts.join(' · ')}<div class="p-songmeta">called: ${hits.map(esc).join(', ') || 'none'}</div>`
+            : `score <b>${r.score ?? '—'}</b> — ${hits.length} hits (${hits.map(esc).join(', ') || 'none'}); stressors: ${Object.entries(stressors).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'}`)
           : `score <b>${r.score ?? '—'}</b> — ${r.hitCount ?? 0}/24 squares${r.bingo ? ' — <b>BINGO 🍩</b>' : ''}`)
         : 'not scored yet';
       const wasThere = attendedDates.has(p.showdate)
