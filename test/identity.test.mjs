@@ -1,12 +1,97 @@
-// Email and handle rules (lib/identity.mjs).
+// Email, display-text and handle rules (lib/identity.mjs).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   normalizeEmail, isValidEmail, slugifyHandle, handleCandidates,
   isValidHandle, isReservedHandle, HANDLE_MAX,
+  sanitizeLine, sanitizeBlock, sanitizeAvatar, NAME_MAX, BIO_MAX, DEFAULT_AVATAR,
 } from '../lib/identity.mjs';
 
 const first = (name, n) => [...handleCandidates(name)].slice(0, n);
+
+// Written as code points so this file stays readable and cannot be quietly corrupted by
+// an editor normalising an invisible character out of the source.
+const cp = n => String.fromCodePoint(n);
+const ZWSP = cp(0x200B), ZWJ = cp(0x200D), RLO = cp(0x202E), HANGUL_FILLER = cp(0x3164);
+const SOFT_HYPHEN = cp(0x00AD), BOM = cp(0xFEFF), BIDI_ISOLATE = cp(0x2066);
+
+test('sanitizeLine folds compatibility forms to plain ASCII', () => {
+  // Fullwidth letters render as a convincing "admin" while comparing as a different
+  // string, which is how a lookalike account gets made.
+  assert.equal(sanitizeLine('ａｄｍｉｎ'), 'admin');
+});
+
+test('sanitizeLine removes invisible characters', () => {
+  assert.equal(sanitizeLine('Rob' + ZWSP + 'bie'), 'Robbie');
+  assert.equal(sanitizeLine('Rob' + SOFT_HYPHEN + 'bie'), 'Robbie');
+  assert.equal(sanitizeLine(BOM + 'Robbie'), 'Robbie');
+  assert.equal(sanitizeLine('Rob' + ZWJ + 'bie'), 'Robbie');
+});
+
+test('sanitizeLine leaves nothing behind for an all-invisible name', () => {
+  // Otherwise a user renders as a blank row that cannot be referred to or reported.
+  assert.equal(sanitizeLine(HANGUL_FILLER + HANGUL_FILLER + ZWSP), '');
+  assert.equal(sanitizeLine('   '), '');
+  assert.equal(sanitizeLine(null), '');
+  assert.equal(sanitizeLine(undefined), '');
+});
+
+test('sanitizeLine strips bidi overrides, which rewrite what a name displays as', () => {
+  assert.equal(sanitizeLine('abc' + RLO + 'def'), 'abcdef');
+  assert.equal(sanitizeLine('abc' + BIDI_ISOLATE + 'def'), 'abcdef');
+});
+
+test('sanitizeLine collapses whitespace and caps length', () => {
+  assert.equal(sanitizeLine('  a\t\t b \n c '), 'a b c');
+  assert.equal(sanitizeLine('x'.repeat(500)).length, NAME_MAX);
+  assert.equal(sanitizeLine('abc', 2), 'ab');
+});
+
+test('sanitizeLine does not strand a space after truncating', () => {
+  // Slicing mid-string can leave a trailing space, which renders as a name with a gap
+  // and sorts differently from the same name without one.
+  assert.equal(sanitizeLine('ab cdef', 3), 'ab');
+});
+
+test('sanitizeBlock keeps paragraphs but not runs of blank lines', () => {
+  assert.equal(sanitizeBlock('one\n\n\n\n\ntwo'), 'one\n\ntwo');
+  assert.equal(sanitizeBlock('one\r\ntwo'), 'one\ntwo');
+  assert.equal(sanitizeBlock('one\t\ttwo'), 'one two');
+  assert.equal(sanitizeBlock('x'.repeat(2000)).length, BIO_MAX);
+});
+
+test('sanitizeBlock strips the same invisibles as a single line', () => {
+  assert.equal(sanitizeBlock('bio' + RLO + ZWSP + 'text'), 'biotext');
+});
+
+test('sanitizeAvatar keeps a real emoji, including compound sequences', () => {
+  assert.equal(sanitizeAvatar('🎸'), '🎸');
+  assert.equal(sanitizeAvatar('👍🏽'), '👍🏽', 'a skin-tone modifier must survive');
+  assert.equal(sanitizeAvatar('🏳️‍🌈'), '🏳️‍🌈', 'stripping the ZWJ would split this into two glyphs');
+  assert.equal(sanitizeAvatar('🎣🎸'), '🎣🎸', 'the field is offered as "an emoji or two"');
+});
+
+test('sanitizeAvatar rejects anything that is not an emoji', () => {
+  // The field accepted 80 characters of arbitrary text, rendered beside every name.
+  assert.equal(sanitizeAvatar('SOMETHING OFFENSIVE'), DEFAULT_AVATAR);
+  assert.equal(sanitizeAvatar('123'), DEFAULT_AVATAR);
+  assert.equal(sanitizeAvatar('a'.repeat(80)), DEFAULT_AVATAR);
+  assert.equal(sanitizeAvatar(''), DEFAULT_AVATAR);
+  assert.equal(sanitizeAvatar(null), DEFAULT_AVATAR);
+  assert.equal(sanitizeAvatar('🎸 and some words'), DEFAULT_AVATAR);
+});
+
+test('sanitizeAvatar rejects a wall of emoji', () => {
+  assert.equal(sanitizeAvatar('🎣'.repeat(40)), DEFAULT_AVATAR);
+});
+
+test('a sanitised name yields a clean handle', () => {
+  // The handle is derived from the name, so sanitising first is what stops a slug being
+  // built out of lookalike or invisible characters.
+  assert.equal(slugifyHandle(sanitizeLine('ａｄｍｉｎ')), 'admin');
+  assert.equal(first(sanitizeLine(HANGUL_FILLER + ZWSP), 1)[0], 'phan',
+    'a name with nothing usable in it still gets a handle');
+});
 
 test('normalizeEmail trims and lowercases so casing cannot fork an account', () => {
   assert.equal(normalizeEmail('  Someone@Example.COM '), 'someone@example.com');

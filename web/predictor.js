@@ -757,7 +757,10 @@ function initPredictor(mount, A) {
       const lab = el('label', 'p-field', `${label}<br>`);
       const inp = el('input', 'ta-input');
       inp.value = val;
-      if (key === 'avatar') inp.maxLength = 4;
+      // 4 was too tight to type a compound emoji at all — a rainbow flag is six UTF-16
+      // units — so the server would accept one the field could not produce. The server
+      // does the real validation now (sanitizeAvatar), so this is only a sanity bound.
+      if (key === 'avatar') inp.maxLength = 24;
       inputs[key] = inp;
       lab.appendChild(inp);
       box.appendChild(lab);

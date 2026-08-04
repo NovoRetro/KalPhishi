@@ -1,7 +1,10 @@
 import {
   slugifyName, FREE, bingoLine, scoreSetlistPrediction, scoreBingoPrediction,
 } from '../lib/scoring.mjs';
-import { normalizeEmail, isValidEmail, handleCandidates } from '../lib/identity.mjs';
+import {
+  normalizeEmail, isValidEmail, handleCandidates,
+  sanitizeLine, sanitizeBlock, sanitizeAvatar, NAME_MAX, BIO_MAX,
+} from '../lib/identity.mjs';
 import { fetchActualSetlist } from '../lib/phishnet-core.mjs';
 import {
   MIN_PASSWORD_LENGTH, hashPassword, verifyPassword, newSession, currentUser,
@@ -78,8 +81,9 @@ async function api(request, env, ctx, { p, m, q, url }) {
       const existing = await getUser(env, slugifyName(claimName));
       if (!existing) return err(404, 'no account with that name');
       if (existing.passhash) return err(409, 'that account already has a password — sign in instead');
-      const profile = { ...JSON.parse(existing.profile || '{}'), displayName: displayName || existing.name };
-      const handle = existing.handle || await assignHandle(env, displayName || existing.name);
+      const claimed = sanitizeLine(displayName) || sanitizeLine(existing.name);
+      const profile = { ...JSON.parse(existing.profile || '{}'), displayName: claimed };
+      const handle = existing.handle || await assignHandle(env, claimed);
       const { token, stmt: sessionStmt } = await newSession(env, existing.id);
       await env.DB.batch([
         env.DB.prepare('UPDATE users SET passhash = ?1, email = ?2, handle = ?3, profile = ?4 WHERE id = ?5')
@@ -92,13 +96,17 @@ async function api(request, env, ctx, { p, m, q, url }) {
 
     // Internal id: random, never derived from anything a user typed.
     const id = 'u-' + crypto.randomUUID();
-    const handle = await assignHandle(env, displayName || '');
+    // Sanitised before the handle is derived from it, so the slug cannot be built out of
+    // invisible or lookalike characters. This path previously bound the raw string: it had
+    // no length cap at all, where the profile update has always truncated at 80.
+    const cleanName = sanitizeLine(displayName);
+    const handle = await assignHandle(env, cleanName);
     const { token, stmt: sessionStmt } = await newSession(env, id);
     await env.DB.batch([
       env.DB.prepare(
         'INSERT INTO users (id, name, created, passhash, profile, email, handle) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)'
-      ).bind(id, (displayName || '').trim() || email, new Date().toISOString(), passhash,
-        JSON.stringify({ displayName: (displayName || '').trim() || handle }), email, handle),
+      ).bind(id, cleanName || email, new Date().toISOString(), passhash,
+        JSON.stringify({ displayName: cleanName || handle }), email, handle),
       sessionStmt,
     ]);
     return json({ user: await ownUser(env, await getUser(env, id)) },
@@ -178,8 +186,13 @@ async function api(request, env, ctx, { p, m, q, url }) {
     if (!user) return err(401, 'not signed in');
     const b = await body(request);
     const profile = JSON.parse(user.profile || '{}');
+    // Truncating was never enough on its own — it bounded the length of a name that could
+    // still render blank, reversed, or as a lookalike of somebody else's.
     for (const f of PROFILE_FIELDS) {
-      if (f in b) profile[f] = String(b[f] || '').slice(0, f === 'bio' ? 500 : 80);
+      if (!(f in b)) continue;
+      if (f === 'avatar') profile[f] = sanitizeAvatar(b[f]);
+      else if (f === 'bio') profile[f] = sanitizeBlock(b[f], BIO_MAX);
+      else profile[f] = sanitizeLine(b[f], NAME_MAX);
     }
     await env.DB.prepare('UPDATE users SET profile = ?1 WHERE id = ?2').bind(JSON.stringify(profile), user.id).run();
     return json({ user: await ownUser(env, { ...user, profile: JSON.stringify(profile) }) });
