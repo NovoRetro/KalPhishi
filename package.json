@@ -7,6 +7,8 @@
     "fetch": "node scripts/fetch.js",
     "fetch:albums": "node scripts/fetch-albums.js",
     "analyze": "node scripts/analyze.js",
+    "backtest": "node scripts/backtest.js",
+    "_comment_backtest": "Dev tool: re-predicts every past show with lib/model.mjs and grades it against baselines. Needs the gitignored raw setlists, so it does not run in CI. Its output is not the public track record.",
     "score": "node scripts/score.js",
     "build:songmeta": "node scripts/build-songmeta.js",
     "build:history": "node scripts/build-history.js",

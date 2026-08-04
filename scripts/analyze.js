@@ -38,136 +38,12 @@ function resolveNextShow() {
 }
 const NEXT_SHOW = resolveNextShow();
 
-// ---- load all setlist rows, phish only, exclude soundchecks/excluded rows
 const years = [2022, 2023, 2024, 2025, 2026];
-let rows = [];
-for (const y of years) rows.push(...load(`setlists-${y}`));
-rows = rows.filter(r => r.artistid === 1 && !r.exclude && r.set !== 's');
-rows.sort((a, b) => a.showdate.localeCompare(b.showdate) || a.position - b.position);
+let rawRows = [];
+for (const y of years) rawRows.push(...load(`setlists-${y}`));
 
 const songsCatalog = load('songs');
 const catalogBySlug = new Map(songsCatalog.map(s => [s.slug, s]));
-
-// chronological show list (modern era 2022+)
-const showDates = [...new Set(rows.map(r => r.showdate))].sort();
-const showIndex = new Map(showDates.map((d, i) => [d, i]));
-const totalShows = showDates.length;
-
-// ---- per-song aggregation over modern era
-const songs = new Map();
-for (const r of rows) {
-  if (!songs.has(r.slug)) {
-    songs.set(r.slug, {
-      slug: r.slug, name: r.song, plays: [], sets: [], positions: [],
-    });
-  }
-  const s = songs.get(r.slug);
-  s.plays.push(r.showdate);
-  s.sets.push(r.set);
-}
-
-// per-show set sizes for closer detection
-const setSizes = new Map(); // `${showdate}|${set}` -> max position within that set
-const setPositions = new Map(); // row -> position within set
-for (const r of rows) {
-  const key = `${r.showdate}|${r.set}`;
-  if (!setSizes.has(key)) setSizes.set(key, []);
-  setSizes.get(key).push(r);
-}
-for (const [key, list] of setSizes) {
-  list.sort((a, b) => a.position - b.position);
-  list.forEach((r, i) => { r._setpos = i; r._setlen = list.length; });
-}
-
-// slot stats per song (modern era)
-for (const r of rows) {
-  const s = songs.get(r.slug);
-  if (!s.slots) s.slots = { s1open: 0, s2open: 0, closer: 0, encore: 0, set1: 0, set2: 0, total: 0 };
-  s.slots.total++;
-  if (r.set === '1' && r._setpos === 0) s.slots.s1open++;
-  if (r.set === '2' && r._setpos === 0) s.slots.s2open++;
-  if ((r.set === '1' || r.set === '2' || r.set === '3') && r._setpos === r._setlen - 1) s.slots.closer++;
-  if (r.set === 'e' || r.set === 'e2') s.slots.encore++;
-  // Plain set-1 vs set-2 counts. Many songs are effectively set-exclusive (Stash 38/38
-  // set 1, Light 33/33 set 2), which the opener/closer stats above don't capture — they
-  // only describe the edges of a set, not which set a song belongs in at all.
-  if (r.set === '1') s.slots.set1++;
-  if (r.set === '2') s.slots.set2++;
-  if (r.isjamchart === 1) s.jamchartPlays = (s.jamchartPlays || 0) + 1;
-}
-
-// median rotation interval (in shows) per song, modern era
-function median(arr) {
-  if (!arr.length) return null;
-  const a = [...arr].sort((x, y) => x - y);
-  const m = Math.floor(a.length / 2);
-  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
-}
-const MIN_PLAYS_FOR_JAMRATE = 5; // below this, a song's jam-chart rate is noise, not signal
-for (const s of songs.values()) {
-  const idxs = [...new Set(s.plays)].map(d => showIndex.get(d)).sort((a, b) => a - b);
-  s.playCount = idxs.length;
-  s.freq = idxs.length / totalShows;
-  s.intervals = idxs.slice(1).map((v, i) => v - idxs[i]);
-  s.medianInterval = median(s.intervals);
-  s.lastPlayed = s.plays[s.plays.length - 1];
-  s.currentGap = totalShows - 1 - showIndex.get(s.lastPlayed); // shows since last played (0 = played at latest show)
-  // Share of a song's performances that phish.net's editors flagged as jam-chart-worthy
-  // (an extended/notable jam) — how reliably it "goes big" when it's played at all,
-  // independent of how often it gets played.
-  s.jamRate = s.playCount >= MIN_PLAYS_FOR_JAMRATE ? (s.jamchartPlays || 0) / s.playCount : 0;
-}
-
-// ---- HORIZONTAL SLICE: current summer tour
-const tourRows = rows.filter(r => r.tourname === TOUR);
-const tourShows = [...new Set(tourRows.map(r => r.showdate))].sort();
-const tourSongs = new Map();
-for (const r of tourRows) {
-  if (!tourSongs.has(r.slug)) tourSongs.set(r.slug, { slug: r.slug, name: r.song, dates: [], sets: [] });
-  const t = tourSongs.get(r.slug);
-  t.dates.push(r.showdate);
-  t.sets.push(r.set);
-}
-const lastTwoShows = tourShows.slice(-2);
-
-// tour repeat behavior: distribution of intra-tour gaps for repeated songs
-const intraTourGaps = [];
-const tourShowIdx = new Map(tourShows.map((d, i) => [d, i]));
-for (const t of tourSongs.values()) {
-  const uniq = [...new Set(t.dates)].map(d => tourShowIdx.get(d)).sort((a, b) => a - b);
-  for (let i = 1; i < uniq.length; i++) intraTourGaps.push(uniq[i] - uniq[i - 1]);
-}
-
-// conspicuously absent: high-frequency modern songs with 0 tour plays
-const absent = [...songs.values()]
-  .filter(s => s.freq >= 0.04 && !tourSongs.has(s.slug))
-  .map(s => ({
-    slug: s.slug, name: s.name,
-    playsPerYearEra: +(s.playCount / (totalShows / 0.5)).toFixed(1),
-    playCount: s.playCount, freq: +s.freq.toFixed(3),
-    medianInterval: s.medianInterval, currentGap: s.currentGap,
-    overdueFactor: s.medianInterval ? +(s.currentGap / s.medianInterval).toFixed(2) : null,
-    catalogGap: catalogBySlug.get(s.slug)?.gap ?? null,
-    lastPlayed: s.lastPlayed,
-  }))
-  .sort((a, b) => (b.freq * (b.overdueFactor ?? 0)) - (a.freq * (a.overdueFactor ?? 0)));
-
-// due-back-up: songs played this tour but gap since last tour play >= typical intra-tour repeat cadence
-const medianRepeatGap = median(intraTourGaps) ?? 4;
-const nextShowTourIdx = tourShows.length; // index the upcoming show would occupy
-const dueBackUp = [...tourSongs.values()]
-  .map(t => {
-    const lastIdx = tourShowIdx.get([...new Set(t.dates)].sort().pop());
-    const gapAtNext = nextShowTourIdx - lastIdx;
-    const s = songs.get(t.slug);
-    return {
-      slug: t.slug, name: t.name, tourPlays: [...new Set(t.dates)].length,
-      lastTourPlay: [...new Set(t.dates)].sort().pop(), gapAtNext,
-      eraFreq: +s.freq.toFixed(3), medianInterval: s.medianInterval,
-    };
-  })
-  .filter(x => x.gapAtNext >= Math.min(medianRepeatGap, 5) && x.eraFreq >= 0.1)
-  .sort((a, b) => b.gapAtNext - a.gapAtNext || b.eraFreq - a.eraFreq);
 
 // ---- VERTICAL SLICE: history at whatever venue NEXT_SHOW resolved to.
 // Follows the venue rather than hardcoding one, so advancing to the next show also
@@ -220,6 +96,63 @@ for (const a of [...albumsData].sort((x, y) => x.year - y.year)) {
   }
 }
 
+(async () => {
+// The model itself lives in lib/model.mjs so that scripts/backtest.js re-predicts past
+// shows with the exact same code path this uses for the next one.
+const { prepareRows, buildModel } = await import('../lib/model.mjs');
+
+const rows = prepareRows(rawRows);
+
+// Forward schedule (one row per show-date, including shows that haven't happened yet —
+// this is how a big gap right after NEXT_SHOW, like the break before Dick's, is visible
+// before those future shows exist as setlists). Missing/not-yet-fetched cache files just
+// mean no leg-boundary signal is available, not a hard failure — see scripts/fetch.js.
+let scheduleRows = [];
+for (const y of years) {
+  try { scheduleRows.push(...load(`schedule-${y}`)); } catch { /* not fetched for this year */ }
+}
+
+const M = buildModel({
+  rows: rows.filter(r => r.showdate < NEXT_SHOW.date),
+  target: NEXT_SHOW,
+  tourName: TOUR,
+  venueSongCounts,
+  scheduleRows,
+});
+const {
+  showDates, totalShows, songs, tourRows, tourShows, tourSongs, tourShowIdx,
+  intraTourGaps, medianRepeatGap, nextShowTourIdx, scored, prediction,
+} = M;
+
+// conspicuously absent: high-frequency modern songs with 0 tour plays
+const absent = [...songs.values()]
+  .filter(s => s.freq >= 0.04 && !tourSongs.has(s.slug))
+  .map(s => ({
+    slug: s.slug, name: s.name,
+    playsPerYearEra: +(s.playCount / (totalShows / 0.5)).toFixed(1),
+    playCount: s.playCount, freq: +s.freq.toFixed(3),
+    medianInterval: s.medianInterval, currentGap: s.currentGap,
+    overdueFactor: s.medianInterval ? +(s.currentGap / s.medianInterval).toFixed(2) : null,
+    catalogGap: catalogBySlug.get(s.slug)?.gap ?? null,
+    lastPlayed: s.lastPlayed,
+  }))
+  .sort((a, b) => (b.freq * (b.overdueFactor ?? 0)) - (a.freq * (a.overdueFactor ?? 0)));
+
+// due-back-up: songs played this tour but gap since last tour play >= typical intra-tour repeat cadence
+const dueBackUp = [...tourSongs.values()]
+  .map(t => {
+    const lastIdx = tourShowIdx.get([...new Set(t.dates)].sort().pop());
+    const gapAtNext = nextShowTourIdx - lastIdx;
+    const s = songs.get(t.slug);
+    return {
+      slug: t.slug, name: t.name, tourPlays: [...new Set(t.dates)].length,
+      lastTourPlay: [...new Set(t.dates)].sort().pop(), gapAtNext,
+      eraFreq: +s.freq.toFixed(3), medianInterval: s.medianInterval,
+    };
+  })
+  .filter(x => x.gapAtNext >= Math.min(medianRepeatGap, 5) && x.eraFreq >= 0.1)
+  .sort((a, b) => b.gapAtNext - a.gapAtNext || b.eraFreq - a.eraFreq);
+
 // tour-wide album share
 const albumTally = new Map();
 let unattributed = 0;
@@ -255,141 +188,18 @@ const perShowEra = tourShows.map(d => {
   };
 });
 
-// ---- PREDICTION SCORING
-(async () => {
-const { isNearTourGap, isResetVenue } = await import('../lib/tourleg.mjs');
-
-// Forward schedule (one row per show-date, including shows that haven't happened yet —
-// this is how a big gap right after NEXT_SHOW, like the break before Dick's, is visible
-// before those future shows exist as setlists). Missing/not-yet-fetched cache files just
-// mean no leg-boundary signal is available, not a hard failure — see scripts/fetch.js.
-let scheduleRows = [];
-for (const y of years) {
-  try { scheduleRows.push(...load(`schedule-${y}`)); } catch { /* not fetched for this year */ }
-}
-// Last 1-2 shows before a detected multi-week break (e.g. a tour leg's close ahead of
-// the Labor Day stand at Dick's) historically favor extended/jam-chart-worthy playing
-// over rarer songs specifically — see lib/tourleg.mjs and the roadmap discussion this
-// came from. Applied as a quiet score nudge on each song's own jam-chart rate, not a
-// separate visible reason.
-const legEndWindow = isNearTourGap(NEXT_SHOW.date, scheduleRows);
-// MSG, Dick's, and Sphere measurably do NOT avoid material from the days right before
-// them the way a normal tour show does — carryover from the immediately preceding show
-// runs 2-3x the dataset's own baseline at all validated instances (lib/tourleg.mjs).
-// Softened, not zeroed: even at these venues most songs still don't repeat, just
-// noticeably more do than the "just played it" assumption normally accounts for.
-const RESET_VENUE_PENALTY_SCALE = 0.3;
-const nextShowIsResetVenue = isResetVenue(NEXT_SHOW.venue);
-
-const played729 = new Set(tourRows.filter(r => r.showdate === tourShows[tourShows.length - 1]).map(r => r.slug));
-const scored = [];
-for (const s of songs.values()) {
-  if (s.freq < 0.03 && !venueSongCounts.has(s.slug)) continue;
-  const t = tourSongs.get(s.slug);
-  const lastTourIdx = t ? tourShowIdx.get([...new Set(t.dates)].sort().pop()) : null;
-  const gapAtNext = t ? nextShowTourIdx - lastTourIdx : null;
-
-  let score = 0;
-  const why = [];
-
-  // base rotation strength
-  score += s.freq * 30;
-
-  // dueness vs personal cadence
-  if (s.medianInterval) {
-    const due = s.currentGap / s.medianInterval;
-    if (due >= 0.8 && due <= 3) { score += Math.min(due, 2) * 6; why.push(`due (${s.currentGap} shows since last, cadence ~${s.medianInterval})`); }
-    if (due > 4 && s.freq > 0.1) { score -= 3; why.push('possibly shelved'); }
-  }
-
-  // tour recency penalties — softened at reset venues (see RESET_VENUE_PENALTY_SCALE above)
-  const recencyScale = nextShowIsResetVenue ? RESET_VENUE_PENALTY_SCALE : 1;
-  if (t && gapAtNext !== null) {
-    if (gapAtNext <= 2) { score -= 15 * recencyScale; why.push(`just played ${t.dates[t.dates.length-1]}`); }
-    else if (gapAtNext <= 3) { score -= 6 * recencyScale; why.push('played recently this tour'); }
-    else { score += 3; why.push(`tour repeat window open (gap ${gapAtNext})`); }
-    if ([...new Set(t.dates)].length >= 3) { score -= 5; why.push('already 3+ tour plays'); }
-  } else {
-    if (s.freq >= 0.15) { score += 8; why.push('conspicuously absent this tour'); }
-  }
-  if (played729.has(s.slug)) { score -= 10; }
-
-  // venue affinity
-  if (venueSongCounts.has(s.slug)) { score += 2.5 * venueSongCounts.get(s.slug); why.push(`played at ${NEXT_SHOW.venue} ${venueSongCounts.get(s.slug)}x before`); }
-
-  // leg-end jam intensity — quiet nudge, no why-string (see comment above)
-  if (legEndWindow) score += (s.jamRate || 0) * 10;
-
-  scored.push({
-    slug: s.slug, name: s.name, score: +score.toFixed(1), why,
-    eraFreq: +s.freq.toFixed(3), currentGap: s.currentGap,
-    medianInterval: s.medianInterval, tourPlays: t ? [...new Set(t.dates)].length : 0,
-    lastTourPlay: t ? [...new Set(t.dates)].sort().pop() : null,
-    slots: s.slots,
-    catalog: {
-      timesPlayed: catalogBySlug.get(s.slug)?.times_played ?? null,
-      debut: catalogBySlug.get(s.slug)?.debut ?? null,
-      allTimeGap: catalogBySlug.get(s.slug)?.gap ?? null,
-    },
-  });
-}
-scored.sort((a, b) => b.score - a.score);
-
-// slot-aware predicted setlist
-function pick(pool, n, used, slotFilter) {
-  const out = [];
-  for (const c of pool) {
-    if (out.length >= n) break;
-    if (used.has(c.slug)) continue;
-    if (slotFilter && !slotFilter(c)) continue;
-    used.add(c.slug);
-    out.push(c);
-  }
-  return out;
-}
-// Set placement. Songs lean hard here — of 137 songs with enough set-1/set-2 plays to
-// judge, 91 lean at least 70% one way, and plenty are effectively set-exclusive. Without
-// this, set 1 and set 2 were both filled from the same score-ranked list, which put
-// set-1-only songs (555, Stash) into set 2 purely because they scored well.
-//
-// Applied as an exclusion of strong contradictions rather than a hard split: a song only
-// gets blocked from a set if its record clearly says it doesn't go there, so score still
-// drives ordering everywhere else. Songs without enough plays to judge stay eligible for
-// both — no evidence isn't the same as evidence of no lean.
-const MIN_SET_PLAYS = 6;
-const SET_LEAN = 0.7;
-const set1Rate = c => {
-  if (!c.slots) return null;
-  const n = c.slots.set1 + c.slots.set2;
-  return n >= MIN_SET_PLAYS ? c.slots.set1 / n : null;
-};
-const fitsSet = (c, which) => {
-  const r = set1Rate(c);
-  if (r === null) return true;
-  return which === 1 ? r > 1 - SET_LEAN : r < SET_LEAN;
-};
-const notEncoreSong = c => !c.slots || c.slots.encore / c.slots.total < 0.5;
-
-const used = new Set();
-const openerPool = scored.filter(c => c.slots && c.slots.s1open / c.slots.total > 0.2 && c.score > 0 && fitsSet(c, 1));
-const opener = pick(openerPool.length ? openerPool : scored, 1, used);
-const set1mid = pick(scored, 6, used, c => notEncoreSong(c) && fitsSet(c, 1));
-const closerPool = scored.filter(c => c.slots && c.slots.closer / c.slots.total > 0.25 && c.score > 0);
-const set1close = pick(closerPool.filter(c => fitsSet(c, 1)).length ? closerPool.filter(c => fitsSet(c, 1)) : scored, 1, used);
-const s2openPool = scored.filter(c => c.slots && c.slots.s2open / c.slots.total > 0.15 && c.score > 0 && fitsSet(c, 2));
-const set2open = pick(s2openPool.length ? s2openPool : scored, 1, used);
-const set2mid = pick(scored, 5, used, c => notEncoreSong(c) && fitsSet(c, 2));
-const set2close = pick(closerPool.filter(c => fitsSet(c, 2)).length ? closerPool.filter(c => fitsSet(c, 2)) : scored, 1, used);
-const encorePool = scored.filter(c => c.slots && c.slots.encore / c.slots.total > 0.3 && c.score > 0);
-const encore = pick(encorePool.length ? encorePool : scored, 2, used);
-
-const strip = c => ({ name: c.name, slug: c.slug, score: c.score, why: c.why });
-const prediction = {
-  show: NEXT_SHOW,
-  set1: [...opener, ...set1mid, ...set1close].map(strip),
-  set2: [...set2open, ...set2mid, ...set2close].map(strip),
-  encore: encore.map(strip),
-};
+// All-time catalog facts are attached here rather than inside the model: they describe
+// the song, not the prediction, and the model must not read them — songs.json reflects
+// whenever it was last fetched, so a backtest that scored on them would be reading the
+// future.
+const candidates = scored.slice(0, 120).map(c => ({
+  ...c,
+  catalog: {
+    timesPlayed: catalogBySlug.get(c.slug)?.times_played ?? null,
+    debut: catalogBySlug.get(c.slug)?.debut ?? null,
+    allTimeGap: catalogBySlug.get(c.slug)?.gap ?? null,
+  },
+}));
 
 const out = {
   generated: new Date().toISOString(),
@@ -427,7 +237,7 @@ const out = {
       return all;
     })(),
   },
-  candidates: scored.slice(0, 120),
+  candidates,
   prediction,
 };
 
