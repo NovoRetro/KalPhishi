@@ -391,7 +391,10 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
       `<span class="p-avatar">${esc((user.profile && user.profile.avatar) || '🎣')}</span>` +
       `<span><b>${esc((user.profile && user.profile.displayName) || user.name)}</b> <span class="menu-stats">@${esc(user.handle)}</span><br>` +
       `<span class="menu-stats">${s.predictions ?? 0} predictions · ${s.scored ?? 0} scored` +
-      `${s.accuracy != null ? ' · accuracy ' + s.accuracy : ''}${s.bingos ? ' · ' + s.bingos + ' 🍩' : ''}</span></span>`);
+      // Setlist points and bingo scores are separate scales and are never merged.
+      `${s.setlistPoints != null ? ' · ' + s.setlistPoints + ' pts' : ''}` +
+      `${s.bingoScore != null ? ' · bingo ' + s.bingoScore : ''}` +
+      `${s.bingos ? ' · ' + s.bingos + ' 🍩' : ''}</span></span>`);
     panel.appendChild(id);
 
     if (view === 'password') {

@@ -10,7 +10,7 @@ import {
 import {
   rowToPrediction, userStats, publicUser, ownUser, publicName,
   getUser, getUserByEmail, getUserByHandle, anyUserLacksEmail, attendedShows,
-  friendsOf, areFriends,
+  friendsOf, areFriends, STAT_SQL,
 } from './db.mjs';
 import { venueSlice } from './phishnet.mjs';
 import { lockStateFor } from '../lib/showtime.mjs';
@@ -579,20 +579,28 @@ async function api(request, env, ctx, { p, m, q, url }) {
       `SELECT u.handle, u.name, u.created, u.profile,
               COUNT(p.id)          AS predictions,
               COUNT(p.result)      AS scored,
-              ROUND(AVG(p.score), 1) AS accuracy,
               SUM(CASE WHEN p.type = 'bingo' AND p.bingo = 1 THEN 1 ELSE 0 END) AS bingos,
+              ROUND(AVG(CASE WHEN ${STAT_SQL.CURRENT_SETLIST} THEN p.score END), 1) AS setlistPoints,
+              SUM(CASE WHEN ${STAT_SQL.CURRENT_SETLIST} THEN 1 ELSE 0 END)          AS setlistScored,
+              ROUND(AVG(CASE WHEN ${STAT_SQL.SCORED_BINGO} THEN p.score END), 1)    AS bingoScore,
+              SUM(CASE WHEN ${STAT_SQL.SCORED_BINGO} THEN 1 ELSE 0 END)             AS bingoScored,
               (SELECT COUNT(*) FROM attendance a WHERE a.user_id = u.id) AS showsAttended
          FROM users u JOIN predictions p ON p.user_id = u.id
         WHERE 1=1 ${restrictSql}
         GROUP BY u.id
        HAVING scored > 0
-        ORDER BY accuracy DESC`
+        -- Setlist points lead: it is the main game, and the two scales cannot be combined
+        -- into one ranking. SQLite sorts NULL below everything, so players with no
+        -- points-era setlist yet fall to the bottom rather than to the top.
+        ORDER BY setlistPoints DESC, bingos DESC, bingoScore DESC, scored DESC`
     );
     const { results } = await (binds.length ? stmt.bind(...binds) : stmt).all();
     // stats appear both nested and spread at top level — the frontend reads the top-level copies
     return json(results.map(r => {
       const stats = {
-        predictions: r.predictions, scored: r.scored, accuracy: r.accuracy,
+        predictions: r.predictions, scored: r.scored,
+        setlistPoints: r.setlistPoints, setlistScored: r.setlistScored || 0,
+        bingoScore: r.bingoScore, bingoScored: r.bingoScored || 0,
         bingos: r.bingos || 0, showsAttended: r.showsAttended || 0,
       };
       return { handle: r.handle, name: publicName(r), created: r.created, profile: JSON.parse(r.profile || '{}'), stats, ...stats };
