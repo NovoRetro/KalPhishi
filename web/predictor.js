@@ -314,6 +314,62 @@ function initPredictor(mount, A) {
   const displayName = u => (u.profile && u.profile.displayName) || u.name;
   const avatarOf = u => (u.profile && u.profile.avatar) || '🎣';
 
+  // The rules used to be a paragraph of prose under the builder, which is where nobody
+  // reads them. As a table with a worked example they are actually legible, and folding
+  // them behind a button keeps the builder itself uncluttered.
+  let helpOpen = false;
+
+  function scoringHelp() {
+    const box = el('div', 'p-help');
+    const row = (what, pts) => `<tr><td>${what}</td><td class="num"><b>${pts}</b></td></tr>`;
+    box.innerHTML = `
+      <div class="setlabel">Setlist</div>
+      <table><tbody>
+        ${row('Any song you call right, anywhere in the show', `1 each, max ${SETLIST_POINTS.callCap}`)}
+        ${row('…and it lands in the exact slot you put it in', `+${SETLIST_POINTS.placement}`)}
+        ${row('Show opener — first song of Set 1', `+${SETLIST_POINTS.opener}`)}
+        ${row('Set 2 opener', `+${SETLIST_POINTS.opener}`)}
+        ${row('Set 2 closer', `+${SETLIST_POINTS.s2closer}`)}
+        ${row('Set 1 closer', `+${SETLIST_POINTS.s1closer}`)}
+        ${row('Each song you correctly place in the encore', `+${SETLIST_POINTS.encoreSong}`)}
+        ${row(`Each wrong guess past ${SOFT_CAP.set1} / ${SOFT_CAP.set2} / ${SOFT_CAP.encore}`, `−${SETLIST_POINTS.overCap}`)}
+      </tbody></table>
+      <div class="p-help-note">
+        Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder.
+        You can go past ${SOFT_CAP.set1} / ${SOFT_CAP.set2} / ${SOFT_CAP.encore} songs, but only
+        bet on a song you think is really coming: past that, a miss costs you a point.
+      </div>
+
+      <div class="setlabel">Worked example</div>
+      <div class="p-help-note">Set 1 opens <b>Carini</b>, then Bathtub Gin, Meatstick, Blaze On…</div>
+      <table><tbody>
+        <tr><td>You said <b>Ghost</b> first — not played</td><td class="num">0</td></tr>
+        <tr><td><b>Bathtub Gin</b> — called, and in slot 2 where you put it</td><td class="num"><b>3</b></td></tr>
+        <tr><td><b>Sand</b> — not played</td><td class="num">0</td></tr>
+        <tr><td><b>Meatstick</b> — called, but a slot later than it landed</td><td class="num"><b>1</b></td></tr>
+        <tr><td><b>Blaze On</b> — called, also a slot off</td><td class="num"><b>1</b></td></tr>
+        <tr><td><b>Total</b></td><td class="num"><b>5</b></td></tr>
+      </tbody></table>
+      <div class="p-help-note">
+        Being one slot out scores the same as being ten out — placement is exact or it is not.
+        No opener bonus here: the show opened Carini, not Ghost.
+      </div>
+
+      <div class="setlabel">PHISH Bingo</div>
+      <table><tbody>
+        ${row('Squares you call right', 'up to 80, shared across the 24')}
+        ${row('Five in a line — row, column or diagonal', '+20')}
+      </tbody></table>
+      <div class="p-help-note">The donut in the middle is yours for free and always counts toward a line.</div>
+
+      <div class="p-help-note">
+        Setlist points and bingo scores are separate scores and are never added together or
+        averaged — a setlist result is a point total, a bingo result is out of 100.
+        Both lock when the show starts.
+      </div>`;
+    return box;
+  }
+
   // Setlist points and bingo scores are different scales and are never combined. One
   // helper so every place that shows a track record says the same thing the same way.
   function statSummary(s) {
@@ -342,7 +398,14 @@ function initPredictor(mount, A) {
       b.addEventListener('click', () => { mode = key; render(); });
       modes.appendChild(b);
     }
+    // Lives beside the mode tabs rather than in the builder, so it covers both games and
+    // — since the lock sweep only disables the builder — stays readable after a show
+    // starts, which is exactly when someone wants to know how they were scored.
+    const help = el('button', 'p-mode' + (helpOpen ? ' active' : ''), helpOpen ? '✕ Scoring' : '❓ How scoring works');
+    help.addEventListener('click', () => { helpOpen = !helpOpen; render(); });
+    modes.appendChild(help);
     bar.appendChild(modes);
+    if (helpOpen) bar.appendChild(scoringHelp());
 
     const showRow = el('div', 'hint', `Predicting: `);
     const dateInput = el('input', 'ta-input p-date');
@@ -552,13 +615,11 @@ function initPredictor(mount, A) {
       wrap.appendChild(col);
     }
     mount.appendChild(wrap);
+    // The full rules moved behind the "How scoring works" button — as a paragraph under
+    // the builder they were the kind of thing people scroll past. What stays is the one
+    // fact you need while dragging songs around.
     mount.appendChild(el('div', 'hint',
-      `Scoring: <b>1 point</b> per song you call right, anywhere in the show, up to ${SETLIST_POINTS.callCap}. `
-      + `<b>+${SETLIST_POINTS.placement}</b> more if it lands at the exact slot you put it in. `
-      + `Openers are worth <b>+${SETLIST_POINTS.opener}</b>, the Set 2 closer <b>+${SETLIST_POINTS.s2closer}</b>, the Set 1 closer <b>+${SETLIST_POINTS.s1closer}</b>, `
-      + `and each song you correctly place in the encore <b>+${SETLIST_POINTS.encoreSong}</b>. `
-      + `Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder. `
-      + `Lists longer than ${SOFT_CAP.set1}/${SOFT_CAP.set2}/${SOFT_CAP.encore} are allowed, but past that a wrong guess costs a point.`));
+      'Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder.'));
     const save = el('button', 'p-btn', user ? 'Save setlist prediction' : 'Sign in to save prediction');
     save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
       try {
