@@ -1,0 +1,38 @@
+{
+ "generated": "2026-08-04T13:38:57.831Z",
+ "shows": {
+  "2026-09-04": {
+   "showdate": "2026-09-04",
+   "venue": "Dick's Sporting Goods Park",
+   "city": "Commerce City",
+   "state": "CO",
+   "country": "USA",
+   "lockAt": "2026-09-05T01:30:00.000Z",
+   "source": "phish.com",
+   "timeZone": "America/Denver",
+   "local": "19:30"
+  },
+  "2026-09-05": {
+   "showdate": "2026-09-05",
+   "venue": "Dick's Sporting Goods Park",
+   "city": "Commerce City",
+   "state": "CO",
+   "country": "USA",
+   "lockAt": "2026-09-06T01:30:00.000Z",
+   "source": "phish.com",
+   "timeZone": "America/Denver",
+   "local": "19:30"
+  },
+  "2026-09-06": {
+   "showdate": "2026-09-06",
+   "venue": "Dick's Sporting Goods Park",
+   "city": "Commerce City",
+   "state": "CO",
+   "country": "USA",
+   "lockAt": "2026-09-07T01:30:00.000Z",
+   "source": "phish.com",
+   "timeZone": "America/Denver",
+   "local": "19:30"
+  }
+ }
+}

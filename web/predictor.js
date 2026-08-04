@@ -9,6 +9,11 @@ function initPredictor(mount, A) {
   const fmtDate = iso => (window.fmtDate ? window.fmtDate(iso) : String(iso ?? ''));
   const FREE = 12;
   const PHISH = ['P', 'H', 'I', 'S', 'H'];
+  // Mirrors of lib/scoring.mjs. The browser cannot import it — the Worker bundles it —
+  // so these are duplicated, and test/assets.test.mjs asserts they stay in step. Drift
+  // here would show players one set of rules while the server scored them by another.
+  const SETLIST_POINTS = { call: 1, callCap: 10, placement: 2, opener: 5, s1closer: 4, s2closer: 5, encoreSong: 2, overCap: 1 };
+  const SOFT_CAP = { set1: 10, set2: 10, encore: 5 };
 
   let songs = [];
   let user = null; // resolved from the session cookie via /api/me
@@ -33,6 +38,26 @@ function initPredictor(mount, A) {
     songs.sort((a, b) => b.plays - a.plays);
   });
   fetch('/data/songmeta.json').then(r => r.json()).then(d => { meta = d; });
+  // Predictions close at the published downbeat. This copy is only for showing the
+  // countdown and disabling the controls — the Worker enforces the same instant from a
+  // bundled copy, so a stale or edited client cannot save late.
+  let showtimes = {};
+  fetch('/data/showtimes.json').then(r => r.json()).then(d => { showtimes = d.shows || {}; render(); }).catch(() => {});
+  function lockInfo() {
+    const s = showtimes[showdate];
+    if (!s || !s.lockAt) return { known: false, locked: false };
+    const at = Date.parse(s.lockAt);
+    return { known: true, locked: Date.now() >= at, at, lockAt: s.lockAt, source: s.source, local: s.local, timeZone: s.timeZone };
+  }
+  // Short, human countdown — "2d 4h", "3h 12m", "8m". Never seconds: this ticks once a
+  // minute and a second-by-second clock would imply a precision the source does not have.
+  function untilText(ms) {
+    const m = Math.max(0, Math.round(ms / 60000));
+    if (m >= 1440) return `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`;
+    if (m >= 60) return `${Math.floor(m / 60)}h ${m % 60}m`;
+    return `${m}m`;
+  }
+  setInterval(() => { if (showtimes[showdate]) render(); }, 60000);
 
   // bustout tiers by show-gap since last played: 31-39 minor, 40-99 major, 100+ mega
   function bustTier(slug) {
@@ -144,10 +169,32 @@ function initPredictor(mount, A) {
     if (user && user.needsEmail) return renderLinkEmail();
     if (!user && (mode === 'history' || mode === 'profile')) mode = 'setlist';
     renderTopBar();
+    const builderStart = mount.childElementCount;
     if (mode === 'setlist') renderSetlistBuilder();
     else if (mode === 'bingo') renderBingo();
     else if (mode === 'profile') renderProfile();
     else renderHistory();
+
+    // Once the show starts, everything that edits or re-saves a prediction goes dead.
+    // Scoped to the builder rather than the whole panel so the top bar keeps working —
+    // people still switch shows and mark attendance after the fact. Bingo cells are divs
+    // and so survive this deliberately: tapping squares as songs are played is the point
+    // of live mode, and it writes to live_checked, never to the prediction itself.
+    if ((mode === 'setlist' || mode === 'bingo') && lockInfo().locked) {
+      const SEL = 'button, input, select, textarea';
+      for (let i = builderStart; i < mount.childElementCount; i++) {
+        const node = mount.children[i];
+        // The node ITSELF has to be considered, not just its descendants — the Save button
+        // is appended straight onto the panel, so a querySelectorAll from it finds nothing
+        // and it stayed live while everything around it went dead.
+        const controls = [...node.querySelectorAll(SEL)];
+        if (node.matches(SEL)) controls.push(node);
+        for (const c of controls) {
+          c.disabled = true;
+          c.title = 'Locked — the show has started';
+        }
+      }
+    }
   }
 
   // Pre-email accounts land here after signing in: everything else waits until an
@@ -294,6 +341,16 @@ function initPredictor(mount, A) {
     showRow.appendChild(dateInput);
     showRow.appendChild(el('span', null, ` (next show: ${esc(fmtDate(A.nextShow.date))} — ${esc(A.nextShow.venue)})`));
     bar.appendChild(showRow);
+
+    const L = lockInfo();
+    if (L.known) {
+      const clock = L.local ? `${L.local} local time` : 'the published show time';
+      bar.appendChild(L.locked
+        ? el('div', 'p-lock p-locked',
+          `🔒 <b>Locked.</b> Doors are shut — this show started at ${esc(clock)} and predictions can no longer be changed.`)
+        : el('div', 'p-lock',
+          `🔓 Locks in <b>${untilText(L.at - Date.now())}</b>, at ${esc(clock)}${L.source === 'fallback' ? ' <span class="hint">(estimated — no time published yet)</span>' : ''}.`));
+    }
 
     // Attendance toggle for whichever show is currently selected. Self-reported and
     // freely re-togglable, including for past dates — people forget until afterwards.
@@ -470,11 +527,28 @@ function initPredictor(mount, A) {
         list.appendChild(row);
       });
       col.appendChild(list);
+      // Running count against the soft cap. The cap is not enforced — Phish plays 15-song
+      // sets — but past it a wrong guess costs a point, so it has to be visible before
+      // someone saves rather than as a surprise when the show is graded.
+      const cap = SOFT_CAP[key];
+      const n = build[key].length;
+      const over = n - cap;
+      const counter = el('div', over > 0 ? 'p-cap p-cap-over' : 'p-cap', over > 0
+        ? `${n} of ${cap} — ${over} past the cap, each costs 1 point if wrong`
+        : `${n} of ${cap}`);
+      if (over > 0) counter.title = `Songs beyond ${cap} only score if you call them right. Each wrong one deducts a point. Remove them and no deduction applies.`;
+      col.appendChild(counter);
       col.appendChild(typeahead(`add to ${label}…`, usedSlugs, s => { build[key].push(s); render(); }));
       wrap.appendChild(col);
     }
     mount.appendChild(wrap);
-    mount.appendChild(el('div', 'hint', 'Stressors: show opener, Set 2 opener, both set closers, and encore calls earn bonus points (6 each; song hits are worth 70). Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder.'));
+    mount.appendChild(el('div', 'hint',
+      `Scoring: <b>1 point</b> per song you call right, anywhere in the show, up to ${SETLIST_POINTS.callCap}. `
+      + `<b>+${SETLIST_POINTS.placement}</b> more if it lands at the exact slot you put it in. `
+      + `Openers are worth <b>+${SETLIST_POINTS.opener}</b>, the Set 2 closer <b>+${SETLIST_POINTS.s2closer}</b>, the Set 1 closer <b>+${SETLIST_POINTS.s1closer}</b>, `
+      + `and each song you correctly place in the encore <b>+${SETLIST_POINTS.encoreSong}</b>. `
+      + `Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder. `
+      + `Lists longer than ${SOFT_CAP.set1}/${SOFT_CAP.set2}/${SOFT_CAP.encore} are allowed, but past that a wrong guess costs a point.`));
     const save = el('button', 'p-btn', user ? 'Save setlist prediction' : 'Sign in to save prediction');
     save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
       try {
@@ -760,9 +834,22 @@ function initPredictor(mount, A) {
       // silently blank the whole history, not just its own row.
       const hits = Array.isArray(r?.hits) ? r.hits : [];
       const stressors = r?.stressors && typeof r.stressors === 'object' ? r.stressors : {};
+      // Predictions graded before the points system have no breakdown — they fall back to
+      // the old one-line summary rather than rendering an empty tally.
+      const b = r?.breakdown;
+      const parts = [];
+      if (b) {
+        parts.push(`${b.callsCounted} call${b.callsCounted === 1 ? '' : 's'}${b.callsCapped ? ` (capped from ${b.calls})` : ''} +${b.callPoints}`);
+        if (b.placementPoints) parts.push(`${b.placements.length} placed +${b.placementPoints}`);
+        if (b.encorePoints) parts.push(`${b.encoreHits.length} in the encore +${b.encorePoints}`);
+        if (b.stressorPoints) parts.push(`${Object.entries(stressors).filter(([, v]) => v).map(([k]) => k).join(', ')} +${b.stressorPoints}`);
+        if (b.penaltyPoints) parts.push(`${b.penaltyPoints} deducted past the cap`);
+      }
       const line = r
         ? (p.type === 'setlist'
-          ? `score <b>${r.score ?? '—'}</b> — ${hits.length} hits (${hits.map(esc).join(', ') || 'none'}); stressors: ${Object.entries(stressors).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'}`
+          ? (b
+            ? `score <b>${r.score ?? '—'}</b> — ${parts.join(' · ')}<div class="p-songmeta">called: ${hits.map(esc).join(', ') || 'none'}</div>`
+            : `score <b>${r.score ?? '—'}</b> — ${hits.length} hits (${hits.map(esc).join(', ') || 'none'}); stressors: ${Object.entries(stressors).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'}`)
           : `score <b>${r.score ?? '—'}</b> — ${r.hitCount ?? 0}/24 squares${r.bingo ? ' — <b>BINGO 🍩</b>' : ''}`)
         : 'not scored yet';
       const wasThere = attendedDates.has(p.showdate)

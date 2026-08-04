@@ -15,6 +15,21 @@ const html = read('web/index.html');
 const predictor = read('web/predictor.js');
 const buildPublic = read('scripts/build-public.js');
 
+test('predictor.js mirrors the scoring constants exactly', async () => {
+  // The browser cannot import lib/scoring.mjs, so web/predictor.js keeps its own copy to
+  // render the rules and the soft-cap counter. If the two drift, the app tells players one
+  // set of rules and the Worker grades them by another — silently, and only visible after
+  // a show is scored.
+  const { SETLIST_POINTS, SETLIST_SOFT_CAP } = await import('../lib/scoring.mjs');
+  const literal = name => {
+    const m = predictor.match(new RegExp(`const ${name} = (\\{[^}]*\\});`));
+    assert.ok(m, `${name} not found in web/predictor.js`);
+    return JSON.parse(m[1].replace(/(\w+):/g, '"$1":').replace(/,\s*\}/, '}'));
+  };
+  assert.deepEqual(literal('SETLIST_POINTS'), SETLIST_POINTS);
+  assert.deepEqual(literal('SOFT_CAP'), SETLIST_SOFT_CAP);
+});
+
 test('the phone breakpoint comes after the base .p-grid rule', () => {
   // Same specificity, so source order decides. Placing the media query first silently
   // restored the 90px column floor and reintroduced ~498px of sideways scroll at 375px.

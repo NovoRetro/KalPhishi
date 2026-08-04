@@ -15,6 +15,7 @@ const ALLOW = [
   ['web/predictor.js', 'web/predictor.js'],
   ['data/analysis.json', 'data/analysis.json'],
   ['data/history.json', 'data/history.json'],
+  ['data/showtimes.json', 'data/showtimes.json'],
   ['data/venues.json', 'data/venues.json'],
   ['data/songs.json', 'data/songs.json'],
   ['data/songmeta.json', 'data/songmeta.json'],
