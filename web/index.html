@@ -109,7 +109,11 @@
   .ta-item { padding: 6px 10px; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; }
   .ta-item.sel, .ta-item:hover { background: var(--accent-wash); }
   .ta-plays { color: var(--muted); font-size: 12px; }
-  .p-sets { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  /* The bottom margin matches the column gap, so the note under the builder clears the
+     "add to Set 1…" inputs on the same rhythm the grid already uses. Without it the note
+     sat flush against them and read as part of the last field. Set here rather than on
+     .hint, which a dozen other places share. */
+  .p-sets { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   @media (max-width: 900px) { .p-sets { grid-template-columns: 1fr; } }
   .p-songrow { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--grid); }
   .p-songmain { display: flex; flex-direction: column; gap: 1px; }
