@@ -129,7 +129,9 @@
   .p-cell { position: relative; aspect-ratio: 1; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px; font-size: 12px; line-height: 1.25; cursor: pointer; }
   .p-cell.empty { color: var(--muted); border-style: dashed; }
   .p-cell.empty:hover, .p-cell.filled:hover { background: var(--accent-wash); }
-  .p-cell.free { font-size: 22px; cursor: default; }
+  /* The donut is the whole square now, so it scales up to fill it rather than sitting at
+     caption size above a label. line-height 1 keeps the glyph centred in the cell. */
+  .p-cell.free { font-size: 54px; line-height: 1; cursor: default; }
   .p-cell.checked { background: var(--accent-wash); border-color: var(--series-1); box-shadow: inset 0 0 0 2px var(--series-1); }
   .p-cell .p-x { position: absolute; top: 0; right: 2px; }
   .p-cell .p-lock { position: absolute; top: 1px; left: 3px; background: none; border: none; cursor: pointer; font-size: 11px; opacity: 0.35; padding: 1px; }
@@ -145,7 +147,7 @@
   @media (max-width: 560px) {
     .p-grid { grid-template-columns: 16px repeat(5, minmax(0, 1fr)); gap: 3px; }
     .p-cell { font-size: 9.5px; padding: 2px; border-radius: 6px; line-height: 1.15; }
-    .p-cell.free { font-size: 15px; }
+    .p-cell.free { font-size: 32px; }
     .p-cellname { -webkit-line-clamp: 4; }
     /* Full opacity, not the desktop hover-reveal design: touch has no hover to reveal
        these with, so the faint default was effectively invisible. p-x had no mobile

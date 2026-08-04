@@ -518,7 +518,12 @@ function initPredictor(mount, A) {
         const i = r * 5 + c;
         let cell;
         if (i === FREE) {
-          cell = el('div', 'p-cell free checked', '🍩<br><span class="p-cellname">FREE</span>');
+          // Donut only, no caption. The label used to read FREE, which sat in a grid of
+          // song titles directly above a real song called Free — so it scanned as someone
+          // having predicted that song rather than as the given square.
+          cell = el('div', 'p-cell free checked', '🍩');
+          cell.title = 'Donut square — always counts toward a line';
+          cell.setAttribute('aria-label', 'Donut square, always counts toward a line');
         } else if (grid[i]) {
           const isChecked = checked ? checked[i] : false;
           cell = el('div', 'p-cell filled' + (isChecked ? ' checked' : ''),
@@ -606,7 +611,7 @@ function initPredictor(mount, A) {
       controls.appendChild(safe);
 
       const clear = el('button', 'p-btn p-btn-alt', '🧹 Clear');
-      clear.title = 'Empty every unlocked square (FREE and locked squares are left alone)';
+      clear.title = 'Empty every unlocked square (the donut and locked squares are left alone)';
       clear.addEventListener('click', () => {
         for (let i = 0; i < 25; i++) {
           if (i === FREE || locks[i]) continue;
