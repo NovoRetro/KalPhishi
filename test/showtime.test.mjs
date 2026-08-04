@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
   parseShowPage, parseTourIndex, venueTimezone, zonedToUtc, resolveLock, lockStateFor,
-  FALLBACK_LOCAL_HOUR,
+  preferResolved, FALLBACK_LOCAL_HOUR,
 } from '../lib/showtime.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -130,7 +130,30 @@ test('resolveLock refuses rather than locking at the wrong hour', () => {
   assert.equal(r.source, 'unknown-timezone');
 });
 
-const TABLE = { '2026-09-04': { lockAt: '2026-09-05T01:30:00.000Z', source: 'phish.com', local: '19:30', timeZone: 'America/Denver' } };
+const RESOLVED = { lockAt: '2026-09-05T01:30:00.000Z', source: 'phish.com', local: '19:30', timeZone: 'America/Denver' };
+const FALLBACK = { lockAt: '2026-09-05T00:00:00.000Z', source: 'fallback', local: '18:00', timeZone: 'America/Denver' };
+
+test('a real showtime survives a failed refresh', () => {
+  // This runs on every `npm run fetch`. A transient 403 must not silently swap a 19:30
+  // downbeat for the 18:00 fallback and cost everyone 90 minutes of editing.
+  const kept = preferResolved(FALLBACK, RESOLVED);
+  assert.equal(kept.lockAt, RESOLVED.lockAt);
+  assert.equal(kept.source, 'phish.com (retained)', 'retention is visible, not silent');
+});
+
+test('a fresh showtime still overrides a stale one, so a moved show propagates', () => {
+  const moved = { ...RESOLVED, lockAt: '2026-09-05T02:00:00.000Z', local: '20:00' };
+  assert.equal(preferResolved(moved, RESOLVED).lockAt, moved.lockAt);
+  assert.equal(preferResolved(moved, RESOLVED).source, 'phish.com');
+});
+
+test('with nothing to retain, the fallback is used as-is', () => {
+  assert.deepEqual(preferResolved(FALLBACK, undefined), FALLBACK);
+  assert.deepEqual(preferResolved(FALLBACK, { lockAt: null, source: 'unknown-timezone' }), FALLBACK);
+  assert.deepEqual(preferResolved(FALLBACK, FALLBACK), FALLBACK, 'a prior fallback is not worth retaining');
+});
+
+const TABLE = { '2026-09-04': RESOLVED };
 
 test('the lock opens before the downbeat and closes on it', () => {
   const at = Date.parse(TABLE['2026-09-04'].lockAt);

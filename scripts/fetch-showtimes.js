@@ -41,7 +41,12 @@ async function get(url) {
 }
 
 (async () => {
-  const { parseShowPage, parseTourIndex, resolveLock } = await import('../lib/showtime.mjs');
+  const { parseShowPage, parseTourIndex, resolveLock, preferResolved } = await import('../lib/showtime.mjs');
+
+  // What we resolved last time. Runs on every `npm run fetch` now, so a bad afternoon at
+  // phish.com must not quietly replace a real showtime with the earlier fallback.
+  let prior = {};
+  try { prior = load('showtimes').shows || {}; } catch { /* first run */ }
 
   // Everything still ahead of us. Past shows are already locked by virtue of having
   // happened, and their setlists are the record — no point resolving them.
@@ -87,10 +92,10 @@ async function get(url) {
       console.warn(`  ${s.showdate}: no link on the tours index`);
     }
 
-    const lock = resolveLock({ showdate: s.showdate, ...venue, showtime });
+    const lock = preferResolved(resolveLock({ showdate: s.showdate, ...venue, showtime }), prior[s.showdate]);
     shows[s.showdate] = {
       showdate: s.showdate, venue: s.venue, city: s.city, state: s.state, country: s.country,
-      ...lock,
+      lockAt: lock.lockAt, source: lock.source, timeZone: lock.timeZone, local: lock.local,
     };
     const when = lock.lockAt
       ? `${lock.local} ${lock.timeZone} -> ${lock.lockAt} (${lock.source})`
