@@ -74,13 +74,39 @@ To grade the *model's* prediction (a local report, separate from user scoring):
 npm run score          # defaults to the next show in data/analysis.json
 ```
 
+## Moderating an account
+
+Registration is open and unverified, so an offensive name can turn up at any time. The sanitiser in `lib/identity.mjs` blocks lookalike and invisible-character names, but a plainly offensive well-formed one passes it. Both endpoints use the same admin token as scoring.
+
+List the accounts — no email or internal id is returned, since moderation works from the public handle:
+
+```bash
+curl https://<your-worker-url>/api/admin/users -H "x-admin-token: $ADMIN_TOKEN"
+```
+
+Rename one. The display name goes through the same sanitiser as self-service editing, and the handle is validated and checked for collisions. Change both: renaming the display name alone leaves an offensive handle in the profile URL.
+
+```bash
+curl -X PATCH https://<your-worker-url>/api/admin/users/<handle> -H "x-admin-token: $ADMIN_TOKEN" -H 'content-type: application/json' -d '{"displayName":"Renamed Phan","handle":"renamed-phan"}'
+```
+
+Ban one. Sessions are revoked immediately, it can no longer sign in, and it disappears from the leaderboard, friend lists, public profiles and per-show prediction listings.
+
+```bash
+curl -X PATCH https://<your-worker-url>/api/admin/users/<handle> -H "x-admin-token: $ADMIN_TOKEN" -H 'content-type: application/json' -d '{"banned":true,"reason":"offensive display name"}'
+```
+
+Send `{"banned":false}` to lift it. **A ban deletes nothing** — predictions are preserved so graded shows and the model's track record stay consistent, and they reappear if the ban is lifted.
+
 ## How predictions are scored
 
-**Setlist** — 70 points pro-rata for songs that appear, plus 6 each for five stressors: show opener, Set 1 closer, Set 2 opener, Set 2 closer, and any encore hit. Max 100.
+**Setlist** — 1 point per song called correctly anywhere in the show, capped at 10, plus 2 more if it lands at the exact slot it was predicted in. Openers are worth 5 each, the Set 2 closer 5, the Set 1 closer 4, and each song correctly placed in the encore 2. Lists longer than 10 / 10 / 5 are allowed — Phish plays long sets — but past that a wrong guess costs a point, which is what stops padding a list from beating predicting the show.
 
 **Bingo** — 80 points pro-rata across the 24 fillable squares, plus 20 for completing a line.
 
-A user's accuracy rating is the mean score across their graded predictions.
+The two are different scales and are never averaged into one figure: a setlist result is an absolute point total, a bingo result is out of 100.
+
+Predictions lock at the show's published start time (see `scripts/fetch-showtimes.js`) and cannot be edited afterwards. Checking squares off live during the show still works — that is not part of the prediction.
 
 ## Notes
 

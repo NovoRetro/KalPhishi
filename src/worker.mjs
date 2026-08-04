@@ -1,7 +1,10 @@
 import {
   slugifyName, FREE, bingoLine, scoreSetlistPrediction, scoreBingoPrediction,
 } from '../lib/scoring.mjs';
-import { normalizeEmail, isValidEmail, handleCandidates } from '../lib/identity.mjs';
+import {
+  normalizeEmail, isValidEmail, handleCandidates, slugifyHandle, isValidHandle,
+  sanitizeLine, sanitizeBlock, sanitizeAvatar, NAME_MAX, BIO_MAX,
+} from '../lib/identity.mjs';
 import { fetchActualSetlist } from '../lib/phishnet-core.mjs';
 import {
   MIN_PASSWORD_LENGTH, hashPassword, verifyPassword, newSession, currentUser,
@@ -10,7 +13,7 @@ import {
 import {
   rowToPrediction, userStats, publicUser, ownUser, publicName,
   getUser, getUserByEmail, getUserByHandle, anyUserLacksEmail, attendedShows,
-  friendsOf, areFriends,
+  friendsOf, areFriends, STAT_SQL, NOT_BANNED, isBanned,
 } from './db.mjs';
 import { venueSlice } from './phishnet.mjs';
 import { lockStateFor } from '../lib/showtime.mjs';
@@ -51,6 +54,11 @@ async function scoreShow(env, showdate, actual, force = false) {
 
 // First free handle for a display name. The candidate sequence is pure
 // (lib/identity.mjs); only the availability check touches the database.
+// Shared by scoring and moderation. Constant-time compare, and a missing ADMIN_TOKEN
+// denies rather than opening the routes up.
+const isAdmin = (request, env) =>
+  !!env.ADMIN_TOKEN && timingSafeEqualStr(request.headers.get('x-admin-token') || '', env.ADMIN_TOKEN);
+
 async function assignHandle(env, displayName) {
   for (const cand of handleCandidates(displayName)) {
     const hit = await env.DB.prepare('SELECT 1 AS x FROM users WHERE LOWER(handle) = LOWER(?1)')
@@ -78,8 +86,9 @@ async function api(request, env, ctx, { p, m, q, url }) {
       const existing = await getUser(env, slugifyName(claimName));
       if (!existing) return err(404, 'no account with that name');
       if (existing.passhash) return err(409, 'that account already has a password — sign in instead');
-      const profile = { ...JSON.parse(existing.profile || '{}'), displayName: displayName || existing.name };
-      const handle = existing.handle || await assignHandle(env, displayName || existing.name);
+      const claimed = sanitizeLine(displayName) || sanitizeLine(existing.name);
+      const profile = { ...JSON.parse(existing.profile || '{}'), displayName: claimed };
+      const handle = existing.handle || await assignHandle(env, claimed);
       const { token, stmt: sessionStmt } = await newSession(env, existing.id);
       await env.DB.batch([
         env.DB.prepare('UPDATE users SET passhash = ?1, email = ?2, handle = ?3, profile = ?4 WHERE id = ?5')
@@ -92,13 +101,17 @@ async function api(request, env, ctx, { p, m, q, url }) {
 
     // Internal id: random, never derived from anything a user typed.
     const id = 'u-' + crypto.randomUUID();
-    const handle = await assignHandle(env, displayName || '');
+    // Sanitised before the handle is derived from it, so the slug cannot be built out of
+    // invisible or lookalike characters. This path previously bound the raw string: it had
+    // no length cap at all, where the profile update has always truncated at 80.
+    const cleanName = sanitizeLine(displayName);
+    const handle = await assignHandle(env, cleanName);
     const { token, stmt: sessionStmt } = await newSession(env, id);
     await env.DB.batch([
       env.DB.prepare(
         'INSERT INTO users (id, name, created, passhash, profile, email, handle) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)'
-      ).bind(id, (displayName || '').trim() || email, new Date().toISOString(), passhash,
-        JSON.stringify({ displayName: (displayName || '').trim() || handle }), email, handle),
+      ).bind(id, cleanName || email, new Date().toISOString(), passhash,
+        JSON.stringify({ displayName: cleanName || handle }), email, handle),
       sessionStmt,
     ]);
     return json({ user: await ownUser(env, await getUser(env, id)) },
@@ -122,6 +135,10 @@ async function api(request, env, ctx, { p, m, q, url }) {
     if (!user || !await verifyPassword(password || '', user.passhash)) {
       return err(401, 'wrong email or password');
     }
+    // Checked after the password so a wrong guess cannot be used to discover which
+    // accounts are banned. Deliberately its own message: the credentials were correct,
+    // and "wrong password" would send someone into a reset loop that cannot help them.
+    if (isBanned(user)) return err(403, 'this account has been suspended');
     const { token, stmt } = await newSession(env, user.id);
     await stmt.run();
     return json({ user: await ownUser(env, user) }, 200, { 'set-cookie': sessionCookie(token) });
@@ -178,8 +195,13 @@ async function api(request, env, ctx, { p, m, q, url }) {
     if (!user) return err(401, 'not signed in');
     const b = await body(request);
     const profile = JSON.parse(user.profile || '{}');
+    // Truncating was never enough on its own — it bounded the length of a name that could
+    // still render blank, reversed, or as a lookalike of somebody else's.
     for (const f of PROFILE_FIELDS) {
-      if (f in b) profile[f] = String(b[f] || '').slice(0, f === 'bio' ? 500 : 80);
+      if (!(f in b)) continue;
+      if (f === 'avatar') profile[f] = sanitizeAvatar(b[f]);
+      else if (f === 'bio') profile[f] = sanitizeBlock(b[f], BIO_MAX);
+      else profile[f] = sanitizeLine(b[f], NAME_MAX);
     }
     await env.DB.prepare('UPDATE users SET profile = ?1 WHERE id = ?2').bind(JSON.stringify(profile), user.id).run();
     return json({ user: await ownUser(env, { ...user, profile: JSON.stringify(profile) }) });
@@ -187,7 +209,9 @@ async function api(request, env, ctx, { p, m, q, url }) {
 
   if (p.startsWith('/api/profile/') && m === 'GET') {
     const u = await getUserByHandle(env, p.split('/').pop());
-    if (!u) return err(404, 'no such user');
+    // Same 404 as a handle that never existed — a distinct "banned" response would just
+    // confirm the account to anyone probing for it.
+    if (!u || isBanned(u)) return err(404, 'no such user');
     const { results } = await env.DB.prepare(
       `SELECT showdate, type, score, bingo FROM predictions
         WHERE user_id = ?1 AND result IS NOT NULL ORDER BY showdate DESC LIMIT 5`
@@ -214,7 +238,7 @@ async function api(request, env, ctx, { p, m, q, url }) {
     const { results } = await env.DB.prepare(
       `SELECT p.*, u.handle AS user_handle
          FROM predictions p JOIN users u ON u.id = p.user_id
-        WHERE ${where.join(' AND ')}`
+        WHERE ${where.join(' AND ')} AND u.${NOT_BANNED}`
     ).bind(...binds).all();
     return json(results.map(r => ({ ...rowToPrediction(r), userHandle: r.user_handle })));
   }
@@ -525,10 +549,85 @@ async function api(request, env, ctx, { p, m, q, url }) {
     return json({ ok: true, bingo: !!line, line });
   }
 
-  if (p.startsWith('/api/score/') && m === 'POST') {
-    if (!env.ADMIN_TOKEN || !timingSafeEqualStr(request.headers.get('x-admin-token') || '', env.ADMIN_TOKEN)) {
-      return err(403, 'forbidden');
+  // ---- moderation ----
+  // Registration is open and unverified. lib/identity.mjs stops lookalike and
+  // invisible-character names, but a plainly offensive well-formed one passes it, and the
+  // only remedy used to be editing D1 by hand. Gated on the same ADMIN_TOKEN header as
+  // scoring rather than on a user role: there is no admin account, and inventing one would
+  // be a bigger surface than the problem.
+  if (p === '/api/admin/users' && m === 'GET') {
+    if (!isAdmin(request, env)) return err(403, 'forbidden');
+    const { results } = await env.DB.prepare(
+      // No email and no id. Moderation works from the handle, which is public anyway, so
+      // this does not need to weaken the rule that an address only ever goes to its owner.
+      `SELECT name, handle, created, profile, banned_at, banned_reason,
+              (SELECT COUNT(*) FROM predictions p WHERE p.user_id = users.id) AS predictions
+         FROM users ORDER BY created DESC`
+    ).all();
+    return json(results.map(r => ({
+      handle: r.handle,
+      name: publicName(r),
+      created: r.created,
+      predictions: r.predictions,
+      banned: r.banned_at ? { at: r.banned_at, reason: r.banned_reason || null } : null,
+    })));
+  }
+
+  if (p.startsWith('/api/admin/users/') && m === 'PATCH') {
+    if (!isAdmin(request, env)) return err(403, 'forbidden');
+    const target = await getUserByHandle(env, decodeURIComponent(p.split('/').pop()));
+    if (!target) return err(404, 'no such user');
+    const b = await body(request);
+    const sets = [], binds = [];
+    const set = (sql, v) => { binds.push(v); sets.push(`${sql} = ?${binds.length}`); };
+
+    // Renaming goes through the same sanitiser as self-service editing. An operator
+    // cleaning up an offensive name has no reason to be exempt from normalisation, and
+    // being exempt is how a lookalike gets introduced by the person removing one.
+    let profile = JSON.parse(target.profile || '{}');
+    if ('displayName' in b) {
+      const clean = sanitizeLine(b.displayName);
+      if (!clean) return err(400, 'displayName must contain something renderable');
+      profile = { ...profile, displayName: clean };
+      set('name', clean);
+      set('profile', JSON.stringify(profile));
     }
+
+    // The handle is the public profile URL, so an offensive one needs replacing too —
+    // renaming the display name alone would leave it in place.
+    if ('handle' in b) {
+      const h = slugifyHandle(b.handle);
+      if (!isValidHandle(h)) return err(400, 'handle must be 2-24 chars of a-z, 0-9 and dashes, and not reserved');
+      const clash = await env.DB.prepare(
+        'SELECT 1 AS x FROM users WHERE LOWER(handle) = LOWER(?1) AND id <> ?2'
+      ).bind(h, target.id).first();
+      if (clash) return err(409, 'that handle is taken');
+      set('handle', h);
+    }
+
+    if ('banned' in b) {
+      set('banned_at', b.banned ? new Date().toISOString() : null);
+      set('banned_reason', b.banned ? sanitizeLine(b.reason, 200) || null : null);
+    }
+
+    if (!sets.length) return err(400, 'nothing to change: send displayName, handle and/or banned');
+    binds.push(target.id);
+    const stmts = [env.DB.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?${binds.length}`).bind(...binds)];
+    // Revoking sessions is belt and braces — currentUser already refuses a banned account
+    // — but it means the row is gone rather than merely inert.
+    if (b.banned === true) stmts.push(env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(target.id));
+    await env.DB.batch(stmts);
+
+    const updated = await getUser(env, target.id);
+    return json({
+      handle: updated.handle,
+      name: publicName(updated),
+      banned: updated.banned_at ? { at: updated.banned_at, reason: updated.banned_reason || null } : null,
+    });
+  }
+
+  if (p.startsWith('/api/score/') && m === 'POST') {
+    if (!isAdmin(request, env)) return err(403, 'forbidden');
     const showdate = p.split('/').pop();
     const actual = await fetchActualSetlist(showdate, env.PHISHNET_API_KEY);
     if (!actual.length) return err(404, `no setlist posted for ${showdate}`);
@@ -579,20 +678,28 @@ async function api(request, env, ctx, { p, m, q, url }) {
       `SELECT u.handle, u.name, u.created, u.profile,
               COUNT(p.id)          AS predictions,
               COUNT(p.result)      AS scored,
-              ROUND(AVG(p.score), 1) AS accuracy,
               SUM(CASE WHEN p.type = 'bingo' AND p.bingo = 1 THEN 1 ELSE 0 END) AS bingos,
+              ROUND(AVG(CASE WHEN ${STAT_SQL.CURRENT_SETLIST} THEN p.score END), 1) AS setlistPoints,
+              SUM(CASE WHEN ${STAT_SQL.CURRENT_SETLIST} THEN 1 ELSE 0 END)          AS setlistScored,
+              ROUND(AVG(CASE WHEN ${STAT_SQL.SCORED_BINGO} THEN p.score END), 1)    AS bingoScore,
+              SUM(CASE WHEN ${STAT_SQL.SCORED_BINGO} THEN 1 ELSE 0 END)             AS bingoScored,
               (SELECT COUNT(*) FROM attendance a WHERE a.user_id = u.id) AS showsAttended
          FROM users u JOIN predictions p ON p.user_id = u.id
-        WHERE 1=1 ${restrictSql}
+        WHERE u.${NOT_BANNED} ${restrictSql}
         GROUP BY u.id
        HAVING scored > 0
-        ORDER BY accuracy DESC`
+        -- Setlist points lead: it is the main game, and the two scales cannot be combined
+        -- into one ranking. SQLite sorts NULL below everything, so players with no
+        -- points-era setlist yet fall to the bottom rather than to the top.
+        ORDER BY setlistPoints DESC, bingos DESC, bingoScore DESC, scored DESC`
     );
     const { results } = await (binds.length ? stmt.bind(...binds) : stmt).all();
     // stats appear both nested and spread at top level — the frontend reads the top-level copies
     return json(results.map(r => {
       const stats = {
-        predictions: r.predictions, scored: r.scored, accuracy: r.accuracy,
+        predictions: r.predictions, scored: r.scored,
+        setlistPoints: r.setlistPoints, setlistScored: r.setlistScored || 0,
+        bingoScore: r.bingoScore, bingoScored: r.bingoScored || 0,
         bingos: r.bingos || 0, showsAttended: r.showsAttended || 0,
       };
       return { handle: r.handle, name: publicName(r), created: r.created, profile: JSON.parse(r.profile || '{}'), stats, ...stats };

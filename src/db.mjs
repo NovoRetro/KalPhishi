@@ -31,12 +31,24 @@ export function rowToPrediction(r) {
 }
 
 const EMPTY_STATS = {
-  predictions: 0, scored: 0, accuracy: null, bingos: 0,
-  showsAttended: 0, accuracyAtShows: null, accuracyRemote: null,
+  predictions: 0, scored: 0, bingos: 0, showsAttended: 0,
+  setlistPoints: null, setlistScored: 0, bingoScore: null, bingoScored: 0,
+  pointsAtShows: null, pointsRemote: null,
 };
 
+// Setlist and bingo scores no longer share a scale — setlist is absolute points (roughly
+// 5-25), bingo is still out of 100 — so they can never be averaged into one figure again.
+// Anything that did would rank whoever happened to play more bingo.
+//
+// Setlist predictions graded BEFORE the points system are excluded from the points
+// average: their scores are on the old 0-100 scale and have no `breakdown` key, which is
+// how they are told apart. They still count as scored and still render in history — only
+// the aggregate skips them, so nobody's record is rewritten to make the maths tidy.
+const CURRENT_SETLIST = `p.type = 'setlist' AND json_extract(p.result, '$.breakdown') IS NOT NULL`;
+const SCORED_BINGO = `p.type = 'bingo' AND p.result IS NOT NULL`;
+
 export async function userStats(env, userId) {
-  // Accuracy split by whether the user was physically at the show. The LEFT JOIN is on
+  // Points split by whether the user was physically at the show. The LEFT JOIN is on
   // (user_id, showdate) so a prediction counts as "at the show" only when that same user
   // marked that same date — AVG ignores NULLs, so each side averages only its own rows.
   // Either side stays null until there's a scored prediction of that kind, which the UI
@@ -44,10 +56,13 @@ export async function userStats(env, userId) {
   const row = await env.DB.prepare(
     `SELECT COUNT(*)        AS predictions,
             COUNT(p.result) AS scored,
-            ROUND(AVG(p.score), 1) AS accuracy,
             SUM(CASE WHEN p.type = 'bingo' AND p.bingo = 1 THEN 1 ELSE 0 END) AS bingos,
-            ROUND(AVG(CASE WHEN a.user_id IS NOT NULL THEN p.score END), 1) AS accuracyAtShows,
-            ROUND(AVG(CASE WHEN a.user_id IS     NULL THEN p.score END), 1) AS accuracyRemote
+            ROUND(AVG(CASE WHEN ${CURRENT_SETLIST} THEN p.score END), 1) AS setlistPoints,
+            SUM(CASE WHEN ${CURRENT_SETLIST} THEN 1 ELSE 0 END)             AS setlistScored,
+            ROUND(AVG(CASE WHEN ${SCORED_BINGO} THEN p.score END), 1)       AS bingoScore,
+            SUM(CASE WHEN ${SCORED_BINGO} THEN 1 ELSE 0 END)                AS bingoScored,
+            ROUND(AVG(CASE WHEN a.user_id IS NOT NULL AND ${CURRENT_SETLIST} THEN p.score END), 1) AS pointsAtShows,
+            ROUND(AVG(CASE WHEN a.user_id IS     NULL AND ${CURRENT_SETLIST} THEN p.score END), 1) AS pointsRemote
        FROM predictions p
        LEFT JOIN attendance a
          ON a.user_id = p.user_id AND a.showdate = p.showdate
@@ -64,9 +79,14 @@ export async function userStats(env, userId) {
   return {
     ...row,
     bingos: row.bingos || 0,
+    setlistScored: row.setlistScored || 0,
+    bingoScored: row.bingoScored || 0,
     showsAttended: att?.showsAttended || 0,
   };
 }
+
+// The two scales, exported so the leaderboard query stays in step with userStats.
+export const STAT_SQL = { CURRENT_SETLIST, SCORED_BINGO };
 
 export async function attendedShows(env, userId) {
   const { results } = await env.DB.prepare(
@@ -81,7 +101,7 @@ export async function friendsOf(env, userId) {
   const { results } = await env.DB.prepare(
     `SELECT u.name, u.handle, u.profile, f.created
        FROM friendships f JOIN users u ON u.id = f.friend_id
-      WHERE f.user_id = ?1
+      WHERE f.user_id = ?1 AND u.${NOT_BANNED}
       ORDER BY f.created DESC`
   ).bind(userId).all();
   return results.map(r => ({
@@ -120,7 +140,13 @@ export async function ownUser(env, u) {
   };
 }
 
-const USER_COLS = 'id, name, created, passhash, profile, email, handle';
+const USER_COLS = 'id, name, created, passhash, profile, email, handle, banned_at, banned_reason';
+
+// A ban hides an account from every public surface but deletes nothing: its predictions
+// stay, so graded shows and the model's own track record remain consistent. Callers that
+// serve public data filter on this; currentUser in auth.mjs enforces the same for sessions.
+export const NOT_BANNED = 'banned_at IS NULL';
+export const isBanned = u => !!(u && u.banned_at);
 
 export const getUser = (env, id) =>
   env.DB.prepare(`SELECT ${USER_COLS} FROM users WHERE id = ?1`).bind(id).first();

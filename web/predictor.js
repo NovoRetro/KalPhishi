@@ -314,12 +314,22 @@ function initPredictor(mount, A) {
   const displayName = u => (u.profile && u.profile.displayName) || u.name;
   const avatarOf = u => (u.profile && u.profile.avatar) || '🎣';
 
+  // Setlist points and bingo scores are different scales and are never combined. One
+  // helper so every place that shows a track record says the same thing the same way.
+  function statSummary(s) {
+    const out = [];
+    if (s.setlistPoints != null) out.push(`${s.setlistPoints} pts/setlist over ${s.setlistScored ?? 0}`);
+    if (s.bingoScore != null) out.push(`bingo ${s.bingoScore} over ${s.bingoScored ?? 0}`);
+    if (s.bingos) out.push(`${s.bingos} BINGO${s.bingos > 1 ? 's' : ''} 🍩`);
+    return out.join(' · ');
+  }
+
   function renderTopBar() {
     const bar = el('div', 'p-topbar');
     if (user) {
       const s = user.stats || {};
-      const statText = ` · ${s.predictions ?? 0} predictions, ${s.scored ?? 0} scored` +
-        (s.accuracy != null ? `, accuracy ${s.accuracy}` : '') + (s.bingos ? `, ${s.bingos} BINGO${s.bingos > 1 ? 's' : ''}` : '');
+      const summary = statSummary(s);
+      const statText = ` · ${s.predictions ?? 0} predictions, ${s.scored ?? 0} scored${summary ? ' · ' + summary : ''}`;
       bar.appendChild(el('span', null, `<span class="p-avatar">${esc(avatarOf(user))}</span> <b>${esc(displayName(user))}</b><span class="hint">${esc(statText)}</span>`));
     } else {
       bar.appendChild(el('span', 'hint', 'Build freely — you’ll be asked to sign in when you save.'));
@@ -364,7 +374,7 @@ function initPredictor(mount, A) {
       try {
         await api('/api/attendance', 'POST', { showdate, attended: next });
         if (next) attendedDates.add(showdate); else attendedDates.delete(showdate);
-        // Refresh stats so the accuracy split and attended count update immediately.
+        // Refresh stats so the points split and attended count update immediately.
         try { user = (await api('/api/me')).user; } catch { /* stats are cosmetic here */ }
         render();
       } catch (e) {
@@ -747,7 +757,10 @@ function initPredictor(mount, A) {
       const lab = el('label', 'p-field', `${label}<br>`);
       const inp = el('input', 'ta-input');
       inp.value = val;
-      if (key === 'avatar') inp.maxLength = 4;
+      // 4 was too tight to type a compound emoji at all — a rainbow flag is six UTF-16
+      // units — so the server would accept one the field could not produce. The server
+      // does the real validation now (sanitizeAvatar), so this is only a sanity bound.
+      if (key === 'avatar') inp.maxLength = 24;
       inputs[key] = inp;
       lab.appendChild(inp);
       box.appendChild(lab);
@@ -774,8 +787,7 @@ function initPredictor(mount, A) {
     box.appendChild(el('div', 'setlabel', 'Track record'));
     box.appendChild(el('div', 'hint',
       `Member since ${(user.created || '').slice(0, 10)} · ${s.predictions ?? 0} predictions · ${s.scored ?? 0} scored · ` +
-      (s.accuracy != null ? `accuracy rating ${s.accuracy}` : 'no accuracy rating yet') +
-      (s.bingos ? ` · ${s.bingos} BINGO${s.bingos > 1 ? 's' : ''} 🍩` : '')));
+      (statSummary(s) || 'nothing graded yet')));
   }
 
   async function showPublicProfile(container, userId) {
@@ -791,8 +803,7 @@ function initPredictor(mount, A) {
       if (p.bio) card.appendChild(el('div', null, esc(p.bio)));
       card.appendChild(el('div', 'hint',
         `${s.predictions} predictions · ${s.scored} scored · ` +
-        (s.accuracy != null ? `accuracy ${s.accuracy}` : 'unrated') +
-        (s.bingos ? ` · ${s.bingos} 🍩` : '')));
+        (statSummary(s) || 'unrated')));
       if (j.recent.length) {
         card.appendChild(el('div', 'setlabel', 'Recent results'));
         for (const r of j.recent) {
@@ -821,8 +832,8 @@ function initPredictor(mount, A) {
     if (st.showsAttended) {
       // Only show the split once both sides exist — one number against nothing isn't a
       // comparison, and reading it as one would be misleading.
-      const split = (st.accuracyAtShows != null && st.accuracyRemote != null)
-        ? ` · accuracy <b>${st.accuracyAtShows}</b> at shows vs <b>${st.accuracyRemote}</b> remote`
+      const split = (st.pointsAtShows != null && st.pointsRemote != null)
+        ? ` · <b>${st.pointsAtShows}</b> pts at shows vs <b>${st.pointsRemote}</b> remote`
         : '';
       wrap.appendChild(el('div', 'p-attsummary',
         `🎟 <b>${st.showsAttended}</b> show${st.showsAttended === 1 ? '' : 's'} attended${split}`));
@@ -839,7 +850,11 @@ function initPredictor(mount, A) {
       const b = r?.breakdown;
       const parts = [];
       if (b) {
-        parts.push(`${b.callsCounted} call${b.callsCounted === 1 ? '' : 's'}${b.callsCapped ? ` (capped from ${b.calls})` : ''} +${b.callPoints}`);
+        // Read defensively: a stored result predates any later change to the breakdown
+        // shape, and a missing field here used to render the literal word "undefined"
+        // into somebody's track record.
+        const counted = b.callsCounted ?? b.calls ?? 0;
+        parts.push(`${counted} call${counted === 1 ? '' : 's'}${b.callsCapped ? ` (capped from ${b.calls})` : ''} +${b.callPoints ?? 0}`);
         if (b.placementPoints) parts.push(`${b.placements.length} placed +${b.placementPoints}`);
         if (b.encorePoints) parts.push(`${b.encoreHits.length} in the encore +${b.encorePoints}`);
         if (b.stressorPoints) parts.push(`${Object.entries(stressors).filter(([, v]) => v).map(([k]) => k).join(', ')} +${b.stressorPoints}`);
@@ -902,7 +917,8 @@ function initPredictor(mount, A) {
       board.forEach((u, i) => {
         const att = u.showsAttended ? ` · 🎟 ${u.showsAttended}` : '';
         const row = el('div', 'p-histrow p-boardrow',
-          `#${i + 1} <span class="p-avatar">${esc(avatarOf(u))}</span> <b>${esc(displayName(u))}</b> — accuracy ${u.accuracy} over ${u.scored} scored${u.bingos ? `, ${u.bingos} 🍩` : ''}${att}`);
+          `#${i + 1} <span class="p-avatar">${esc(avatarOf(u))}</span> <b>${esc(displayName(u))}</b> — `
+          + (statSummary(u) || `${u.scored} scored, none on the current scale`) + att);
         row.addEventListener('click', () => showPublicProfile(profilePanel, u.handle));
         boardHost.appendChild(row);
       });
