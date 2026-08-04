@@ -13,6 +13,10 @@ import {
   friendsOf, areFriends,
 } from './db.mjs';
 import { venueSlice } from './phishnet.mjs';
+import { lockStateFor } from '../lib/showtime.mjs';
+import { SHOWTIMES } from './showtimes.generated.mjs';
+
+const lockState = showdate => lockStateFor(SHOWTIMES, showdate);
 
 const json = (body, status = 200, headers = {}) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...headers } });
@@ -226,6 +230,11 @@ async function api(request, env, ctx, { p, m, q, url }) {
       const slugs = payload.grid.filter((c, i) => i !== FREE && c).map(c => c.slug);
       if (new Set(slugs).size !== slugs.length) return err(400, 'duplicate songs in grid');
     }
+    // Predictions lock at the published downbeat. This belongs here, not in the builder:
+    // a disabled button stops nobody from POSTing, and a prediction edited after the first
+    // song has been played is not a prediction.
+    const lock = lockState(showdate);
+    if (lock.locked) return err(423, 'locked — the show has started', { lockAt: lock.lockAt });
     // one prediction per user+show+type; the WHERE on the upsert branch enforces
     // "editable until scored" in a single statement
     const now = new Date().toISOString();

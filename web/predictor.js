@@ -38,6 +38,26 @@ function initPredictor(mount, A) {
     songs.sort((a, b) => b.plays - a.plays);
   });
   fetch('/data/songmeta.json').then(r => r.json()).then(d => { meta = d; });
+  // Predictions close at the published downbeat. This copy is only for showing the
+  // countdown and disabling the controls — the Worker enforces the same instant from a
+  // bundled copy, so a stale or edited client cannot save late.
+  let showtimes = {};
+  fetch('/data/showtimes.json').then(r => r.json()).then(d => { showtimes = d.shows || {}; render(); }).catch(() => {});
+  function lockInfo() {
+    const s = showtimes[showdate];
+    if (!s || !s.lockAt) return { known: false, locked: false };
+    const at = Date.parse(s.lockAt);
+    return { known: true, locked: Date.now() >= at, at, lockAt: s.lockAt, source: s.source, local: s.local, timeZone: s.timeZone };
+  }
+  // Short, human countdown — "2d 4h", "3h 12m", "8m". Never seconds: this ticks once a
+  // minute and a second-by-second clock would imply a precision the source does not have.
+  function untilText(ms) {
+    const m = Math.max(0, Math.round(ms / 60000));
+    if (m >= 1440) return `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`;
+    if (m >= 60) return `${Math.floor(m / 60)}h ${m % 60}m`;
+    return `${m}m`;
+  }
+  setInterval(() => { if (showtimes[showdate]) render(); }, 60000);
 
   // bustout tiers by show-gap since last played: 31-39 minor, 40-99 major, 100+ mega
   function bustTier(slug) {
@@ -149,10 +169,32 @@ function initPredictor(mount, A) {
     if (user && user.needsEmail) return renderLinkEmail();
     if (!user && (mode === 'history' || mode === 'profile')) mode = 'setlist';
     renderTopBar();
+    const builderStart = mount.childElementCount;
     if (mode === 'setlist') renderSetlistBuilder();
     else if (mode === 'bingo') renderBingo();
     else if (mode === 'profile') renderProfile();
     else renderHistory();
+
+    // Once the show starts, everything that edits or re-saves a prediction goes dead.
+    // Scoped to the builder rather than the whole panel so the top bar keeps working —
+    // people still switch shows and mark attendance after the fact. Bingo cells are divs
+    // and so survive this deliberately: tapping squares as songs are played is the point
+    // of live mode, and it writes to live_checked, never to the prediction itself.
+    if ((mode === 'setlist' || mode === 'bingo') && lockInfo().locked) {
+      const SEL = 'button, input, select, textarea';
+      for (let i = builderStart; i < mount.childElementCount; i++) {
+        const node = mount.children[i];
+        // The node ITSELF has to be considered, not just its descendants — the Save button
+        // is appended straight onto the panel, so a querySelectorAll from it finds nothing
+        // and it stayed live while everything around it went dead.
+        const controls = [...node.querySelectorAll(SEL)];
+        if (node.matches(SEL)) controls.push(node);
+        for (const c of controls) {
+          c.disabled = true;
+          c.title = 'Locked — the show has started';
+        }
+      }
+    }
   }
 
   // Pre-email accounts land here after signing in: everything else waits until an
@@ -299,6 +341,16 @@ function initPredictor(mount, A) {
     showRow.appendChild(dateInput);
     showRow.appendChild(el('span', null, ` (next show: ${esc(fmtDate(A.nextShow.date))} — ${esc(A.nextShow.venue)})`));
     bar.appendChild(showRow);
+
+    const L = lockInfo();
+    if (L.known) {
+      const clock = L.local ? `${L.local} local time` : 'the published show time';
+      bar.appendChild(L.locked
+        ? el('div', 'p-lock p-locked',
+          `🔒 <b>Locked.</b> Doors are shut — this show started at ${esc(clock)} and predictions can no longer be changed.`)
+        : el('div', 'p-lock',
+          `🔓 Locks in <b>${untilText(L.at - Date.now())}</b>, at ${esc(clock)}${L.source === 'fallback' ? ' <span class="hint">(estimated — no time published yet)</span>' : ''}.`));
+    }
 
     // Attendance toggle for whichever show is currently selected. Self-reported and
     // freely re-togglable, including for past dates — people forget until afterwards.

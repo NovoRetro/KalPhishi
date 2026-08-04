@@ -18,7 +18,8 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "deploy": "npm test && npm run build && wrangler deploy",
     "_comment_deploy_ci": "CI build: history.json is rebuilt from the committed archive, then public/ is assembled from committed artifacts. Skips build:songmeta, which needs the 14MB of gitignored raw setlists.",
-    "build:ci": "node scripts/build-history.js && node scripts/build-public.js"
+    "build:ci": "node scripts/build-history.js && node scripts/build-public.js",
+    "fetch:showtimes": "node scripts/fetch-showtimes.js"
   },
   "devDependencies": {
     "wrangler": "^4"

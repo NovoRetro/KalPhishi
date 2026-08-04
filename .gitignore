@@ -18,6 +18,7 @@ data/*.json
 !data/venues.json
 !data/songmeta.json
 !data/history.json
+!data/showtimes.json
 
 # user accounts, password hashes, sessions, predictions — never publish
 data/db.json
