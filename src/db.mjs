@@ -101,7 +101,7 @@ export async function friendsOf(env, userId) {
   const { results } = await env.DB.prepare(
     `SELECT u.name, u.handle, u.profile, f.created
        FROM friendships f JOIN users u ON u.id = f.friend_id
-      WHERE f.user_id = ?1
+      WHERE f.user_id = ?1 AND u.${NOT_BANNED}
       ORDER BY f.created DESC`
   ).bind(userId).all();
   return results.map(r => ({
@@ -140,7 +140,13 @@ export async function ownUser(env, u) {
   };
 }
 
-const USER_COLS = 'id, name, created, passhash, profile, email, handle';
+const USER_COLS = 'id, name, created, passhash, profile, email, handle, banned_at, banned_reason';
+
+// A ban hides an account from every public surface but deletes nothing: its predictions
+// stay, so graded shows and the model's own track record remain consistent. Callers that
+// serve public data filter on this; currentUser in auth.mjs enforces the same for sessions.
+export const NOT_BANNED = 'banned_at IS NULL';
+export const isBanned = u => !!(u && u.banned_at);
 
 export const getUser = (env, id) =>
   env.DB.prepare(`SELECT ${USER_COLS} FROM users WHERE id = ?1`).bind(id).first();
