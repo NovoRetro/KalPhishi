@@ -47,6 +47,10 @@ const N = +arg('--n', 17);          // prediction budget, matching the model's 8
 const WARMUP = +arg('--warmup', 40); // era shows required before we start grading
 const TRAIL = +arg('--trail', 30);   // baseline lookback window, in shows
 const WRITE_JSON = argv.includes('--json');
+const EXPERIMENTS = argv.includes('--experiments');
+// Score-unit weights for the day-repeat curve, tested side by side. The curve supplies
+// multiplicative evidence; k decides how loudly it speaks next to the existing terms.
+const K_VALUES = [3, 6, 10];
 
 // ---------------------------------------------------------------- metrics
 
@@ -88,6 +92,8 @@ function paired(armVals, refVals) {
 
 (async () => {
 const { prepareRows, buildModel } = await import('../lib/model.mjs');
+const { fitRepeatCurve, repeatAdjustment, isSuppressed, daysBetween, BUCKETS } =
+  await import('../lib/dayrepeat.mjs');
 
 const years = [2022, 2023, 2024, 2025, 2026];
 let rawRows = [];
@@ -134,6 +140,11 @@ const arms = {
   freq: [],         // baseline A: most-played in the trailing window
   freqNoRepeat: [], // baseline B: same, minus anything played in the last 3 days
 };
+if (EXPERIMENTS) {
+  arms.dayHard = [];                              // model + hard-drop suppressed buckets
+  for (const k of K_VALUES) arms[`dayCurve${k}`] = []; // model + curve, on top of show-gap
+  for (const k of K_VALUES) arms[`dayOnly${k}`] = [];  // curve INSTEAD of show-gap
+}
 const perShow = [];
 const venueCoverage = { cache: 0, 'in-window': 0 };
 let skipped = 0;
@@ -205,6 +216,40 @@ for (let i = 0; i < showDates.length; i++) {
     freq: grade(byFreq.slice(0, N), actual),
     freqNoRepeat: grade(byFreq.filter(s => !recentlyPlayed.has(s)).slice(0, N), actual),
   };
+
+  if (EXPERIMENTS) {
+    // The curve is refitted from history at every step, so it never sees the show it is
+    // being used to predict — the same discipline as the model itself.
+    const curve = fitRepeatCurve(priorDates, setOf, { warmup: 30, trail: TRAIL });
+
+    // Days since each candidate's most recent play, over all available history.
+    const lastPlay = new Map();
+    for (const d of priorDates) for (const s of setOf.get(d)) lastPlay.set(s, d);
+    const daysFor = slug => (lastPlay.has(slug) ? daysBetween(target, lastPlay.get(slug)) : Infinity);
+
+    const rerank = (list, k) => [...list]
+      .map(c => ({ slug: c.slug, s: c.score + repeatAdjustment(curve, daysFor(c.slug), k) }))
+      .sort((a, b) => b.s - a.s || a.slug.localeCompare(b.slug))
+      .slice(0, N).map(c => c.slug);
+
+    g.dayHard = grade(
+      M.scored.filter(c => !isSuppressed(curve, daysFor(c.slug))).slice(0, N).map(c => c.slug),
+      actual,
+    );
+    for (const k of K_VALUES) g[`dayCurve${k}`] = grade(rerank(M.scored, k), actual);
+
+    // Replacement arm: the show-gap penalty off, the day curve in its place.
+    const Moff = buildModel({
+      rows: history,
+      target: { date: target, venue: meta.venue, venueid: meta.venueid },
+      tourName: meta.tourname,
+      venueSongCounts,
+      scheduleRows,
+      recency: 'off',
+    });
+    for (const k of K_VALUES) g[`dayOnly${k}`] = grade(rerank(Moff.scored, k), actual);
+  }
+
   for (const k of Object.keys(arms)) arms[k].push(g[k]);
 
   // Slot accuracy for the model arm — the one thing the baselines structurally cannot do.
@@ -224,10 +269,7 @@ for (let i = 0; i < showDates.length; i++) {
   perShow.push({
     date: target, venue: meta.venue, tour: meta.tourname,
     actualSize: actual.size,
-    model: { p: g.model.precision, r: g.model.recall, hits: g.model.hits },
-    modelTopN: { p: g.modelTopN.precision, r: g.modelTopN.recall, hits: g.modelTopN.hits },
-    freq: { p: g.freq.precision, r: g.freq.recall, hits: g.freq.hits },
-    freqNoRepeat: { p: g.freqNoRepeat.precision, r: g.freqNoRepeat.recall, hits: g.freqNoRepeat.hits },
+    arms: Object.fromEntries(Object.keys(arms).map(k => [k, { p: g[k].precision, r: g[k].recall, hits: g[k].hits }])),
     slots: {
       opener: actualOpener ? M.prediction.set1[0]?.slug === actualOpener : null,
       s2opener: actualS2Opener ? M.prediction.set2[0]?.slug === actualS2Opener : null,
@@ -251,6 +293,13 @@ const LABELS = {
   freq: `baseline: top-${N} by trailing-${TRAIL} frequency`,
   freqNoRepeat: `baseline: same, minus played <=3d ago`,
 };
+if (EXPERIMENTS) {
+  LABELS.dayHard = 'EXP day-repeat: drop suppressed buckets';
+  for (const k of K_VALUES) LABELS[`dayCurve${k}`] = `EXP day-curve k=${k} (on top of show-gap)`;
+  for (const k of K_VALUES) LABELS[`dayOnly${k}`] = `EXP day-curve k=${k} (replacing show-gap)`;
+}
+const ARM_ORDER = ['model', 'modelTopN', 'freqNoRepeat', 'freq',
+  ...(EXPERIMENTS ? ['dayHard', ...K_VALUES.map(k => `dayCurve${k}`), ...K_VALUES.map(k => `dayOnly${k}`)] : [])];
 
 console.log(`\nWalk-forward backtest — ${perShow.length} shows graded` +
   (skipped ? ` (${skipped} skipped)` : '') +
@@ -260,7 +309,7 @@ console.log(`\nWalk-forward backtest — ${perShow.length} shows graded` +
 const W = Math.max(...Object.values(LABELS).map(s => s.length));
 console.log('ARM'.padEnd(W), 'PRECISION'.padStart(10), 'RECALL'.padStart(9), 'HITS/SHOW'.padStart(11));
 console.log('-'.repeat(W + 32));
-for (const k of ['model', 'modelTopN', 'freqNoRepeat', 'freq']) {
+for (const k of ARM_ORDER) {
   const a = arms[k];
   console.log(
     LABELS[k].padEnd(W),
@@ -270,9 +319,9 @@ for (const k of ['model', 'modelTopN', 'freqNoRepeat', 'freq']) {
   );
 }
 
-const ref = 'freqNoRepeat';
+const ref = EXPERIMENTS ? 'model' : 'freqNoRepeat';
 console.log(`\nPaired vs "${LABELS[ref]}" (recall):`);
-for (const k of ['model', 'modelTopN', 'freq']) {
+for (const k of ARM_ORDER.filter(a => a !== ref)) {
   const p = paired(arms[k].map(x => x.recall), arms[ref].map(x => x.recall));
   const verdict = Math.abs(p.z) < 2 ? 'not distinguishable from chance'
     : p.delta > 0 ? 'BETTER' : 'WORSE';
@@ -281,6 +330,20 @@ for (const k of ['model', 'modelTopN', 'freq']) {
     `  se ${(p.se * 100).toFixed(2)}pp  z ${p.z.toFixed(2)}` +
     `  wins ${pct(p.winRate)}  ties ${pct(p.ties)}   ${verdict}`
   );
+}
+
+if (EXPERIMENTS) {
+  // Fitted over the whole window purely for display — the arms above each used a curve
+  // refitted from history at their own step.
+  const full = fitRepeatCurve(showDates, setOf, { warmup: 30, trail: TRAIL });
+  console.log(`\nDay-repeat curve (whole window, base rate ${pct(full.base)} per candidate-show, n=${full.n}):`);
+  console.log('  DAYS SINCE LAST'.padEnd(20), 'OPPS'.padStart(7), 'RATE'.padStart(8), 'LIFT'.padStart(7));
+  BUCKETS.forEach(([lo, hi], i) => {
+    if (!full.opps[i]) return;
+    const label = hi === Infinity ? `${lo}+` : `${lo}-${hi}`;
+    console.log(`  ${label}`.padEnd(20), String(full.opps[i]).padStart(7),
+      pct(full.rate[i]).padStart(8), full.lift[i].toFixed(2).padStart(7));
+  });
 }
 
 const slotStat = key => {
@@ -299,16 +362,20 @@ console.log(`  mean unpredictable songs per show: ${mean(perShow.map(s => s.unre
 // Per-year breakdown catches a model that is only good on the era it was hand-tuned
 // against — the weights were chosen while looking at 2026, so 2026 doing well and the
 // earlier years doing badly would be overfitting, not skill.
-console.log('\nBy year (recall):');
+// With experiments on, the interesting question is whether the winning variant holds up
+// across eras — a gain concentrated in one year is a tuned constant, not a finding.
+const YEAR_REF = EXPERIMENTS ? `dayOnly${K_VALUES[1]}` : 'freqNoRepeat';
+console.log(`\nBy year (recall) — MODEL vs ${YEAR_REF}:`);
 const yrs = [...new Set(perShow.map(s => s.date.slice(0, 4)))].sort();
-console.log('  YEAR  SHOWS'.padEnd(16), 'MODEL'.padStart(8), 'BASELINE'.padStart(10), 'DELTA'.padStart(8));
+console.log('  YEAR  SHOWS'.padEnd(16), 'MODEL'.padStart(8), YEAR_REF.toUpperCase().padStart(12), 'GAIN'.padStart(8));
 for (const y of yrs) {
   const sub = perShow.filter(s => s.date.startsWith(y));
-  const m = mean(sub.map(s => s.model.r)), b = mean(sub.map(s => s.freqNoRepeat.r));
+  const m = mean(sub.map(s => s.arms.model.r)), b = mean(sub.map(s => s.arms[YEAR_REF].r));
   console.log(
     `  ${y}  ${String(sub.length).padStart(4)}`.padEnd(16),
-    pct(m).padStart(8), pct(b).padStart(10),
-    (((m - b) * 100 >= 0 ? '+' : '') + ((m - b) * 100).toFixed(1) + 'pp').padStart(8),
+    pct(m).padStart(8), pct(b).padStart(12),
+    // Signed so positive always means "the comparison arm beat the model".
+    (((b - m) * 100 >= 0 ? '+' : '') + ((b - m) * 100).toFixed(1) + 'pp').padStart(8),
   );
 }
 
