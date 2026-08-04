@@ -73,7 +73,11 @@
   .bars { display: flex; align-items: flex-end; gap: 6px; height: 120px; padding-top: 8px; }
   .bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; }
   .bar .fill { width: 100%; max-width: 42px; background: var(--series-1); border-radius: 4px 4px 0 0; min-height: 2px; }
-  .bar .x { font-size: 11px; color: var(--muted); }
+  /* Axis labels fill their whole slot and use tabular figures, so every tick occupies an
+     identical box and the digits line up in a column. Left to shrink-wrap, a label sat at
+     its own text width inside an equal-width bar — "Jul 7" measured 21.8px against 27.7px
+     for "Jul 22" — and the short ones read as inset next to their neighbours. */
+  .bar .x { font-size: 11px; color: var(--muted); width: 100%; text-align: center; font-variant-numeric: tabular-nums; }
   .bar .v { font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
   .legend-note { color: var(--muted); font-size: 12px; margin-top: 8px; }
   .score { color: var(--series-1); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -317,11 +321,35 @@ function fmtDate(iso) {
   if (!m) return String(iso ?? ''); // not a plain date — leave it untouched
   return `${MONTHS[+m[2] - 1]} ${+m[3]}, ${m[1]}`;
 }
-// Compact variant for axis labels and dense rows, where the full form will not fit.
+// Compact variant for dense rows, where the full form will not fit.
 function fmtDateShort(iso) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''));
   if (!m) return String(iso ?? '');
   return `${MONTHS[+m[2] - 1].slice(0, 3)} ${+m[3]}`;
+}
+// Chart ticks only: the zero-padded day, nothing else.
+//
+// Repeating the month on every tick cost most of the slot and could never line up — the
+// day alone varies in width ("Jul 7" measured 21.8px against 27.7px for "Jul 22"), and
+// padding the day only moved the problem to the month, since "Aug" is wider than "Jul"
+// in any proportional face. Two tabular digits are identical for every date there is, and
+// the month belongs to the axis as a whole rather than to each tick, so it is stated once
+// under the chart. The full date is on hover.
+function fmtAxisDay(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''));
+  if (!m) return String(iso ?? '');
+  return m[3];
+}
+// "Jul 7 – Aug 1, 2026" for a run that crosses a month, "Jul 7 – 31, 2026" for one inside
+// it. Carries the context the ticks no longer repeat.
+function fmtDateSpan(firstIso, lastIso) {
+  const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(firstIso ?? ''));
+  const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(lastIso ?? ''));
+  if (!a || !b) return '';
+  const mon = m => MONTHS[+m[2] - 1].slice(0, 3);
+  const head = `${mon(a)} ${+a[3]}`;
+  const tail = a[1] === b[1] && a[2] === b[2] ? `${+b[3]}` : `${mon(b)} ${+b[3]}`;
+  return `${head} – ${tail}, ${b[1]}`;
 }
 window.fmtDate = fmtDate; // predictor.js renders dates too
 
@@ -861,11 +889,17 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     bindTip(f, `${fmtDate(s.date)} — mean album year ${s.meanYear}`,
       `Top album: ${s.topAlbum || '—'} · ${s.attributed}/${s.total} songs on a studio album`);
     b.appendChild(f);
-    b.appendChild(el('div', 'x', fmtDateShort(s.date)));
+    b.appendChild(el('div', 'x', fmtAxisDay(s.date)));
     eraBars.appendChild(b);
   }
   era.appendChild(eraBars);
-  era.appendChild(el('div', 'legend-note', 'Bar = average release year of the show’s studio-album songs (baseline 1988). Hover for the show’s top album.'));
+  // The month lives here, not on every tick — see fmtAxisDay.
+  const eraSpan = A.albums.perShowEra.length
+    ? fmtDateSpan(A.albums.perShowEra[0].date, A.albums.perShowEra[A.albums.perShowEra.length - 1].date)
+    : '';
+  era.appendChild(el('div', 'legend-note',
+    `Bar = average release year of the show’s studio-album songs (baseline 1988).`
+    + `${eraSpan ? ` Ticks are show days, ${eraSpan}.` : ''} Hover for the show’s top album.`));
   h3.appendChild(era);
   app.appendChild(h3);
 

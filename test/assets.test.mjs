@@ -15,6 +15,20 @@ const html = read('web/index.html');
 const predictor = read('web/predictor.js');
 const buildPublic = read('scripts/build-public.js');
 
+test('chart ticks stay uniform width', () => {
+  // The era chart drew ticks with fmtDateShort, so "Jul 7" rendered 21.8px against 27.7px
+  // for "Jul 22" and the short ones read as inset. Zero-padding the day only moved the
+  // problem to the month, since "Aug" is wider than "Jul" in a proportional face. Ticks
+  // are now the bare day, which is always two tabular digits, and at the phone breakpoint
+  // the slot is 11.9px — a month-prefixed label would not fit at all.
+  assert.match(html, /el\('div', 'x', fmtAxisDay\(s\.date\)\)/,
+    'era chart ticks must use fmtAxisDay, not a month-bearing formatter');
+  const x = html.match(/\.bar \.x \{[^}]*\}/);
+  assert.ok(x, '.bar .x rule not found');
+  assert.match(x[0], /font-variant-numeric:\s*tabular-nums/, 'digits must not shift width between ticks');
+  assert.match(x[0], /width:\s*100%/, 'each tick must fill its slot so the boxes align');
+});
+
 test('predictor.js mirrors the scoring constants exactly', async () => {
   // The browser cannot import lib/scoring.mjs, so web/predictor.js keeps its own copy to
   // render the rules and the soft-cap counter. If the two drift, the app tells players one
