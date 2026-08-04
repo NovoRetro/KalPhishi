@@ -899,6 +899,58 @@ function initPredictor(mount, A) {
     }
   }
 
+  // A graded prediction, drawn as the setlist it was: same three columns, same order,
+  // each pick coloured by how it did and carrying the points it earned. Reading a result
+  // against the thing you actually built beats reading a tally of totals.
+  function scoredSetlist(b) {
+    const box = el('div', 'p-scored');
+    const grid = el('div', 'p-scoredgrid');
+    const sign = n => (n > 0 ? `+${n}` : String(n));
+    const cols = [['set1', 'Set 1'], ['set2', 'Set 2'], ['encore', 'Encore']]
+      .filter(([k]) => (b.rows[k] || []).length);
+
+    for (const [key, label] of cols) {
+      const col = el('div', 'p-scoredcol');
+      col.appendChild(el('div', 'setlabel', label));
+      for (const row of b.rows[key]) {
+        const line = el('div', `p-pick p-${row.status}`);
+        // A miss is struck through and followed by whatever actually held that slot, so
+        // the row says both what was wrong and what the answer was.
+        const missed = row.status === 'miss' && row.actual
+          ? `<span class="p-actual">actually ${esc(row.actual)}</span>` : '';
+        const bonus = row.bonuses && row.bonuses.length
+          ? `<span class="p-bonus">${esc(row.bonuses.join(', '))}</span>` : '';
+        line.innerHTML =
+          `<span class="p-pickname">${esc(row.name)}${bonus}${missed}</span>`
+          + `<span class="p-pickpts">${row.points ? sign(row.points) : '0'}</span>`;
+        col.appendChild(line);
+      }
+      col.appendChild(el('div', 'p-picktotal',
+        `<span>${esc(label)} total</span><span>${sign(b.setTotals[key] ?? 0)}</span>`));
+      grid.appendChild(col);
+    }
+    box.appendChild(grid);
+
+    // Summed from the same setTotals the columns print, so the grand total cannot drift
+    // from the parts above it.
+    const grand = cols.reduce((s, [k]) => s + (b.setTotals[k] ?? 0), 0);
+    box.appendChild(el('div', 'p-grandtotal',
+      `<span>Show total</span><span>${sign(grand)}</span>`));
+
+    const legend = el('div', 'p-scoredfoot');
+    legend.innerHTML =
+      '<span class="p-key"><i class="p-placed"></i>right song, right slot</span>'
+      + '<span class="p-key"><i class="p-called"></i>right song, wrong slot</span>'
+      + '<span class="p-key"><i class="p-miss"></i>not played</span>';
+    box.appendChild(legend);
+
+    if (b.unpredicted && b.unpredicted.length) {
+      box.appendChild(el('div', 'p-songmeta',
+        `Played but not on your card: ${b.unpredicted.map(esc).join(', ')}`));
+    }
+    return box;
+  }
+
   // ---------- history ----------
   async function renderHistory() {
     const wrap = el('div');
@@ -950,6 +1002,9 @@ function initPredictor(mount, A) {
       const wasThere = attendedDates.has(p.showdate)
         ? '<span class="p-there" title="You marked that you were at this show">🎟 there</span>' : '';
       wrap.appendChild(el('div', 'p-histrow', `<b>${esc(fmtDate(p.showdate))}</b>${wasThere} · ${p.type} · ${line}`));
+      // Redraw the setlist the way it was built, scored pick by pick. Only for results
+      // carrying rows — anything graded before this shipped keeps the summary line alone.
+      if (p.type === 'setlist' && b?.rows) wrap.appendChild(scoredSetlist(b));
     }
     const profilePanel = el('div');
 

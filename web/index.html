@@ -11,6 +11,7 @@
     --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
     --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
     --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a;
+    --miss: #c9384a; /* results only — the palette had no red, and orange reads as a warning */
     --accent-wash: rgba(42,120,214,0.10);
   }
   @media (prefers-color-scheme: dark) {
@@ -20,6 +21,7 @@
       --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
       --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
       --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+      --miss: #e2596b;
       --accent-wash: rgba(57,135,229,0.15);
     }
   }
@@ -159,6 +161,30 @@
   .p-help .setlabel:first-child { margin-top: 0; }
   .p-help-note { font-size: 12px; color: var(--muted); line-height: 1.45; margin: -4px 0 12px; }
   .p-help-note:last-child { margin-bottom: 0; }
+  /* A graded prediction, drawn as the setlist it was. Same three columns as the builder,
+     so a result reads against the thing it is scoring. */
+  .p-scored { margin: 2px 0 14px 14px; padding: 10px 12px; border-left: 2px solid var(--grid); }
+  .p-scoredgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 900px) { .p-scoredgrid { grid-template-columns: 1fr; } }
+  .p-pick { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 2px 0; font-size: 13px; border-bottom: 1px solid var(--grid); }
+  .p-pickname { display: flex; flex-direction: column; gap: 1px; }
+  .p-pickpts { font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; }
+  .p-placed .p-pickname { color: var(--series-3); }
+  .p-called .p-pickname { color: var(--series-1); }
+  /* Struck through rather than only recoloured: the point is that this pick did not
+     happen, which strikethrough says without relying on colour alone. */
+  .p-miss .p-pickname { color: var(--miss); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .p-miss .p-actual, .p-bonus { text-decoration: none; font-size: 11px; color: var(--muted); }
+  .p-bonus { color: var(--series-2); }
+  .p-picktotal, .p-grandtotal { display: flex; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums; }
+  .p-picktotal { margin-top: 5px; font-size: 12px; color: var(--ink-2); font-weight: 600; }
+  .p-grandtotal { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--baseline); font-size: 14px; font-weight: 700; }
+  .p-scoredfoot { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; font-size: 11px; color: var(--muted); }
+  .p-key { display: flex; align-items: center; gap: 5px; }
+  .p-key i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .p-key i.p-placed { background: var(--series-3); }
+  .p-key i.p-called { background: var(--series-1); }
+  .p-key i.p-miss { background: var(--miss); }
   .p-lock { font-size: 12px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: var(--accent-wash); border: 1px solid var(--border); }
   .p-lock.p-locked { border-color: var(--series-2); color: var(--ink); }
   .p-cap { font-size: 11px; color: var(--muted); text-align: right; padding: 4px 2px 0; }
