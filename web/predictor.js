@@ -322,6 +322,13 @@ function initPredictor(mount, A) {
   function scoringHelp() {
     const box = el('div', 'p-help');
     const row = (what, pts) => `<tr><td>${what}</td><td class="num"><b>${pts}</b></td></tr>`;
+    // "10 / 10 / 5" is shorthand that only means anything if you already know the rule, so
+    // the caps are spelled out. Written from the constants, and the two sets collapse into
+    // one phrase only while they actually match.
+    const setCap = (SOFT_CAP.set1 === SOFT_CAP.set2
+      ? `the first ${SOFT_CAP.set1} songs of a set`
+      : `the first ${SOFT_CAP.set1} songs of Set 1 and ${SOFT_CAP.set2} of Set 2`)
+      + ` (${SOFT_CAP.encore} in the encore)`;
     box.innerHTML = `
       <div class="setlabel">Setlist</div>
       <table><tbody>
@@ -332,12 +339,24 @@ function initPredictor(mount, A) {
         ${row('Set 2 closer', `+${SETLIST_POINTS.s2closer}`)}
         ${row('Set 1 closer', `+${SETLIST_POINTS.s1closer}`)}
         ${row('Each song you correctly place in the encore', `+${SETLIST_POINTS.encoreSong}`)}
-        ${row(`Each wrong guess past ${SOFT_CAP.set1} / ${SOFT_CAP.set2} / ${SOFT_CAP.encore}`, `−${SETLIST_POINTS.overCap}`)}
+        ${row(`Each song that <em>doesn’t</em> get played, beyond ${setCap}`, `−${SETLIST_POINTS.overCap}`)}
       </tbody></table>
       <div class="p-help-note">
         Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder.
-        You can go past ${SOFT_CAP.set1} / ${SOFT_CAP.set2} / ${SOFT_CAP.encore} songs, but only
-        bet on a song you think is really coming: past that, a miss costs you a point.
+      </div>
+
+      <div class="setlabel">How long can my list be?</div>
+      <div class="p-help-note">
+        <b>There is no maximum.</b> Phish plays long sets, so nothing stops you adding as many
+        songs as you like to Set 1, Set 2 or the encore.
+        <br><br>
+        The first <b>${SOFT_CAP.set1}</b> songs in Set 1, <b>${SOFT_CAP.set2}</b> in Set 2 and
+        <b>${SOFT_CAP.encore}</b> in the encore are free: guess wrong there and it simply doesn’t
+        score. Every song you add <i>beyond</i> those is a bet — if it gets played it scores
+        exactly as normal, and if it doesn’t, it costs you a point.
+        <br><br>
+        So going long is worth it only for songs you genuinely expect. Nothing is locked in
+        either: take the extras back off before the show starts and no deduction applies.
       </div>
 
       <div class="setlabel">Worked example</div>
