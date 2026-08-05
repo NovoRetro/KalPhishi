@@ -36,7 +36,6 @@
   /* Set above the stats line, not below: it is the one sentence that says what the page
      is, and it has to land before the reader starts parsing tour numbers. */
   header .tagline { font-size: 15px; color: var(--ink); margin-top: 6px; }
-  header .sub { color: var(--ink-2); margin-top: 2px; }
   .tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--grid); flex-wrap: wrap; }
   .tab { background: none; border: none; font: inherit; color: var(--ink-2); padding: 8px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .tab:hover { color: var(--ink); background: var(--accent-wash); border-radius: 6px 6px 0 0; }
@@ -367,7 +366,6 @@
          freshness note ("data through August 1") and six analytics tabs, which says what
          the page contains but never what it is for. -->
     <p class="tagline">Guess what Phish plays next. We score you against the real setlist.</p>
-    <div class="sub" id="nextshow"></div>
   </header>
   <nav class="tabs" id="tabs"></nav>
   <nav class="subtabs" id="subtabs" style="display:none"></nav>
@@ -829,10 +827,9 @@ function bindTip(node, name, why) {
 
 fetch('/data/analysis.json').then(r => r.json()).then(A => {
   document.getElementById('asof').textContent = 'data through ' + fmtDate(A.asOf);
-  document.getElementById('nextshow').textContent =
-    `Next show: ${fmtDate(A.nextShow.date)} — ${A.nextShow.venue}, ${A.nextShow.city} · ` +
-    `${A.tour.name}: ${A.tour.shows.length} shows played, ${A.tour.songCount} unique songs · ` +
-    `era window ${A.eraWindow.from} → ${A.eraWindow.to} (${A.eraWindow.totalShows} shows)`;
+  // The header used to carry the next show, the tour totals and the era window. The next
+  // show is stated again by the game below it, and the other two are corpus stats — the
+  // sort of thing that belongs where the corpus is being read, not above a bingo card.
 
   const app = document.getElementById('app');
 
