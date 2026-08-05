@@ -1,165 +1,184 @@
 # Kalphishi — state of the project
 
-Everything the account & social roadmap planned is shipped. This file is now the
-orientation doc: what exists, how to operate it, what was decided and why, and what is
-deliberately left undone. The phase-by-phase plan it replaced is in git history.
+Replaces the orientation doc written 2026-08-03, which predates the points system, the
+prediction lock, moderation and the design pass.
 
 **Live:** https://kalphishi.kalphishi.workers.dev
 **Repo:** https://github.com/NovoRetro/KalPhishi
+**Written:** 2026-08-05
+
+> **Production is ten commits behind this working copy.** `main` is at `d0d2e3d`. The
+> scored-setlist view, the whole first-run/mobile redesign and the bingo reordering are
+> committed locally and NOT live. Do not describe them as shipped.
 
 ---
 
-## What it is
+## Current goal
 
-A Phish setlist predictor. It slices 2022+ setlist history several ways to guess the next
-show, lets users make their own call (setlist draft or 5×5 PHISH bingo), grades both
-against what actually got played, and keeps a public track record of how the *model*
-itself has done.
+Make the app good enough that people stay, before any adoption push — poor UX would cost
+the graded predictions the model needs to be evaluated at all. Next concrete task: a
+**tagline carousel**, rotating punny hybrids of the game and iconic Phish lyrics.
 
-Runs entirely on Cloudflare Workers + D1. No framework, no bundler, no npm runtime
-dependencies — `wrangler` is the only devDependency.
+## Done
 
----
+### Model and scoring
+- **Walk-forward backtest** (`scripts/backtest.js`). Re-predicts all 174 shows in the era
+  window against naive baselines, with paired standard errors and a per-year split. The
+  model core was extracted to `lib/model.mjs` so the backtest and production run the same
+  code; it throws if handed a row dated on/after the target show.
+- **Day-repeat curve** replaced the show-gap recency term. Recall 25.0% → 27.7%, precision
+  26.4% → 29.3%. `k` chosen on shows through 2024 by the one-standard-error rule, confirmed
+  on 78 held-out shows (+2.57pp, se 0.83, z 3.08). Reproduce: `npm run backtest -- --tune`.
+- **Setlist points system** (`lib/scoring.mjs`): 1/call capped at 10, +2 exact placement,
+  +5 openers, +5 Set 2 closer, +4 Set 1 closer, +2 per encore song, −1 per wrong guess past
+  a 10/10/5 soft cap. Row points now *derive* the score, so a breakdown cannot drift from
+  the number beside it.
+- **Scored-setlist view** — a graded prediction redraws as the setlist it was, colour-coded
+  (green placed / blue called / red struck-through miss with what actually played), per-set
+  subtotals and a show total.
 
-## Shipped
+### Platform
+- **Prediction lock** at the published downbeat. Times scraped from phish.com at build time
+  (`scripts/fetch-showtimes.js`), resolved to a UTC instant offline. Enforced **server-side**
+  (423); live check-off deliberately stays open.
+- **Moderation** — `GET /api/admin/users`, `PATCH /api/admin/users/:handle` behind
+  `ADMIN_TOKEN`. Rename (display name + handle) or ban. A ban revokes sessions, blocks
+  login after the password check, and hides the account everywhere without deleting data.
+  **Migration `0006_moderation.sql` is already applied to remote D1.**
+- **Display-text hardening** — NFKC + invisible/bidi stripping, a length cap on
+  registration (there was none), and the avatar must actually be an emoji.
+- **Leaderboard split** — setlist points and bingo scores are separate and never averaged.
+  Pre-points setlist results are excluded from the points aggregate rather than rewritten.
 
-| | |
-|---|---|
-| **Auth** | Email + password, PBKDF2 via Web Crypto, `HttpOnly; Secure` cookies, session tokens stored hashed |
-| **Account menu** | Hamburger, upper right: identity, history, profile, friends, change password, sign out |
-| **Predictor** | Setlist builder (touch drag-reorder) and PHISH bingo, both open to signed-out visitors — auth is only required to *save* |
-| **Attendance** | Mark "I was at this show"; accuracy splits by present vs remote |
-| **Friends** | Symmetric, established by invite link; no pending-request queue |
-| **Groups** | Owner-managed, drawn from your friends; leaderboards scope to Everyone / Friends / a group |
-| **Track record** | The model's own graded predictions, searchable, with ← Newer / Older → navigation |
-| **Model** | Horizontal (rotation) + vertical (venue) + album slices, set-1/set-2 placement affinity, tour-leg and reset-venue adjustments |
+### Design pass (all local, none live)
+- Landing view opens on the games, not All Data: **45,175px → ~2,700px on a phone**.
+- Tabs are now **Phish Bingo | Setlist Bets | Data**, Data holding five sub-tabs.
+- Helper text cut back to rules you cannot infer from the screen.
+- Lock countdown moved inline onto the heading row; "How scoring works" moved into the
+  control row, right-aligned; attendance toggle hidden; header stats line removed.
+- **Bingo squares reorder** — drag on desktop, tap-then-tap on touch.
+- Save button reads **"Bag it, Tag it"** signed in.
+- All tap targets ≥44px on phones.
 
-Five D1 migrations, `0001`–`0005`. 87 tests, `npm test`.
+## In progress
 
----
+Nothing half-done. Working tree clean, 180 tests passing, remote migrations current.
 
-## Operating it
+## Next steps
 
-### Deploys are automatic
-Merging to `main` runs `.github/workflows/deploy.yml`: tests → `build:ci` → `wrangler
-deploy`. Tests gate it, so a red suite cannot reach production. Requires repo secrets
-`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (both set).
-
-**Migrations are deliberately NOT automated.** Schema changes are irreversible against
-live user data — run `npx wrangler d1 migrations apply kalphishi --remote` by hand, and
-do it *before* merging the code that depends on it.
-
-### Advancing to the next show
-The predicted show resolves itself: a show is complete once phish.net publishes its
-setlist, and the target becomes the first scheduled date after that. Refreshing the
-caches is what moves it:
-
-```bash
-rm data/setlists-2026.json data/schedule-2026.json data/songs.json
-npm run fetch && npm run analyze && npm run build
-```
-
-Then commit the changed `data/*.json` and push — that push deploys. Nothing is hardcoded
-to a date or venue any more; the venue history, the "played at X Nx before" reasoning and
-the "Gap at ..." column all follow whatever resolves.
-
-### Which data files are committed, and why
-`data/*.json` is gitignored **except** the five the site serves — `analysis.json`,
-`songs.json`, `venues.json`, `songmeta.json`, `history.json` — plus `data/archive/*.json`.
-
-- The five are committed so CI can deploy without a phish.net key or minutes of fetching.
-- The archive is committed because it holds point-in-time predictions that **cannot be
-  regenerated** once `analysis.json` advances. Losing it would destroy the accuracy record
-  permanently. `test/assets.test.mjs` guards the gitignore pattern against being broadened
-  to `data/**/*.json`, which would silently stop tracking it.
-- The ~14MB of raw setlist caches stay ignored; they are only inputs.
-
----
-
-## Decisions already settled — don't re-litigate
-
-- **Email is unverified.** Registration is happy-path: any well-formed address is accepted,
-  no confirmation. Sending mail needs a provider + verified domain + DNS, which is real
-  work for little gain at this scale. Consequence: **no "forgot password"** — recovery is a
-  manual D1 update.
-- **`MIN_PASSWORD_LENGTH` is temporarily 6**, lowered from 12 for testing convenience.
-  Raise it before this matters. Flagged in `src/auth.mjs`, README, and the test asserting
-  the floor.
-- **Three identifiers, not one.** `id` internal (never sent to clients), `email` the login,
-  `handle` the public profile URL. Fixed a real leak where profile URLs exposed a
-  slugified email.
-- **Friends are symmetric and accept-free.** Redeeming a link friends both parties
-  immediately. Groups are owner-managed and drawn only from friends, so the invite link is
-  the single way to connect.
-- **Attendance is self-reported.** No ticket integration, no geofence. Nothing downstream
-  should treat it as verified.
-- **The global leaderboard stays** as one scope option alongside Friends and groups.
-
----
-
-## Deliberate behaviours that look like bugs
-
-- Re-redeeming an invite you already used **succeeds** (and doesn't burn a use) rather
-  than erroring — re-opening a link should reassure, not fail.
-- Revoking someone else's invite, or deleting someone else's group, is a **silent no-op**,
-  not a 403 — a 403 would confirm the thing exists.
-- `/api/songmeta` returns **404**; it was replaced by the static `/data/songmeta.json`,
-  which is what keeps 9MB of setlist dumps out of the deploy.
-- The track record shows **nothing before 2026-07-31**, the app's first live prediction.
-  A backfilled show would be graded against a setlist that already existed, inflating the
-  numbers and claiming the model called shows it never saw.
-- The prediction currently targets **September 4**, a month out. Correct — the Fenway run
-  is finished and Dick's is genuinely next.
-
----
-
-## Gotchas that cost time
-
-- **Cloudflare's edge lags a deploy** by up to a couple of minutes, and its cache key
-  ignores query strings — cache-busting URLs don't help, only waiting does. This produced
-  three separate false "the deploy is broken" moments. Don't trust an immediate
-  post-deploy check.
-- **Local D1 state is keyed by `database_id`.** Changing it in `wrangler.jsonc` silently
-  points `wrangler dev` at an empty database.
-- **Multi-statement `--command` can crash mid-way** on Windows without applying anything.
-  Run one statement per invocation.
-- **User ids are random now** (`u-<uuid>`), not slugs. Cleanup queries must target
-  `handle`, not `id` — targeting `id` matches nothing and silently no-ops.
-- **CSS: same specificity means source order decides.** A phone breakpoint placed *before*
-  the base rule it overrides does nothing. Encoded as a test.
-- **`predictor.js` rebuilds its own `<h2>` on render**, so anything bound directly to that
-  heading is discarded. Collapse uses delegation + a MutationObserver for this reason.
-- **Deploys need `data/`**, so a fresh clone cannot run `npm run build` — only
-  `npm run build:ci`, which uses the committed artifacts.
-
----
-
-## Open / not started
-
-1. **Email verification** — deferred by design (above). Needs a provider, a sending
-   domain, DNS, then a token flow. Only worth it if this outgrows people you can text.
-2. **Raise the password floor** back to 12 before real use.
-3. **Attendance granularity** — keyed on `showdate`; confirm Phish never plays two shows
-   on one date (festivals?).
-4. **Open registration is unrate-limited and unverified.** Fine at this scale, but the
-   site is public and strangers have already signed up (`santos`, `novoretro` are real,
-   unsolicited registrations — leave them alone).
-5. **GitHub Actions warns** that `checkout@v4` / `setup-node@v4` / `wrangler-action@v3`
-   target the deprecated Node 20 and are being forced onto 24. Harmless; bump when new
-   majors ship.
-
----
+1. **Tagline carousel.** Replace the single hard-coded tagline in `web/index.html` (the
+   `header .tagline` element, set in markup around line 343) with a rotating set of punny
+   game/lyric hybrids. The current text — *"Guess what Phish plays next. We score you
+   against the real setlist."* — was **rejected as too sterile/gimmicky** and is only still
+   there because replacing it was deliberately pinned. Options already floated and liked,
+   for reference:
+   - "Bag it, tag it — call the setlist before they play it." (Reba)
+   - "Set the gearshift for the high gear of your soul." (Weekapaug)
+   - "You enjoy myself. We'll do the scoring." (YEM)
+   - "Call the show before the hose comes on." (phan idiom)
+   The user wants a **rotating carousel**, not one line. Respect `prefers-reduced-motion`.
+2. **Get the Browser pane rendering** before more visual work — see Gotchas.
+3. On/after **2026-09-01**, merge (see Gotchas — freeze). Land `explain-soft-cap` first,
+   confirm production, then the design branch. Ideally done before Dick's on **2026-09-04**.
+4. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
+   rehoming the era window / tour totals, rehoming the attendance toggle.
 
 ## Key files
 
-| Path | What |
+| Path | Role |
 |---|---|
-| `src/worker.mjs` | Every route, one linear if-chain on pathname |
-| `src/auth.mjs` | PBKDF2, cookies, sessions — Web Crypto only, so it tests in plain Node |
-| `src/db.mjs` | D1 queries; `publicUser`/`publicName` are the "never leak an email" boundary |
-| `lib/` | Pure, unit-tested logic: `scoring`, `identity`, `tourleg`, `phishnet-core` |
-| `web/index.html` | Shell, all CSS, dashboard script, account menu, auth modal, track record |
-| `web/predictor.js` | The signed-in app: builder, bingo, history, profile |
-| `scripts/analyze.js` | The model. `resolveNextShow()` is what makes it self-advancing |
-| `scripts/build-public.js` | Publish allowlist — an explicit list, not a filter, so secrets cannot leak |
-| `migrations/` | `0001` schema → `0005` groups |
+| `lib/model.mjs` | The prediction model, pure. Leakage guard at the top of `buildModel`. |
+| `lib/dayrepeat.mjs` | Day-since-last-play curve; `DAY_CURVE_K` lives in `model.mjs`. |
+| `lib/scoring.mjs` | Setlist + bingo scoring. `SETLIST_POINTS`, `SETLIST_SOFT_CAP`, and the per-row `rows`/`setTotals` detail. |
+| `lib/showtime.mjs` | Showtime parsing, venue→timezone, `lockStateFor`, `preferResolved`. |
+| `lib/identity.mjs` | Email/handle rules **and** `sanitizeLine`/`sanitizeBlock`/`sanitizeAvatar`. |
+| `web/index.html` | Everything: all CSS, dashboard, tab bar, header. Tagline ~line 343; tab logic ~line 1130. |
+| `web/predictor.js` | The games. `initPredictor(mount, A, opts)` returns `{setMode,getMode}`. Bingo swap logic in `renderBingo`. |
+| `src/worker.mjs` | Every route. Lock check and admin endpoints here. |
+| `src/db.mjs` | D1 queries; `NOT_BANNED` and the split stats. |
+| `src/showtimes.generated.mjs` | Generated lock table bundled into the Worker. Do not hand-edit. |
+| `scripts/backtest.js` | Dev tool. `--experiments`, `--tune`. Needs gitignored raw setlists. |
+| `migrations/0006_moderation.sql` | Applied to remote already. |
+
+## Open decisions / questions
+
+- **Tagline** — pinned by the user, now the next task. They want a rotating carousel.
+- **Bingo scoring** — user ruled out changing the 5×5 grid. Measured: a line completes in
+  at most ~8% of cases even with an optimal card, and 89.6% of shows saw no bingo among 20
+  simulated cards. So "first to bingo" would fall through to total calls ~9 shows in 10.
+  Unresolved.
+- **Profanity filter** — `obscenity` recommended (0 deps, 149KB). Would be this repo's
+  **first runtime dependency**, which is a stated architectural property. User's call.
+- **Track record** currently sits under the Predicted Setlist sub-tab, not its own — my
+  judgment call, flagged, not confirmed.
+- **Era window / tour totals** are now stated nowhere after the header line was cut.
+- **Attendance toggle** hidden behind `SHOW_ATTENDANCE_TOGGLE = false`. While off, nobody
+  can mark a new show, so the points-at-shows split stops accumulating.
+- **Six legacy graded predictions** remain on the old 0–100 setlist scale, excluded from
+  aggregates rather than re-scored. Re-scoring is available if uniformity is preferred.
+
+## Gotchas
+
+- **GitHub Actions freeze until 2026-09-01. Do not merge to main.** Branch pushes and PRs
+  cost nothing — `.github/workflows/deploy.yml` triggers only on `push: branches: [main]`
+  and `workflow_dispatch`, with no `pull_request` trigger. Only merging spends minutes.
+- **The Browser pane never composited frames this whole session.** Every screenshot failed
+  with *"the Browser pane is not displayed"*. All UI work was verified by DOM measurement,
+  not by looking. Fine for geometry and copy; **not** fine for the aesthetic work coming
+  next. Ask the user to open the pane before continuing the design pass.
+- **Migrations are manual and must be applied to remote BEFORE merging dependent code.**
+  `npx wrangler d1 migrations apply kalphishi --remote`.
+- **Cloudflare's edge lags a deploy** and its cache key ignores query strings. A bad
+  immediate post-deploy check produced a false "the route is broken" this session. Re-check
+  before diagnosing.
+- **The browser caches `/web/predictor.js` hard.** After a deploy an already-open tab can
+  keep the old script through a normal reload; it took a cache-busting URL to shake it.
+  Consider a content hash in `scripts/build-public.js`.
+- **`\uXXXX` escapes get mangled** when written into source through the editing tools —
+  they landed as literal control characters twice. `lib/identity.mjs` uses numeric code
+  point ranges for exactly this reason. Do not "tidy" it back into a regex class.
+- **Bash tool is Git Bash, not PowerShell.** A PowerShell here-string (`@'…'@`) silently
+  produced a mangled commit message. Use a heredoc.
+- **`cd` resets between Bash calls** — always use absolute paths.
+- **Node can't read `/c/Users/...` paths** — use `C:/Users/...` inside `node -e`.
+- **Multi-statement `--command` can crash mid-way on Windows.** One statement per call.
+- **Local D1 is separate from remote.** Test users were created and cleaned up surgically;
+  one local test account's passhash was overwritten during testing (local only).
+- **Drag on touch was deliberately not implemented** for bingo: `touch-action: none` on a
+  grid cell would kill page scrolling on a phone. Touch gets tap-then-tap by design.
+- **`predictor` and `menuMode` in `index.html` are `let`, declared above `initPredictor`**
+  on purpose — `onModeChange` can fire from inside it, and `const` after the call would sit
+  in the temporal dead zone.
+- **Never bulk-wipe `data/db.json` or D1 user rows.** Cleanup is always surgical.
+- **`data/archive/*.json` is committed on purpose** and cannot be regenerated. A test
+  guards the gitignore pattern.
+
+## Branches
+
+```
+main  d0d2e3d                            ← production
+ └─ explain-soft-cap  (3 commits)        ← scoring
+     └─ first-run-mobile  (7 commits)    ← design pass, current branch
+```
+
+Stacked, so merging `first-run-mobile` brings all ten in one PR and one Actions run.
+
+## TODO list (verbatim)
+
+```
+#1  [completed] Extract model core into lib/model.mjs
+#2  [completed] Rewire analyze.js and verify identical output
+#3  [completed] Build scripts/backtest.js walk-forward harness
+#4  [completed] Add tests for model module and leakage guards
+#5  [completed] Tune k on a train/test split
+#6  [completed] Wire the day curve into the live model
+#7  [completed] Implement the new setlist point system
+#8  [completed] Test the scoring rules and the worked example
+#9  [completed] Update the predictor UI for the new scoring
+#10 [completed] Build showtime parsing and timezone resolution
+#11 [completed] Fetch showtimes at build time into committed data
+#12 [completed] Enforce the lock server-side and surface it in the UI
+#13 [completed] Add moderation columns migration
+#14 [completed] Make a ban take effect everywhere
+#15 [completed] Add admin rename and ban endpoints
+```
