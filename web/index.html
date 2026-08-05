@@ -194,8 +194,15 @@
   .p-key i.p-placed { background: var(--series-3); }
   .p-key i.p-called { background: var(--series-1); }
   .p-key i.p-miss { background: var(--miss); }
-  .p-lock { font-size: 12px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: var(--accent-wash); border: 1px solid var(--border); }
+  /* Heading row: game title left, lock countdown pushed right and only as wide as its own
+     text. As a full-width banner the countdown read as an alert; inline up here it is a
+     status you pass on the way into the game. */
+  .p-headrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .p-headrow h2 { margin: 0; }
+  .p-lock { font-size: 12px; padding: 4px 10px; border-radius: 99px; background: var(--accent-wash); border: 1px solid var(--border); white-space: nowrap; }
   .p-lock.p-locked { border-color: var(--series-2); color: var(--ink); }
+  /* Sits at the right-hand end of a control row without the row needing to know about it. */
+  .p-pushright { margin-left: auto; }
   .p-cap { font-size: 11px; color: var(--muted); text-align: right; padding: 4px 2px 0; }
   .p-cap-over { color: var(--series-2); font-weight: 600; }
   .p-btn-alt { background: var(--surface); color: var(--ink); border: 1px solid var(--baseline); font-weight: 500; }

@@ -178,7 +178,19 @@ function initPredictor(mount, A, opts = {}) {
       history: 'My history',
       profile: 'Profile',
     };
-    mount.appendChild(el('h2', null, HEADINGS[mode] || HEADINGS.setlist));
+    // The countdown rides the heading row, pushed right and only as wide as its text.
+    // As a full-width banner under the top bar it read as an alert; up here it is a
+    // status the eye passes over on the way into the game.
+    const head = el('div', 'p-headrow');
+    head.appendChild(el('h2', null, HEADINGS[mode] || HEADINGS.setlist));
+    const L = lockInfo();
+    if (L.known && (mode === 'setlist' || mode === 'bingo')) {
+      const clock = L.local ? `${L.local} local` : 'showtime';
+      head.appendChild(L.locked
+        ? el('span', 'p-lock p-locked', `🔒 Locked · started ${esc(clock)}`)
+        : el('span', 'p-lock', `🔓 Locks in <b>${untilText(L.at - Date.now())}</b> · ${esc(clock)}`));
+    }
+    mount.appendChild(head);
     if (!user && authPrompt) renderAuthPanel();
     else if (window.KalphishiAuthModal) window.KalphishiAuthModal.hide();
     if (user && user.needsEmail) return renderLinkEmail();
@@ -207,6 +219,9 @@ function initPredictor(mount, A, opts = {}) {
         const controls = [...node.querySelectorAll(SEL)];
         if (node.matches(SEL)) controls.push(node);
         for (const c of controls) {
+          // p-keep-live opts out: the scoring-rules toggle edits nothing, and a locked
+          // show is exactly when someone wants to read how they were scored.
+          if (c.classList.contains('p-keep-live')) continue;
           c.disabled = true;
           c.title = 'Locked — the show has started';
         }
@@ -427,21 +442,8 @@ function initPredictor(mount, A, opts = {}) {
     // Nothing for a signed-out visitor: the "Sign in to save" button says what happens,
     // at the moment they go to do it.
 
-    // Just the two builders — history, profile, and sign-out live in the header menu.
-    // Switching game used to happen here. It now happens in the page's own tab bar —
-    // Phish Bingo and Setlist Bets are the first two things a visitor sees — so a second
-    // pair of buttons doing the same job would just be two controls fighting over one
-    // piece of state.
-    const modes = el('div', 'p-modes');
-    // Kept beside the tabs rather than in the builder, so it covers both games and —
-    // since the lock sweep only disables the builder — stays readable after a show
-    // starts, which is exactly when someone wants to know how they were scored.
-    const help = el('button', 'p-mode' + (helpOpen ? ' active' : ''), helpOpen ? '✕ Scoring' : '❓ How scoring works');
-    help.addEventListener('click', () => { helpOpen = !helpOpen; render(); });
-    modes.appendChild(help);
-    bar.appendChild(modes);
-    if (helpOpen) bar.appendChild(scoringHelp());
-
+    // Game switching moved to the page's tab bar and "How scoring works" moved down to
+    // the builder's own control row, beside Randomize and Play It Safe.
     const showRow = el('div', 'hint', `Predicting: `);
     const dateInput = el('input', 'ta-input p-date');
     dateInput.value = showdate;
@@ -450,37 +452,38 @@ function initPredictor(mount, A, opts = {}) {
     showRow.appendChild(el('span', null, ` (next show: ${esc(fmtDate(A.nextShow.date))} — ${esc(A.nextShow.venue)})`));
     bar.appendChild(showRow);
 
-    const L = lockInfo();
-    if (L.known) {
-      const clock = L.local ? `${L.local} local time` : 'the published show time';
-      bar.appendChild(L.locked
-        ? el('div', 'p-lock p-locked',
-          `🔒 <b>Locked.</b> Doors are shut — this show started at ${esc(clock)} and predictions can no longer be changed.`)
-        : el('div', 'p-lock',
-          `🔓 Locks in <b>${untilText(L.at - Date.now())}</b>, at ${esc(clock)}${L.source === 'fallback' ? ' <span class="hint">(estimated — no time published yet)</span>' : ''}.`));
-    }
+    // The lock countdown now rides the heading row — see render().
 
-    // Attendance toggle for whichever show is currently selected. Self-reported and
-    // freely re-togglable, including for past dates — people forget until afterwards.
-    const here = attendedDates.has(showdate);
-    const att = el('button', 'p-attend' + (here ? ' on' : ''),
-      here ? '🎟 I was at this show' : '🎟 Mark that I was at this show');
-    att.title = 'Self-reported — tracked alongside your prediction accuracy';
-    att.addEventListener('click', async () => {
-      const next = !attendedDates.has(showdate);
-      att.disabled = true;
-      try {
-        await api('/api/attendance', 'POST', { showdate, attended: next });
-        if (next) attendedDates.add(showdate); else attendedDates.delete(showdate);
-        // Refresh stats so the points split and attended count update immediately.
-        try { user = (await api('/api/me')).user; } catch { /* stats are cosmetic here */ }
-        render();
-      } catch (e) {
-        att.disabled = false;
-        flash(e.message, true);
-      }
-    });
-    bar.appendChild(att);
+    // Attendance toggle: hidden, not deleted. Marking a show you attended is a side
+    // errand next to playing, and it sat directly under the thing people came to do.
+    // Everything behind it still works — /api/attendance, the attended set, and the
+    // points-at-shows split — so flipping this back is one line.
+    //
+    // Consequence while it is off: nobody can mark a NEW show, so pointsAtShows and
+    // pointsRemote only keep separating for people who already marked something. Needs
+    // somewhere else to live before that split means much.
+    const SHOW_ATTENDANCE_TOGGLE = false;
+    if (SHOW_ATTENDANCE_TOGGLE) {
+      const here = attendedDates.has(showdate);
+      const att = el('button', 'p-attend' + (here ? ' on' : ''),
+        here ? '🎟 I was at this show' : '🎟 Mark that I was at this show');
+      att.title = 'Self-reported — tracked alongside your prediction accuracy';
+      att.addEventListener('click', async () => {
+        const next = !attendedDates.has(showdate);
+        att.disabled = true;
+        try {
+          await api('/api/attendance', 'POST', { showdate, attended: next });
+          if (next) attendedDates.add(showdate); else attendedDates.delete(showdate);
+          // Refresh stats so the points split and attended count update immediately.
+          try { user = (await api('/api/me')).user; } catch { /* stats are cosmetic here */ }
+          render();
+        } catch (e) {
+          att.disabled = false;
+          flash(e.message, true);
+        }
+      });
+      bar.appendChild(att);
+    }
     mount.appendChild(bar);
   }
 
@@ -572,7 +575,9 @@ function initPredictor(mount, A, opts = {}) {
       render();
     });
     controls.appendChild(safe);
+    controls.appendChild(scoringHelpButton());
     mount.appendChild(controls);
+    if (helpOpen) mount.appendChild(scoringHelp());
 
     const wrap = el('div', 'p-sets');
     for (const [key, label] of [['set1', 'Set 1'], ['set2', 'Set 2'], ['encore', 'Encore']]) {
@@ -686,6 +691,10 @@ function initPredictor(mount, A, opts = {}) {
     // controls + cell picker live ABOVE the grid
     const controls = el('div', 'p-row');
     if (!scored) mount.appendChild(controls);
+    // A scored card has no controls row to hang it off, and that is precisely when
+    // somebody wants to read how the scoring worked — so it gets a row of its own.
+    else mount.appendChild(el('div', 'p-row')).appendChild(scoringHelpButton());
+    if (helpOpen) mount.appendChild(scoringHelp());
     const pickerHost = el('div', 'p-picker');
     mount.appendChild(pickerHost);
 
@@ -801,6 +810,7 @@ function initPredictor(mount, A, opts = {}) {
         render();
       });
       controls.appendChild(clear);
+      controls.appendChild(scoringHelpButton());
 
       const btnRow = el('div', 'p-row');
       const save = el('button', 'p-btn', livePrediction ? 'Re-bag it' : (user ? 'Bag it, Tag it' : 'Sign in to save'));
@@ -914,6 +924,16 @@ function initPredictor(mount, A, opts = {}) {
     } catch (e) {
       container.innerHTML = `<div class="hint">${esc(e.message)}</div>`;
     }
+  }
+
+  // The scoring-rules toggle, pushed to the right-hand end of whichever control row it is
+  // dropped into. Carries p-keep-live so the lock sweep leaves it alone: once a show has
+  // started is exactly when someone wants to check how they are being scored.
+  function scoringHelpButton() {
+    const b = el('button', 'p-mode p-keep-live p-pushright' + (helpOpen ? ' active' : ''),
+      helpOpen ? '✕ Scoring' : '❓ How scoring works');
+    b.addEventListener('click', () => { helpOpen = !helpOpen; render(); });
+    return b;
   }
 
   // A graded prediction, drawn as the setlist it was: same three columns, same order,
