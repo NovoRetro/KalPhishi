@@ -673,7 +673,7 @@ function initPredictor(mount, A, opts = {}) {
         flash('Saved.');
       } catch (e) { flash(e.message, true); }
     }));
-    mount.appendChild(save);
+    mount.appendChild(el('div', 'p-saverow')).appendChild(save);
   }
 
   // ---------- bingo ----------
@@ -918,7 +918,7 @@ function initPredictor(mount, A, opts = {}) {
       controls.appendChild(clear);
       controls.appendChild(scoringHelpButton());
 
-      const btnRow = el('div', 'p-row');
+      const btnRow = el('div', 'p-saverow');
       const save = el('button', 'p-btn', livePrediction ? 'Re-bag it' : (user ? 'Bag it, Tag it' : 'Sign in to save'));
       save.addEventListener('click', () => {
         const filled = grid.filter((c, i) => c && i !== FREE).length;

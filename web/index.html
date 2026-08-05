@@ -209,6 +209,9 @@
   .p-lock.p-locked { border-color: var(--series-2); color: var(--ink); }
   /* Sits at the right-hand end of a control row without the row needing to know about it. */
   .p-pushright { margin-left: auto; }
+  /* The commit action, centred under whichever game built it. Its own row rather than a
+     margin on the button, so both games centre it the same way. */
+  .p-saverow { display: flex; justify-content: center; }
   .p-cap { font-size: 11px; color: var(--muted); text-align: right; padding: 4px 2px 0; }
   .p-cap-over { color: var(--series-2); font-weight: 600; }
   .p-btn-alt { background: var(--surface); color: var(--ink); border: 1px solid var(--baseline); font-weight: 500; }
