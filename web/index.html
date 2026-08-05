@@ -33,6 +33,9 @@
   }
   .wrap { max-width: 1180px; margin: 0 auto; }
   header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  /* Set above the stats line, not below: it is the one sentence that says what the page
+     is, and it has to land before the reader starts parsing tour numbers. */
+  header .tagline { font-size: 15px; color: var(--ink); margin-top: 6px; }
   header .sub { color: var(--ink-2); margin-top: 2px; }
   .tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--grid); flex-wrap: wrap; }
   .tab { background: none; border: none; font: inherit; color: var(--ink-2); padding: 8px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
@@ -208,6 +211,12 @@
     .p-head, .p-corner { font-size: 11px; }
     .p-drag { font-size: 15px; padding: 6px 8px; }
     .p-songrow { padding: 5px 0; }
+    /* The section tabs and mode buttons are the primary navigation on a phone and were
+       39px tall — under the 44px a fingertip reliably hits. Widened here only, so the
+       desktop bar keeps its tighter proportions. */
+    .tab { padding: 12px 14px; }
+    .p-mode { padding: 12px 14px; }
+    .p-btn { padding: 12px 18px; }
   }
   .p-bingo-banner { margin: 12px 0; padding: 12px; border: 2px solid var(--series-2); border-radius: 10px; text-align: center; font-size: 16px; }
   .p-histrow { padding: 5px 0; border-bottom: 1px solid var(--grid); }
@@ -340,6 +349,10 @@
 <div class="wrap">
   <header>
     <h1>Kalphishi <span class="pill" id="asof"></span></h1>
+    <!-- What this is, before any of the data. A first-time visitor previously met a
+         freshness note ("data through August 1") and six analytics tabs, which says what
+         the page contains but never what it is for. -->
+    <p class="tagline">Guess what Phish plays next. We score you against the real setlist.</p>
     <div class="sub" id="nextshow"></div>
   </header>
   <nav class="tabs" id="tabs"></nav>
@@ -1099,7 +1112,12 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   const tabBar = document.getElementById('tabs');
   const sections = [...app.children];
   const tabNames = ['All Data', ...new Set(sections.map(s => s.dataset.section))];
-  let activeTab = 'All Data';
+  // Opens on Prediction, not All Data. All Data renders every card at once: 45,000px on a
+  // phone, 55 screens of scrolling, most of it the venue slice and the candidate list.
+  // Prediction is 2,700px — the predictor, the model's call, and the track record, which
+  // is the whole of what a first-time visitor needs. Everything else is one tap away.
+  const DEFAULT_TAB = 'Prediction';
+  let activeTab = tabNames.includes(DEFAULT_TAB) ? DEFAULT_TAB : 'All Data';
   function renderTabs() {
     tabBar.innerHTML = '';
     for (const name of tabNames) {
