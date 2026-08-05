@@ -25,6 +25,13 @@ function initPredictor(mount, A, opts = {}) {
   let locks = Array(25).fill(false); // build-mode only: locked squares survive Randomize
   let livePrediction = null; // saved bingo prediction being played live
   let bingoDeclared = false;
+  // Bingo square armed for a swap: tap one, tap another, they trade places. Held out here
+  // because render() rebuilds the grid and the selection has to survive that.
+  let swapFrom = null;
+  // Drag is offered to mice only. Dragging a grid cell on touch needs touch-action: none
+  // on the cell, which kills page scrolling started anywhere on a grid that fills most of
+  // a phone screen — so touch gets tap-then-tap, which costs nothing.
+  const COARSE_POINTER = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   // Every show the signed-in user says they attended. Held as a set because the toggle
   // and My History both need "was I at this date?" without a round trip per row.
   let attendedDates = new Set();
@@ -681,6 +688,12 @@ function initPredictor(mount, A, opts = {}) {
     // gone: this crowd knows what a bingo card is.
     if (live) mount.appendChild(el('div', 'hint', 'Card saved. Tap squares as they’re played.'));
     else if (scored) mount.appendChild(el('div', 'hint', `Scored: ${livePrediction.result.hitCount}/24 squares hit${livePrediction.result.bingo ? ' — BINGO!' : ''}`));
+    // Shown only while a square is armed — it says what the highlight means and how to get
+    // out of it, which is the one moment that is not self-evident.
+    else if (swapFrom !== null && grid[swapFrom]) {
+      mount.appendChild(el('div', 'hint',
+        `Moving <b>${esc(grid[swapFrom].name)}</b> — tap another square to swap, or tap it again to cancel.`));
+    }
 
     const banner = el('div', 'p-bingo-banner');
     banner.style.display = 'none';
@@ -697,6 +710,96 @@ function initPredictor(mount, A, opts = {}) {
     if (helpOpen) mount.appendChild(scoringHelp());
     const pickerHost = el('div', 'p-picker');
     mount.appendChild(pickerHost);
+
+    // Reordering is a build-mode affordance. In live mode a tap checks a square off, and
+    // a scored card is history — neither should move anything.
+    const editable = !live && !scored;
+    if (!editable) swapFrom = null;
+
+    // Songs trade places, and their locks travel with them: a lock reads as belonging to
+    // the song you locked, not to the slot it happened to be sitting in.
+    function swapCells(a, b) {
+      if (a === b || a === FREE || b === FREE) return;
+      [grid[a], grid[b]] = [grid[b], grid[a]];
+      [locks[a], locks[b]] = [locks[b], locks[a]];
+      swapFrom = null;
+      render();
+    }
+
+    const idxAt = (x, y) => {
+      const c = document.elementFromPoint(x, y);
+      const cell = c && c.closest('.p-cell');
+      if (!cell || cell.dataset.idx === undefined) return null;
+      const t = Number(cell.dataset.idx);
+      return t === FREE ? null : t;
+    };
+    const clearTargets = () => {
+      for (const c of document.querySelectorAll('.p-cell.p-swaptarget')) c.classList.remove('p-swaptarget');
+    };
+
+    function attachSwap(cell, i) {
+      cell.dataset.idx = i;
+      if (grid[i]) cell.classList.add('p-swappable');
+      if (swapFrom === i) cell.classList.add('p-swapfrom');
+
+      let start = null, dragging = false;
+      cell.addEventListener('pointerdown', ev => {
+        // The lock and × buttons own their own taps.
+        if (ev.target.closest('button')) return;
+        // An empty square is only interesting once something is armed to move into it.
+        if (!grid[i] && swapFrom === null) { start = { tapOnly: true }; return; }
+        start = { x: ev.clientX, y: ev.clientY };
+        if (!COARSE_POINTER) { try { cell.setPointerCapture(ev.pointerId); } catch { /* stale id */ } }
+      });
+
+      if (!COARSE_POINTER) {
+        cell.addEventListener('pointermove', ev => {
+          if (!start || start.tapOnly) return;
+          if (!dragging && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 6) {
+            dragging = true;
+            cell.classList.add('p-dragging');
+          }
+          if (!dragging) return;
+          clearTargets();
+          const t = idxAt(ev.clientX, ev.clientY);
+          if (t !== null && t !== i) {
+            const target = table.querySelector(`.p-cell[data-idx="${t}"]`);
+            if (target) target.classList.add('p-swaptarget');
+          }
+        });
+      }
+
+      cell.addEventListener('pointerup', ev => {
+        if (!start) return;
+        const wasDrag = dragging;
+        start = null; dragging = false;
+        cell.classList.remove('p-dragging');
+        clearTargets();
+
+        if (wasDrag) {
+          const t = idxAt(ev.clientX, ev.clientY);
+          if (t !== null && t !== i) swapCells(i, t);
+          return;
+        }
+        // A tap. Arm, disarm, swap, or — on an empty square with nothing armed — pick.
+        if (swapFrom === null) {
+          if (!grid[i]) return openCellPicker(i);
+          swapFrom = i;
+          render();
+        } else if (swapFrom === i) {
+          swapFrom = null;
+          render();
+        } else {
+          swapCells(swapFrom, i);
+        }
+      });
+
+      cell.addEventListener('pointercancel', () => {
+        start = null; dragging = false;
+        cell.classList.remove('p-dragging');
+        clearTargets();
+      });
+    }
 
     const table = el('div', 'p-grid');
     table.appendChild(el('div', 'p-corner', ''));
@@ -741,8 +844,11 @@ function initPredictor(mount, A, opts = {}) {
           }
         } else {
           cell = el('div', 'p-cell empty', '<span class="p-cellname">＋</span>');
-          if (!scored) cell.addEventListener('click', () => openCellPicker(i));
+          // While editing, the swap handler owns taps on empty cells too — an armed square
+          // moves into one instead of opening the picker. Two listeners would race.
+          if (!scored && !editable) cell.addEventListener('click', () => openCellPicker(i));
         }
+        if (editable && i !== FREE) attachSwap(cell, i);
         table.appendChild(cell);
       }
     }
