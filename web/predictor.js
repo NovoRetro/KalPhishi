@@ -131,7 +131,7 @@ function initPredictor(mount, A, opts = {}) {
   // The header hamburger owns account actions; it reflects whatever state the
   // predictor last rendered.
   // Which game is showing is now the page's decision, not the predictor's — the top-level
-  // tabs are Phish Bingo and Set List Bets. The predictor still owns history and profile,
+  // tabs are Phish Bingo and Setlist Bets. The predictor still owns history and profile,
   // which the account menu reaches directly, so it reports back when it moves to one of
   // those and the page can surface the card whichever tab was selected.
   const notifyMode = () => { if (typeof opts.onModeChange === 'function') opts.onModeChange(mode); };
@@ -169,12 +169,13 @@ function initPredictor(mount, A, opts = {}) {
   function render() {
     mount.innerHTML = '';
     if (window.KalphishiMenu) window.KalphishiMenu.update(user, menuActions);
-    // The heading names the game being played. The tab already says which one, but the
-    // card is scrolled to on its own from the account menu, where the tab bar is out of view.
+    // Names the game and stops. The tab above says the same thing, and this audience does
+    // not need bingo explained to it — the card is titled at all only because the account
+    // menu scrolls straight here with the tab bar out of view.
     const HEADINGS = {
-      bingo: 'PHISH Bingo <span class="hint">— five in a line, called before the show</span>',
-      setlist: 'Set List Bets <span class="hint">— build your own call for the next show</span>',
-      history: 'My history <span class="hint">— every prediction you have made</span>',
+      bingo: 'PHISH Bingo',
+      setlist: 'Setlist Bets',
+      history: 'My history',
       profile: 'Profile',
     };
     mount.appendChild(el('h2', null, HEADINGS[mode] || HEADINGS.setlist));
@@ -422,13 +423,13 @@ function initPredictor(mount, A, opts = {}) {
       const summary = statSummary(s);
       const statText = ` · ${s.predictions ?? 0} predictions, ${s.scored ?? 0} scored${summary ? ' · ' + summary : ''}`;
       bar.appendChild(el('span', null, `<span class="p-avatar">${esc(avatarOf(user))}</span> <b>${esc(displayName(user))}</b><span class="hint">${esc(statText)}</span>`));
-    } else {
-      bar.appendChild(el('span', 'hint', 'Build freely — you’ll be asked to sign in when you save.'));
     }
+    // Nothing for a signed-out visitor: the "Sign in to save" button says what happens,
+    // at the moment they go to do it.
 
     // Just the two builders — history, profile, and sign-out live in the header menu.
     // Switching game used to happen here. It now happens in the page's own tab bar —
-    // Phish Bingo and Set List Bets are the first two things a visitor sees — so a second
+    // Phish Bingo and Setlist Bets are the first two things a visitor sees — so a second
     // pair of buttons doing the same job would just be two controls fighting over one
     // piece of state.
     const modes = el('div', 'p-modes');
@@ -649,12 +650,11 @@ function initPredictor(mount, A, opts = {}) {
       wrap.appendChild(col);
     }
     mount.appendChild(wrap);
-    // The full rules moved behind the "How scoring works" button — as a paragraph under
-    // the builder they were the kind of thing people scroll past. What stays is the one
-    // fact you need while dragging songs around.
+    // Kept, unlike the rest of the guidance: which entry counts as the opener and which
+    // as the closer changes the score, and there is no way to work it out from the UI.
     mount.appendChild(el('div', 'hint',
       'Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder.'));
-    const save = el('button', 'p-btn', user ? 'Save setlist prediction' : 'Sign in to save prediction');
+    const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
     save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
       try {
         await api('/api/predictions', 'POST', { showdate, type: 'setlist', payload: build });
@@ -671,9 +671,11 @@ function initPredictor(mount, A, opts = {}) {
     const checked = live ? (livePrediction.liveChecked || Array(25).fill(false)) :
       scored ? livePrediction.result.checked : null;
 
-    if (live) mount.appendChild(el('div', 'hint', 'Card saved — live mode: tap squares as songs are played. Five in a line (row, column, or diagonal) declares BINGO. Change the card by editing squares below and re-saving.'));
+    // Live mode keeps a line, because "your card is saved and these squares are now
+    // tappable" is a state change nothing else announces. The build-mode instructions are
+    // gone: this crowd knows what a bingo card is.
+    if (live) mount.appendChild(el('div', 'hint', 'Card saved. Tap squares as they’re played.'));
     else if (scored) mount.appendChild(el('div', 'hint', `Scored: ${livePrediction.result.hitCount}/24 squares hit${livePrediction.result.bingo ? ' — BINGO!' : ''}`));
-    else mount.appendChild(el('div', 'hint', 'Fill the grid from the catalog (each song once), donut in the middle is free. Save, then check squares off live during the show.'));
 
     const banner = el('div', 'p-bingo-banner');
     banner.style.display = 'none';
@@ -801,7 +803,7 @@ function initPredictor(mount, A, opts = {}) {
       controls.appendChild(clear);
 
       const btnRow = el('div', 'p-row');
-      const save = el('button', 'p-btn', livePrediction ? 'Re-save card' : (user ? 'Save bingo card' : 'Sign in to save card'));
+      const save = el('button', 'p-btn', livePrediction ? 'Re-bag it' : (user ? 'Bag it, Tag it' : 'Sign in to save'));
       save.addEventListener('click', () => {
         const filled = grid.filter((c, i) => c && i !== FREE).length;
         if (filled < 24) return flash(`Fill all squares first (${filled}/24).`, true);
