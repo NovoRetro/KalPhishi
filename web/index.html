@@ -41,6 +41,12 @@
   .tab { background: none; border: none; font: inherit; color: var(--ink-2); padding: 8px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .tab:hover { color: var(--ink); background: var(--accent-wash); border-radius: 6px 6px 0 0; }
   .tab.active { color: var(--ink); font-weight: 600; border-bottom-color: var(--series-1); }
+  /* Second level, under Data. Pills rather than underlined tabs, so the two rows never
+     read as competing for the same job. */
+  .subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  .subtab { background: var(--surface); border: 1px solid var(--border); border-radius: 99px; font: inherit; font-size: 13px; color: var(--ink-2); padding: 5px 12px; cursor: pointer; }
+  .subtab:hover { color: var(--ink); border-color: var(--baseline); }
+  .subtab.active { color: var(--ink); border-color: var(--series-1); background: var(--accent-wash); font-weight: 600; }
   .pill { display: inline-block; padding: 1px 8px; border: 1px solid var(--border); border-radius: 99px; font-size: 12px; color: var(--ink-2); background: var(--surface); margin-left: 6px; }
   .grid { display: grid; gap: 16px; margin-top: 20px; }
   .cols-2 { grid-template-columns: 1fr 1fr; }
@@ -217,6 +223,7 @@
     .tab { padding: 12px 14px; }
     .p-mode { padding: 12px 14px; }
     .p-btn { padding: 12px 18px; }
+    .subtab { padding: 12px 14px; }
   }
   .p-bingo-banner { margin: 12px 0; padding: 12px; border: 2px solid var(--series-2); border-radius: 10px; text-align: center; font-size: 16px; }
   .p-histrow { padding: 5px 0; border-bottom: 1px solid var(--grid); }
@@ -356,6 +363,7 @@
     <div class="sub" id="nextshow"></div>
   </header>
   <nav class="tabs" id="tabs"></nav>
+  <nav class="subtabs" id="subtabs" style="display:none"></nav>
   <div class="grid" id="app"></div>
   <footer class="footer">Powered by <span class="nr">NovoRetro</span></footer>
 </div>
@@ -838,29 +846,42 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     });
     pred.appendChild(row);
   }
-  pred.dataset.section = 'Prediction';
+  pred.dataset.section = 'Predicted Setlist';
 
-  // ---- user predictor
+  // Both read by renderTabs, and both reachable from initPredictor's onModeChange before
+  // the tab code below runs — see the note at the initPredictor call.
+  let predictor = null;
+  let menuMode = null; // 'history' | 'profile' while the account menu owns the view
+
+  // ---- user predictor. Not filed under a data section: it IS the two game tabs, and the
+  // tab bar shows or hides it directly.
   const up = el('div', 'card card-overflow');
-  up.dataset.section = 'Prediction';
+  up.dataset.games = '1';
 
-  // ---- track record: how past predictions actually did
+  // ---- track record: how past predictions actually did.
+  // Sits with the predicted setlist rather than getting its own tab — it is the same
+  // subject, the model's calls, seen after the fact instead of before.
   const track = el('div', 'card card-overflow');
-  track.dataset.section = 'Prediction';
+  track.dataset.section = 'Predicted Setlist';
 
-  // Order on the Prediction tab: what you *do* first (build a setlist or bingo card),
-  // then the model's call for the same show, then how it has done historically.
   app.appendChild(up);
   app.appendChild(pred);
   app.appendChild(track);
-  initPredictor(up, A);
+  // Declared with `let`, above the call, on purpose: onModeChange can fire from inside
+  // initPredictor, and renderTabs reads both. A `const` after the call would leave them in
+  // the temporal dead zone and throw on the way past.
+  predictor = initPredictor(up, A, {
+    // History and profile are reached from the account menu, which does not go through
+    // the tab bar — so the page hears about them and shows the card with no game selected.
+    onModeChange: m => { menuMode = (m === 'history' || m === 'profile') ? m : null; renderTabs(); },
+  });
   renderTrackRecord(track);
 
   for (const card of [up, pred, track]) makeCollapsible(card);
 
   // ---- horizontal slice
   const h = el('div', 'grid cols-2');
-  h.dataset.section = 'Rotation';
+  h.dataset.section = 'Song Rotation';
 
   const due = el('div', 'card');
   due.appendChild(el('h2', null, 'Due back up <span class="hint">— in tour rotation, repeat window open</span>'));
@@ -886,7 +907,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   app.appendChild(h);
 
   const h2 = el('div', 'grid cols-2');
-  h2.dataset.section = 'Rotation';
+  h2.dataset.section = 'Song Rotation';
 
   const rot = el('div', 'card');
   rot.appendChild(el('h2', null, 'Tour rotation <span class="hint">— most-played songs this tour</span>'));
@@ -920,7 +941,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
 
   // ---- album slice
   const h3 = el('div', 'grid cols-2');
-  h3.dataset.section = 'Albums';
+  h3.dataset.section = 'Album Coverage';
 
   const alb = el('div', 'card');
   alb.appendChild(el('h2', null, `Album representation <span class="hint">— tour plays by studio album (${A.albums.attributedPlays} of ${A.albums.attributedPlays + A.albums.unattributedPlays} plays attributed)</span>`));
@@ -1097,7 +1118,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
 
   // ---- candidates table
   const c = el('div', 'card');
-  c.dataset.section = 'Candidates';
+  c.dataset.section = 'Ranked Songs';
   c.appendChild(el('h2', null, 'All candidates <span class="hint">— ranked by combined horizontal + vertical score</span>'));
   c.appendChild(tableOf(
     ['#', 'Song', 'Score', 'Era freq', 'Shows since', 'Cadence', 'Tour plays', 'Why'],
@@ -1109,25 +1130,56 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   app.appendChild(c);
 
   // ---- tabs
+  //
+  // The games come first, because they are why the app gets opened. Everything the model
+  // knows sits behind Data, subdivided — it used to all render at once on an "All Data"
+  // default, which was 45,000px and 55 screens of scrolling on a phone before a visitor
+  // had done anything.
   const tabBar = document.getElementById('tabs');
+  const subBar = document.getElementById('subtabs');
   const sections = [...app.children];
-  const tabNames = ['All Data', ...new Set(sections.map(s => s.dataset.section))];
-  // Opens on Prediction, not All Data. All Data renders every card at once: 45,000px on a
-  // phone, 55 screens of scrolling, most of it the venue slice and the candidate list.
-  // Prediction is 2,700px — the predictor, the model's call, and the track record, which
-  // is the whole of what a first-time visitor needs. Everything else is one tap away.
-  const DEFAULT_TAB = 'Prediction';
-  let activeTab = tabNames.includes(DEFAULT_TAB) ? DEFAULT_TAB : 'All Data';
+  const GAME_TABS = [
+    { name: 'Phish Bingo', mode: 'bingo' },
+    { name: 'Set List Bets', mode: 'setlist' },
+  ];
+  const DATA_TABS = ['Predicted Setlist', 'Song Rotation', 'Album Coverage', 'Venue History', 'Ranked Songs'];
+  let activeTab = GAME_TABS[0].name;
+  let activeDataTab = DATA_TABS[0];
+
   function renderTabs() {
+    const game = GAME_TABS.find(g => g.name === activeTab);
+    // History and profile come from the account menu and belong to no tab, so while one is
+    // open the card shows and no game reads as selected.
+    const showingGames = !!game || !!menuMode;
+
     tabBar.innerHTML = '';
-    for (const name of tabNames) {
-      const b = el('button', 'tab' + (name === activeTab ? ' active' : ''), esc(name));
-      b.addEventListener('click', () => { activeTab = name; renderTabs(); });
+    for (const { name } of GAME_TABS) {
+      const b = el('button', 'tab' + (name === activeTab && !menuMode ? ' active' : ''), esc(name));
+      b.addEventListener('click', () => { activeTab = name; menuMode = null; renderTabs(); });
       tabBar.appendChild(b);
     }
-    for (const s of sections) {
-      s.style.display = (activeTab === 'All Data' || s.dataset.section === activeTab) ? '' : 'none';
+    const dataBtn = el('button', 'tab' + (activeTab === 'Data' ? ' active' : ''), 'Data');
+    dataBtn.addEventListener('click', () => { activeTab = 'Data'; menuMode = null; renderTabs(); });
+    tabBar.appendChild(dataBtn);
+
+    subBar.innerHTML = '';
+    subBar.style.display = activeTab === 'Data' ? '' : 'none';
+    if (activeTab === 'Data') {
+      for (const name of DATA_TABS) {
+        const b = el('button', 'subtab' + (name === activeDataTab ? ' active' : ''), esc(name));
+        b.addEventListener('click', () => { activeDataTab = name; renderTabs(); });
+        subBar.appendChild(b);
+      }
     }
+
+    for (const s of sections) {
+      s.style.display = s.dataset.games
+        ? (showingGames ? '' : 'none')
+        : (activeTab === 'Data' && s.dataset.section === activeDataTab ? '' : 'none');
+    }
+    // Only steer the predictor when a game tab is what selected it — otherwise opening
+    // History from the menu would immediately be overwritten by the tab it left behind.
+    if (game && !menuMode && predictor) predictor.setMode(game.mode);
   }
   renderTabs();
 

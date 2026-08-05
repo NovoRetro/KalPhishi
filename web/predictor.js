@@ -1,6 +1,6 @@
 // Kalphishi user predictor: setlist builder + PHISH bingo + history.
 // Called from index.html: initPredictor(containerEl, analysis)
-function initPredictor(mount, A) {
+function initPredictor(mount, A, opts = {}) {
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // Date formatting is owned by index.html so both files render dates identically.
@@ -130,8 +130,14 @@ function initPredictor(mount, A) {
   // ---------- root render ----------
   // The header hamburger owns account actions; it reflects whatever state the
   // predictor last rendered.
+  // Which game is showing is now the page's decision, not the predictor's — the top-level
+  // tabs are Phish Bingo and Set List Bets. The predictor still owns history and profile,
+  // which the account menu reaches directly, so it reports back when it moves to one of
+  // those and the page can surface the card whichever tab was selected.
+  const notifyMode = () => { if (typeof opts.onModeChange === 'function') opts.onModeChange(mode); };
+
   const menuActions = {
-    goTo(m) { mode = m; render(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
+    goTo(m) { mode = m; render(); notifyMode(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
     async signOut() {
       await api('/api/logout', 'POST', {});
       user = null; authPrompt = null; attendedDates = new Set();
@@ -163,11 +169,21 @@ function initPredictor(mount, A) {
   function render() {
     mount.innerHTML = '';
     if (window.KalphishiMenu) window.KalphishiMenu.update(user, menuActions);
-    mount.appendChild(el('h2', null, 'Predictor <span class="hint">— build your own call for the next show</span>'));
+    // The heading names the game being played. The tab already says which one, but the
+    // card is scrolled to on its own from the account menu, where the tab bar is out of view.
+    const HEADINGS = {
+      bingo: 'PHISH Bingo <span class="hint">— five in a line, called before the show</span>',
+      setlist: 'Set List Bets <span class="hint">— build your own call for the next show</span>',
+      history: 'My history <span class="hint">— every prediction you have made</span>',
+      profile: 'Profile',
+    };
+    mount.appendChild(el('h2', null, HEADINGS[mode] || HEADINGS.setlist));
     if (!user && authPrompt) renderAuthPanel();
     else if (window.KalphishiAuthModal) window.KalphishiAuthModal.hide();
     if (user && user.needsEmail) return renderLinkEmail();
-    if (!user && (mode === 'history' || mode === 'profile')) mode = 'setlist';
+    // Signing out of history or profile drops back to a game, and the page has to hear
+    // about it or its tab bar would still be showing neither game selected.
+    if (!user && (mode === 'history' || mode === 'profile')) { mode = 'setlist'; notifyMode(); }
     renderTopBar();
     const builderStart = mount.childElementCount;
     if (mode === 'setlist') renderSetlistBuilder();
@@ -411,14 +427,13 @@ function initPredictor(mount, A) {
     }
 
     // Just the two builders — history, profile, and sign-out live in the header menu.
+    // Switching game used to happen here. It now happens in the page's own tab bar —
+    // Phish Bingo and Set List Bets are the first two things a visitor sees — so a second
+    // pair of buttons doing the same job would just be two controls fighting over one
+    // piece of state.
     const modes = el('div', 'p-modes');
-    for (const [key, label] of [['setlist', 'Setlist'], ['bingo', 'PHISH Bingo']]) {
-      const b = el('button', 'p-mode' + (mode === key ? ' active' : ''), label);
-      b.addEventListener('click', () => { mode = key; render(); });
-      modes.appendChild(b);
-    }
-    // Lives beside the mode tabs rather than in the builder, so it covers both games and
-    // — since the lock sweep only disables the builder — stays readable after a show
+    // Kept beside the tabs rather than in the builder, so it covers both games and —
+    // since the lock sweep only disables the builder — stays readable after a show
     // starts, which is exactly when someone wants to know how they were scored.
     const help = el('button', 'p-mode' + (helpOpen ? ' active' : ''), helpOpen ? '✕ Scoring' : '❓ How scoring works');
     help.addEventListener('click', () => { helpOpen = !helpOpen; render(); });
@@ -1118,4 +1133,14 @@ function initPredictor(mount, A) {
     .then(j => { user = j.user; return loadExisting(); })
     .catch(() => { localStorage.removeItem('kalphish-user'); render(); })
     .then(() => redeemPendingInvite());
+
+  // The page drives which game is showing; the predictor still owns history and profile.
+  return {
+    setMode(m) {
+      if (mode === m) return;
+      mode = m;
+      render();
+    },
+    getMode: () => mode,
+  };
 }
