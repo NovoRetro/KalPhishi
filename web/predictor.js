@@ -142,9 +142,12 @@ function initPredictor(mount, A, opts = {}) {
   // which the account menu reaches directly, so it reports back when it moves to one of
   // those and the page can surface the card whichever tab was selected.
   const notifyMode = () => { if (typeof opts.onModeChange === 'function') opts.onModeChange(mode); };
+  // Distinct from authPrompt.onAuthed below — that's the deferred save that survives a
+  // sign-in prompted mid-action; this just tells the page "someone arrived."
+  const notifySignedIn = () => { if (typeof opts.onSignedIn === 'function') opts.onSignedIn(); };
 
   const menuActions = {
-    goTo(m) { mode = m; render(); notifyMode(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
+    goTo(m) { mode = m; actionsOpen = false; render(); notifyMode(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
     async signOut() {
       await api('/api/logout', 'POST', {});
       user = null; authPrompt = null; attendedDates = new Set();
@@ -191,6 +194,19 @@ function initPredictor(mount, A, opts = {}) {
     const head = el('div', 'p-headrow');
     head.appendChild(el('h2', null, HEADINGS[mode] || HEADINGS.setlist));
     const L = lockInfo();
+    // The saved/scored state rides the heading row beside the game's name instead of
+    // taking a line of its own above the board. It is a status, not an instruction, and
+    // every row above the card is a row between arriving and playing.
+    if (mode === 'bingo' && livePrediction) {
+      head.appendChild(el('span', 'p-headnote', livePrediction.result
+        ? `Scored: ${livePrediction.result.hitCount}/24 squares hit${livePrediction.result.bingo ? ' — BINGO!' : ''}`
+        // Squares only become tappable at the lock, so the instruction to tap them only
+        // appears then. Before that the useful thing to say is the opposite: it is saved,
+        // and it is still yours to change.
+        : L.locked
+          ? 'Tap squares as they’re played.'
+          : 'Card saved — you can still change it until it locks.'));
+    }
     if (L.known && (mode === 'setlist' || mode === 'bingo')) {
       const clock = L.local ? `${L.local} local` : 'showtime';
       head.appendChild(L.locked
@@ -313,6 +329,7 @@ function initPredictor(mount, A, opts = {}) {
           }
           const j = await api(tab === 'login' ? '/api/login' : '/api/register', 'POST', body);
           user = j.user;
+          notifySignedIn();
           const after = authPrompt.onAuthed;
           authPrompt = null;
           // A pre-email account must link an address first; hold the pending save and
@@ -357,6 +374,49 @@ function initPredictor(mount, A, opts = {}) {
   // reads them. As a table with a worked example they are actually legible, and folding
   // them behind a button keeps the builder itself uncluttered.
   let helpOpen = false;
+  // Held out here for the same reason as swapFrom: render() rebuilds the control row, so
+  // an open menu has to survive being redrawn.
+  let actionsOpen = false;
+
+  // One button in place of a row of four. Randomize, the model's card, Clear and the
+  // rules are all things you reach for occasionally; spread across the row they competed
+  // for attention with the one button that matters, which is Save.
+  //
+  // items: [label, onPick, { keepLive }]. keepLive marks an item that survives the lock —
+  // see the sweep in render(). The Actions button itself always survives, or a locked show
+  // would put the scoring rules out of reach, which is exactly when they get read.
+  function actionsMenu(items) {
+    const wrap = el('div', 'p-actions');
+    const btn = el('button', 'p-btn p-btn-alt p-keep-live', 'Actions ▾');
+    btn.setAttribute('aria-haspopup', 'menu');
+    btn.setAttribute('aria-expanded', String(actionsOpen));
+    // stopPropagation so the close-on-outside-click handler does not immediately undo
+    // this — by the time it ran, render() would have detached the element it fired on.
+    btn.addEventListener('click', ev => { ev.stopPropagation(); actionsOpen = !actionsOpen; render(); });
+    wrap.appendChild(btn);
+    if (actionsOpen) {
+      const menu = el('div', 'p-actions-menu');
+      menu.setAttribute('role', 'menu');
+      for (const [label, onPick, o = {}] of items) {
+        const b = el('button', 'p-actions-item' + (o.keepLive ? ' p-keep-live' : ''), esc(label));
+        b.setAttribute('role', 'menuitem');
+        b.addEventListener('click', ev => { ev.stopPropagation(); actionsOpen = false; onPick(); });
+        menu.appendChild(b);
+      }
+      wrap.appendChild(menu);
+    }
+    return wrap;
+  }
+  // Bound once, not per render: a listener added inside render() would be re-added on
+  // every redraw and never removed.
+  document.addEventListener('click', () => {
+    if (!actionsOpen) return;
+    actionsOpen = false;
+    render();
+  });
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && actionsOpen) { actionsOpen = false; render(); }
+  });
 
   function scoringHelp() {
     const box = el('div', 'p-help');
@@ -440,24 +500,24 @@ function initPredictor(mount, A, opts = {}) {
 
   function renderTopBar() {
     const bar = el('div', 'p-topbar');
-    if (user) {
+    // On History and Profile the account IS the subject, so it stays. On a game it is
+    // furniture: your own name and totals are not news to you, and they sat directly
+    // between the heading and the board.
+    // Nothing for a signed-out visitor either way: the "Sign in to save" button says what
+    // happens, at the moment they go to do it.
+    if (user && (mode === 'history' || mode === 'profile')) {
       const s = user.stats || {};
       const summary = statSummary(s);
       const statText = ` · ${s.predictions ?? 0} predictions, ${s.scored ?? 0} scored${summary ? ' · ' + summary : ''}`;
       bar.appendChild(el('span', null, `<span class="p-avatar">${esc(avatarOf(user))}</span> <b>${esc(displayName(user))}</b><span class="hint">${esc(statText)}</span>`));
     }
-    // Nothing for a signed-out visitor: the "Sign in to save" button says what happens,
-    // at the moment they go to do it.
 
-    // Game switching moved to the page's tab bar and "How scoring works" moved down to
-    // the builder's own control row, beside Randomize and Play It Safe.
-    const showRow = el('div', 'hint', `Predicting: `);
-    const dateInput = el('input', 'ta-input p-date');
-    dateInput.value = showdate;
-    dateInput.addEventListener('change', () => { showdate = dateInput.value.trim(); loadExisting(); });
-    showRow.appendChild(dateInput);
-    showRow.appendChild(el('span', null, ` (next show: ${esc(fmtDate(A.nextShow.date))} — ${esc(A.nextShow.venue)})`));
-    bar.appendChild(showRow);
+    // The show picker is gone. `showdate` stays pinned to A.nextShow.date, which is what
+    // it was defaulted to and what all but a handful of visits would ever have set it to —
+    // a date field and a restatement of the show were two rows of chrome guarding a choice
+    // nobody was making. The countdown on the heading row already names the show's timing,
+    // and the model's own Predicted Setlist tab names the venue.
+    // Restoring it means putting the input back here; nothing downstream assumed it.
 
     // The lock countdown now rides the heading row — see render().
 
@@ -491,7 +551,9 @@ function initPredictor(mount, A, opts = {}) {
       });
       bar.appendChild(att);
     }
-    mount.appendChild(bar);
+    // On a game with the toggle off this bar is now empty, and .p-topbar carries a bottom
+    // margin — appending it anyway would leave the blank row we just removed.
+    if (bar.childElementCount) mount.appendChild(bar);
   }
 
   async function loadExisting() {
@@ -556,33 +618,43 @@ function initPredictor(mount, A, opts = {}) {
     const usedSlugs = () => new Set([...build.set1, ...build.set2, ...build.encore].map(s => s.slug));
 
     const controls = el('div', 'p-row');
-    const rand = el('button', 'p-btn p-btn-alt', '🎲 Randomize');
-    rand.title = 'Replace the draft with a random setlist (weighted toward frequently played songs) — up to 10 per set, up to 4 in the encore';
-    rand.addEventListener('click', () => {
-      const used = new Set();
-      const s1n = 8 + Math.floor(Math.random() * 3);              // 8–10
-      const s2n = 7 + Math.floor(Math.random() * 4);              // 7–10
-      const en = [1, 1, 2, 2, 2, 3, 4][Math.floor(Math.random() * 7)]; // usually 1–2, capped at 4
-      build = {
-        set1: randomSongs(s1n, used),
-        set2: randomSongs(s2n, used),
-        encore: randomSongs(en, used),
-      };
-      render();
-    });
-    controls.appendChild(rand);
-    const safe = el('button', 'p-btn p-btn-alt', '🛟 Play It Safe');
-    safe.title = "Replace the draft with the model's predicted setlist for this show";
-    safe.addEventListener('click', () => {
-      build = {
-        set1: A.prediction.set1.map(s => ({ slug: s.slug, name: s.name })),
-        set2: A.prediction.set2.map(s => ({ slug: s.slug, name: s.name })),
-        encore: A.prediction.encore.map(s => ({ slug: s.slug, name: s.name })),
-      };
-      render();
-    });
-    controls.appendChild(safe);
-    controls.appendChild(scoringHelpButton());
+    // Same Actions menu as bingo, minus Clear — the setlist has no equivalent, since its
+    // lists are emptied a row at a time rather than as a board.
+    controls.appendChild(actionsMenu([
+      ['🎲 Randomize', () => {
+        const used = new Set();
+        const s1n = 8 + Math.floor(Math.random() * 3);              // 8–10
+        const s2n = 7 + Math.floor(Math.random() * 4);              // 7–10
+        const en = [1, 1, 2, 2, 2, 3, 4][Math.floor(Math.random() * 7)]; // usually 1–2, capped at 4
+        build = {
+          set1: randomSongs(s1n, used),
+          set2: randomSongs(s2n, used),
+          encore: randomSongs(en, used),
+        };
+        render();
+      }],
+      ["🛟 Kalphishi's Prediction", () => {
+        build = {
+          set1: A.prediction.set1.map(s => ({ slug: s.slug, name: s.name })),
+          set2: A.prediction.set2.map(s => ({ slug: s.slug, name: s.name })),
+          encore: A.prediction.encore.map(s => ({ slug: s.slug, name: s.name })),
+        };
+        render();
+      }],
+      [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
+        () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
+    ]));
+    // Save rides the control row beside Actions rather than sitting alone under the
+    // builder.
+    const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
+    save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
+      try {
+        await api('/api/predictions', 'POST', { showdate, type: 'setlist', payload: build });
+        flash('Saved.');
+        window.KalphishiRig?.peak();
+      } catch (e) { flash(e.message, true); }
+    }));
+    controls.appendChild(save);
     mount.appendChild(controls);
     if (helpOpen) mount.appendChild(scoringHelp());
 
@@ -666,31 +738,42 @@ function initPredictor(mount, A, opts = {}) {
     // as the closer changes the score, and there is no way to work it out from the UI.
     mount.appendChild(el('div', 'hint',
       'Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder.'));
-    const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
-    save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
-      try {
-        await api('/api/predictions', 'POST', { showdate, type: 'setlist', payload: build });
-        flash('Saved.');
-      } catch (e) { flash(e.message, true); }
-    }));
-    mount.appendChild(el('div', 'p-saverow')).appendChild(save);
   }
 
   // ---------- bingo ----------
+  // Has the working card drifted from the one on the server? Compares slugs rather than
+  // the song objects: the slug is the identity, and a stored payload built by an older
+  // version of this file need not hold the same shape of object to still mean the same
+  // card. Position matters — a swap changes nothing about which songs are on the card but
+  // is very much an unsaved change.
+  function gridDiffersFromSaved() {
+    const saved = livePrediction && livePrediction.payload && livePrediction.payload.grid;
+    if (!Array.isArray(saved)) return false;
+    for (let i = 0; i < 25; i++) {
+      if ((grid[i] ? grid[i].slug : null) !== (saved[i] ? saved[i].slug : null)) return true;
+    }
+    return false;
+  }
+
   function renderBingo() {
     const scored = livePrediction && livePrediction.result;
-    const live = livePrediction && !scored;
+    // Checking squares off is something you do *during* the show, so the lock starts it —
+    // not the save. Saving used to end the editing phase outright, which meant a card
+    // committed days early could not be touched again even though the show had not
+    // started and the server would happily have taken an overwrite. Now a saved card
+    // stays a draft until the downbeat: editable, re-savable, and restorable from the last
+    // save. This is also why the lock sweep in render() leaves bingo cells alone — by the
+    // time cells are tappable, tapping is the only thing they should do.
+    const live = !!livePrediction && !scored && lockInfo().locked;
     const checked = live ? (livePrediction.liveChecked || Array(25).fill(false)) :
       scored ? livePrediction.result.checked : null;
 
-    // Live mode keeps a line, because "your card is saved and these squares are now
-    // tappable" is a state change nothing else announces. The build-mode instructions are
-    // gone: this crowd knows what a bingo card is.
-    if (live) mount.appendChild(el('div', 'hint', 'Card saved. Tap squares as they’re played.'));
-    else if (scored) mount.appendChild(el('div', 'hint', `Scored: ${livePrediction.result.hitCount}/24 squares hit${livePrediction.result.bingo ? ' — BINGO!' : ''}`));
+    // The live and scored lines moved up onto the heading row — see render(). The
+    // build-mode instructions are gone entirely: this crowd knows what a bingo card is.
+    //
     // Shown only while a square is armed — it says what the highlight means and how to get
     // out of it, which is the one moment that is not self-evident.
-    else if (swapFrom !== null && grid[swapFrom]) {
+    if (!live && !scored && swapFrom !== null && grid[swapFrom]) {
       mount.appendChild(el('div', 'hint',
         `Moving <b>${esc(grid[swapFrom].name)}</b> — tap another square to swap, or tap it again to cancel.`));
     }
@@ -862,9 +945,7 @@ function initPredictor(mount, A, opts = {}) {
     }
 
     if (!scored) {
-      const rand = el('button', 'p-btn p-btn-alt', '🎲 Randomize');
-      rand.title = 'Fill every unlocked square with a random song (weighted toward frequently played ones)';
-      rand.addEventListener('click', () => {
+      const randomize = () => {
         const keep = new Set(grid.filter((c, i) => c && locks[i] && i !== FREE).map(c => c.slug));
         // weight by play count so cards stay plausible; +1 so rarities are possible
         const pool = songs.filter(s => !keep.has(s.slug));
@@ -884,12 +965,9 @@ function initPredictor(mount, A, opts = {}) {
           grid[i] = draw();
         }
         render();
-      });
-      controls.appendChild(rand);
+      };
 
-      const safe = el('button', 'p-btn p-btn-alt', '🛟 Play It Safe');
-      safe.title = "Fill unlocked squares from the model's predicted setlist for this show, topped up with its highest-ranked candidates";
-      safe.addEventListener('click', () => {
+      const fillFromModel = () => {
         const keep = new Set(grid.filter((c, i) => c && locks[i] && i !== FREE).map(c => c.slug));
         const seq = [];
         const pushUnique = s => {
@@ -903,23 +981,52 @@ function initPredictor(mount, A, opts = {}) {
           grid[i] = seq[k++] || null;
         }
         render();
-      });
-      controls.appendChild(safe);
+      };
 
-      const clear = el('button', 'p-btn p-btn-alt', '🧹 Clear');
-      clear.title = 'Empty every unlocked square (the donut and locked squares are left alone)';
-      clear.addEventListener('click', () => {
+      const clearCard = () => {
         for (let i = 0; i < 25; i++) {
           if (i === FREE || locks[i]) continue;
           grid[i] = null;
         }
         render();
-      });
-      controls.appendChild(clear);
-      controls.appendChild(scoringHelpButton());
+      };
 
-      const btnRow = el('div', 'p-saverow');
-      const save = el('button', 'p-btn', livePrediction ? 'Re-bag it' : (user ? 'Bag it, Tag it' : 'Sign in to save'));
+      controls.appendChild(actionsMenu([
+        ['🎲 Randomize', randomize],
+        ["🛟 Kalphishi's Prediction", fillFromModel],
+        ['🧹 Clear', clearCard],
+        [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
+          () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
+      ]));
+
+      // The way out of a mis-click. Clear and Randomize both overwrite 24 squares in one
+      // press, and until the show locks the saved card is the only copy that is not in
+      // this tab — without this, one stray press means rebuilding it by hand.
+      //
+      // Only shown once the board actually differs from the save. Offering it against an
+      // unchanged card is offering to do nothing, and a button that is always there stops
+      // being read as "you have unsaved changes" — which is the whole signal it carries.
+      if (livePrediction && gridDiffersFromSaved()) {
+        const restore = el('button', 'p-btn p-btn-alt', '↩ Reload last save');
+        restore.title = 'Put every square back to the card you last saved';
+        restore.addEventListener('click', () => {
+          // slice() so later edits mutate the copy, not the stored prediction — reloading
+          // twice has to give the same card both times.
+          grid = livePrediction.payload.grid.slice();
+          locks = Array(25).fill(false);
+          swapFrom = null;
+          render();
+          flash('Reloaded your last saved card.');
+        });
+        controls.appendChild(restore);
+      }
+
+      // Save rides the control row with the other actions rather than sitting alone under
+      // the grid. Appended before the help button, which pushes itself right.
+      // Same label whether or not a card is already saved: re-saving is the same act, and
+      // now that a save no longer ends the editing phase it is one people will do more
+      // than once. Matches the setlist builder's button exactly.
+      const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
       save.addEventListener('click', () => {
         const filled = grid.filter((c, i) => c && i !== FREE).length;
         if (filled < 24) return flash(`Fill all squares first (${filled}/24).`, true);
@@ -929,17 +1036,18 @@ function initPredictor(mount, A, opts = {}) {
             await loadExisting();
             mode = 'bingo';
             flash('Card saved — live mode on.');
+            window.KalphishiRig?.peak();
           } catch (e) { flash(e.message, true); }
         });
       });
-      btnRow.appendChild(save);
-      mount.appendChild(btnRow);
+      controls.appendChild(save);
     }
 
     function declareBingo() {
       banner.innerHTML = '🍩🍩🍩 <b>BINGO!</b> Five in a line — you win the donut. 🍩🍩🍩';
       banner.style.display = '';
       banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      window.KalphishiRig?.peak();
     }
     // re-show banner if line already complete on render
     if (live && checked && bingoLineClient(checked)) { banner.innerHTML = '🍩🍩🍩 <b>BINGO!</b> Five in a line — you win the donut. 🍩🍩🍩'; banner.style.display = ''; }
@@ -1267,6 +1375,8 @@ function initPredictor(mount, A, opts = {}) {
     setMode(m) {
       if (mode === m) return;
       mode = m;
+      // A menu left open on Bingo must not reappear over Setlist Bets.
+      actionsOpen = false;
       render();
     },
     getMode: () => mode,

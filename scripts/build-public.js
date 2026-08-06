@@ -3,6 +3,7 @@
 // cannot be served because it is never deployed.
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const root = path.join(__dirname, '..');
 const pub = path.join(root, 'public');
@@ -12,6 +13,7 @@ const pub = path.join(root, 'public');
 const ALLOW = [
   ['web/index.html', 'index.html'],
   ['web/reorder.js', 'web/reorder.js'],
+  ['web/relisten.js', 'web/relisten.js'],
   ['web/predictor.js', 'web/predictor.js'],
   ['data/analysis.json', 'data/analysis.json'],
   ['data/history.json', 'data/history.json'],
@@ -40,6 +42,25 @@ for (const [rel, published] of ALLOW) {
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.copyFileSync(src, dest);
 }
+
+// Stamp the script tags with a hash of what they actually contain. The browser caches
+// /web/predictor.js hard enough that an already-open tab keeps the old script through a
+// normal reload — which during development reads as "my change did nothing", and after a
+// deploy means a player can be running last week's scoring against this week's server.
+// The hash only changes when the file does, so a rebuild that changes nothing re-serves
+// from cache exactly as before.
+const SCRIPTS = ['web/reorder.js', 'web/relisten.js', 'web/predictor.js'];
+const indexPath = path.join(pub, 'index.html');
+let index = fs.readFileSync(indexPath, 'utf8');
+for (const rel of SCRIPTS) {
+  const hash = crypto.createHash('sha256')
+    .update(fs.readFileSync(path.join(pub, rel))).digest('hex').slice(0, 10);
+  const before = index;
+  index = index.replace(`src="/${rel}"`, `src="/${rel}?v=${hash}"`);
+  // A silent no-op here would quietly reinstate the staleness this exists to prevent.
+  if (index === before) throw new Error(`no <script src="/${rel}"> to stamp in index.html`);
+}
+fs.writeFileSync(indexPath, index);
 
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e =>
   e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
