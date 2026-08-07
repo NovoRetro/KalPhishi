@@ -1,0 +1,273 @@
+// Listen to a past show, or to the best-loved version of a song.
+//
+// Two upstreams, and they are not interchangeable:
+//   · Relisten (api.relisten.net) indexes a whole SHOW by date.
+//   · phish.in (api/v2) can rank every performance of one SONG by likes, which is what
+//     "highest rated version" means here — a fan vote, not a critic's.
+// Either way phish.in hosts the bytes, and the recordings are fan-taped audience sources
+// published under Phish's official taping policy, which permits sharing for
+// non-commercial purposes only. Three consequences are deliberate and should not be
+// quietly undone:
+//
+//   1. This only ever attaches to a show or song reference on the Data side. It is not
+//      ambient background audio, and it must not appear on, or be bundled with, anything
+//      paid.
+//   2. Nothing autoplays. Every stream is one deliberate press, which keeps the draw on
+//      phish.in's privately funded bandwidth proportional to actual listening — and is
+//      required anyway, since browsers block autoplay with sound.
+//   3. Credit renders with the player itself, not in a footer someone has to go find, and
+//      names whichever upstreams actually supplied that panel.
+//
+// No API key on either, and both send permissive CORS headers, so this is plain fetch +
+// <audio> with no dependency and no server involvement.
+(function () {
+  const RELISTEN = 'https://api.relisten.net/api/v2/artists/phish/shows/';
+  const PHISHIN = 'https://phish.in/api/v2/tracks';
+
+  const el = (tag, cls, html) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) e.innerHTML = html;
+    return e;
+  };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // phish.in lowercases a title and replaces every run of non-alphanumerics with a dash,
+  // so an apostrophe becomes a SEPARATOR rather than vanishing: "Wolfman's Brother" is
+  // wolfman-s-brother there and wolfmans-brother in our own data. Deriving from the title
+  // rather than reusing our slug is what makes these agree — checked against the top 40
+  // candidates, where the derived form matched all 40 and our own slug missed one.
+  const slugify = n => String(n).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  const mmss = s => {
+    if (s == null) return '';
+    const m = Math.floor(s / 60);
+    return `${m}:${String(Math.round(s - m * 60)).padStart(2, '0')}`;
+  };
+
+  // Cached because these panels are re-opened constantly — the track record redraws its
+  // detail on every arrow-key step, and a table row can be clicked repeatedly.
+  const showCache = new Map();
+  const songCache = new Map();
+
+  function loadShow(showdate) {
+    if (!showCache.has(showdate)) {
+      showCache.set(showdate, fetch(RELISTEN + encodeURIComponent(showdate))
+        .then(r => (r.ok ? r.json() : null))
+        .then(j => {
+          if (!j || !Array.isArray(j.sources) || !j.sources.length) return null;
+          const tracks = [];
+          for (const set of j.sources[0].sets || []) {
+            for (const t of set.tracks || []) {
+              // Relisten reports seconds.
+              if (t.mp3_url) tracks.push({ title: t.title, mp3: t.mp3_url, secs: t.duration });
+            }
+          }
+          return tracks.length ? { venue: j.venue && j.venue.name, tracks } : null;
+        })
+        .catch(() => null));
+    }
+    return showCache.get(showdate);
+  }
+
+  function loadBest(songName) {
+    const slug = slugify(songName);
+    if (!songCache.has(slug)) {
+      songCache.set(slug, fetch(`${PHISHIN}?song_slug=${encodeURIComponent(slug)}&sort=likes_count:desc&per_page=1`)
+        .then(r => (r.ok ? r.json() : null))
+        .then(j => {
+          const t = j && j.tracks && j.tracks[0];
+          if (!t || !t.mp3_url) return null;
+          return {
+            title: t.title,
+            mp3: t.mp3_url,
+            // phish.in reports MILLISECONDS where Relisten reports seconds. Normalising
+            // here rather than at the call site, because the two look identical until a
+            // 12-minute Tweezer renders as 12 hours.
+            secs: t.duration != null ? t.duration / 1000 : null,
+            date: t.show_date,
+            venue: t.venue_name,
+            location: t.venue_location,
+            set: t.set_name,
+            likes: t.likes_count,
+          };
+        })
+        .catch(() => null));
+    }
+    return songCache.get(slug);
+  }
+
+  // One element for the whole page: starting a track anywhere has to stop whatever was
+  // already playing, and two <audio> tags racing is the usual way that goes wrong.
+  let audio = null;
+
+  // Every live panel repaints on every transport event, NOT just the most recent one.
+  // Each Data sub-tab keeps its own panel in the DOM once opened, so several are alive at
+  // once; a single "current panel" callback meant pressing play in Ranked Songs repainted
+  // whichever panel happened to render last, and the row actually pressed never showed as
+  // playing. Detached panels prune themselves on the next event rather than needing an
+  // explicit teardown, which re-rendering a box into new nodes would otherwise require.
+  const painters = new Set();
+  function player() {
+    if (!audio) {
+      audio = new Audio();
+      audio.preload = 'none';
+      for (const ev of ['play', 'pause', 'ended', 'error']) {
+        audio.addEventListener(ev, () => {
+          for (const p of [...painters]) {
+            if (p.node.isConnected) p.paint();
+            else painters.delete(p);
+          }
+        });
+      }
+    }
+    return audio;
+  }
+
+  function creditFor(showdate, viaRelisten) {
+    const phishin = `<a href="https://phish.in/${encodeURIComponent(showdate)}" target="_blank" rel="noopener noreferrer">phish.in</a>`;
+    const rl = `<a href="https://relisten.net/phish/${encodeURIComponent(showdate)}" target="_blank" rel="noopener noreferrer">Relisten</a>`;
+    return el('div', 'rl-credit',
+      `Audience recording hosted by ${phishin}` +
+      (viaRelisten ? `, indexed by ${rl}` : '') +
+      `. Shared under Phish's taping policy.`);
+  }
+
+  // Renders a row per track and repaints on every transport event. Redrawn wholesale
+  // rather than diffed: the alternative is hand-tracking which row was current across
+  // pause/ended/error, for a list that is at most a few dozen rows.
+  function trackList(tracks, statusEl, describe) {
+    const list = el('div', 'rl-tracks');
+    const a = player();
+    function paint() {
+      list.innerHTML = '';
+      tracks.forEach(t => {
+        const current = a.src === t.mp3;
+        const playing = current && !a.paused && !a.ended;
+        const row = el('button', 'rl-track' + (current ? ' current' : ''),
+          `<span class="rl-ico">${playing ? '&#9646;&#9646;' : '&#9654;'}</span>` +
+          `<span class="rl-title">${esc(t.title)}</span>` +
+          `<span class="rl-dur">${mmss(t.secs)}</span>`);
+        row.addEventListener('click', () => {
+          if (current) { if (playing) a.pause(); else a.play(); return; }
+          a.src = t.mp3;
+          a.play().catch(() => { statusEl.textContent = 'That track would not play.'; });
+        });
+        list.appendChild(row);
+      });
+      const cur = tracks.find(t => a.src === t.mp3);
+      statusEl.textContent = cur
+        ? (a.paused ? `Paused — ${cur.title}` : `Playing — ${cur.title}`)
+        : describe;
+    }
+    painters.add({ node: list, paint });
+    paint();
+    return list;
+  }
+
+  // Titles come from two different catalogues — ours and whoever labelled the recording —
+  // so they agree on the words and not always on the punctuation or casing. Comparing on
+  // letters and digits alone is what makes "Wolfman's Brother" match "Wolfmans Brother".
+  const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+  // wantTrack: optional title to start playing once the show has loaded. It is only ever
+  // set by a click on that specific song, so this is still one press = one stream, not an
+  // autoplay — the press just happened before the fetch it had to wait for.
+  async function renderShow(box, showdate, wantTrack) {
+    box.innerHTML = '';
+    box.appendChild(el('div', 'rl-status', 'Looking for a recording…'));
+    const show = await loadShow(showdate);
+    box.innerHTML = '';
+    // Credit renders on every path, including the empty one — the link out is useful even
+    // when there is no audio, and attribution is not conditional on success.
+    if (!show) {
+      box.appendChild(el('div', 'rl-status', 'No recording available for this show.'));
+      box.appendChild(creditFor(showdate, true));
+      return;
+    }
+    const status = el('div', 'rl-now');
+    box.appendChild(status);
+    box.appendChild(trackList(show.tracks, status,
+      `${show.tracks.length} tracks${show.venue ? ' · ' + show.venue : ''}`));
+    box.appendChild(creditFor(showdate, true));
+
+    if (wantTrack) {
+      const t = show.tracks.find(x => norm(x.title) === norm(wantTrack));
+      if (!t) {
+        // A song in our setlist with no matching track: the recording is incomplete, or
+        // the two catalogues split or named that segue differently. Say so and leave the
+        // rest of the show playable rather than failing the whole panel.
+        status.textContent = `${wantTrack} is not in this recording — pick another track.`;
+        return;
+      }
+      const a = player();
+      a.src = t.mp3;
+      a.play().catch(() => { status.textContent = `${t.title} would not play.`; });
+    }
+  }
+
+  async function renderBest(box, songName) {
+    box.innerHTML = '';
+    box.appendChild(el('div', 'rl-status', `Finding the best-loved ${songName}…`));
+    const best = await loadBest(songName);
+    box.innerHTML = '';
+    if (!best) {
+      box.appendChild(el('div', 'rl-status', `No recording found for ${songName}.`));
+      return;
+    }
+    const where = [best.venue, best.location].filter(Boolean).join(', ');
+    box.appendChild(el('div', 'rl-head',
+      `<b>${esc(songName)}</b> — highest rated version` +
+      (best.likes != null ? ` <span class="rl-likes">${best.likes} likes on phish.in</span>` : '')));
+    box.appendChild(el('div', 'rl-sub',
+      `${esc(best.date || '')}${where ? ' · ' + esc(where) : ''}${best.set ? ' · ' + esc(best.set) : ''}`));
+    const status = el('div', 'rl-now');
+    box.appendChild(status);
+    box.appendChild(trackList([best], status, 'Ready'));
+    // Relisten is not involved in this one — only credit who actually supplied it.
+    box.appendChild(creditFor(best.date || '', false));
+  }
+
+  // Expand-in-place, for card-shaped hosts with room for it (Track Record, Venue History).
+  function attach(host, showdate) {
+    const wrap = el('div', 'rl');
+    host.appendChild(wrap);
+    const open = el('button', 'rl-open', 'Listen to this show');
+    open.title = 'Stream this show from phish.in, via Relisten';
+    open.addEventListener('click', () => {
+      open.remove();
+      const box = el('div', 'rl-box');
+      wrap.appendChild(box);
+      renderShow(box, showdate);
+    });
+    wrap.appendChild(open);
+  }
+
+  // Delegated, for dense hosts where expanding in place would wreck the layout: mark any
+  // trigger inside `container` with data-listen-date or data-listen-song and the panel
+  // opens once, at the bottom of the container, reused by every trigger in it.
+  function bind(container) {
+    let panel = null;
+    container.addEventListener('click', ev => {
+      const t = ev.target.closest('[data-listen-date],[data-listen-song]');
+      if (!t || !container.contains(t)) return;
+      // Some triggers are real anchors. A modified or middle click means "open the link",
+      // so leave it alone and let the browser do exactly that; only the plain click is
+      // ours to intercept.
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+      ev.preventDefault();
+      if (!panel) {
+        panel = el('div', 'rl rl-panel');
+        container.appendChild(panel);
+      }
+      let box = panel.querySelector('.rl-box');
+      if (!box) { box = el('div', 'rl-box'); panel.appendChild(box); }
+      for (const prev of container.querySelectorAll('.rl-chip.on')) prev.classList.remove('on');
+      t.classList.add('on');
+      if (t.dataset.listenDate) renderShow(box, t.dataset.listenDate, t.dataset.listenTrack);
+      else renderBest(box, t.dataset.listenSong);
+    });
+  }
+
+  window.KalphishiListen = { attach, bind, slugify };
+})();

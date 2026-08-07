@@ -7,19 +7,27 @@
 <style>
   :root {
     color-scheme: light;
-    --page: #f9f9f7; --surface: #fcfcfb;
+    --page: #f9f9f7; --surface: #fcfcfb; --card-bg: rgba(252,252,251,0.90);
     --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
     --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
     --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a;
+    --miss: #c9384a; /* results only — the palette had no red, and orange reads as a warning */
     --accent-wash: rgba(42,120,214,0.10);
+    /* Beam palette for the light rig — see the .stage block. Deliberately outside the
+       chart series above: those encode data and must stay stable and readable, these are
+       stage lights and are allowed to be saturated. Weighted violet the way the rig
+       actually is, with green and cyan as the counterpoints. */
+    --beam-1: #8b5cf6; --beam-2: #a855f7; --beam-3: #6d4fd6;
+    --beam-4: #2ee6a8; --beam-5: #38bdf8; --beam-6: #ddd0ff;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --page: #0d0d0d; --surface: #1a1a19;
+      --page: #0d0d0d; --surface: #1a1a19; --card-bg: rgba(26,26,25,0.58);
       --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
       --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
       --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+      --miss: #e2596b;
       --accent-wash: rgba(57,135,229,0.15);
     }
   }
@@ -29,19 +37,153 @@
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     font-size: 14px; line-height: 1.5; padding: 24px;
   }
-  .wrap { max-width: 1180px; margin: 0 auto; }
-  header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
-  header .sub { color: var(--ink-2); margin-top: 2px; }
-  .tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--grid); flex-wrap: wrap; }
-  .tab { background: none; border: none; font: inherit; color: var(--ink-2); padding: 8px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-  .tab:hover { color: var(--ink); background: var(--accent-wash); border-radius: 6px 6px 0 0; }
-  .tab.active { color: var(--ink); font-weight: 600; border-bottom-color: var(--series-1); }
+  .wrap { max-width: 1180px; margin: 0 auto; position: relative; }
+  /* Everything real sits above the hall behind it. */
+  .wrap > *:not(.hall) { position: relative; z-index: 1; }
+  /* Centred: the name and the rotating tagline are the marquee, and the rig below them
+     reads as a rig only if it is symmetrical about something. The menu button is
+     position:fixed at the right, so it does not participate in this and cannot collide —
+     "Kalphishi" is far too short to reach it even on a 360px phone. */
+  header { text-align: center; }
+
+  /* ——— CK5 ———
+     Chris Kuroda has lit Phish since 1989 and improvises the whole show live; "2001" is the
+     long-standing showcase for it. The look this is after is the wall of beams: narrow
+     shafts thrown from fixture points along the truss, fanning at angles, crossing each
+     other and getting brighter where they cross, the whole thing mirror-symmetric about
+     centre. Violet-dominant with green and cyan against it.
+
+     Three things follow from that and are load-bearing here:
+       · Beams are cones, not bars — a triangle clipped out of a gradient that fades before
+         it reaches the floor, so it reads as light falling rather than a painted stripe.
+       · mix-blend-mode: screen. Light is additive: two beams crossing must be brighter
+         than either alone. Without it they just occlude and the whole thing looks flat.
+       · The hall is dark. Beams only exist against darkness, so it stays near-black in
+         both themes rather than following the page — a lit room with a dark stage in it is
+         the correct reading, and a light-mode wash would have none.
+     Peaks on save and on BINGO — see rigPeak(). */
+
+  /* The rig used to be trapped in a rounded panel around the header. This is that panel
+     unrolled down the page: an absolutely-positioned layer behind .wrap that carries both
+     the darkness and the beams past the tab row and across the top of the content, so the
+     light falls on the app instead of stopping at a border. Masked rather than cropped —
+     darkness and light have to run out together, or the bottom edge reads as a banner
+     ending rather than as light falling off. */
+  .hall { position: absolute; top: 0; left: 0; right: 0; height: 760px;
+    z-index: 0; pointer-events: none; overflow: hidden; isolation: isolate;
+    border-radius: 14px 14px 0 0;
+    background: radial-gradient(120% 34% at 50% 0%, #17122a 0%, #0b0a12 46%, #08070d 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 44%, transparent 99%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 44%, transparent 99%); }
+  /* Haze. The beams are only visible in a real hall because the air is full of it, and it
+     is what stops the cones reading as hard-edged geometry. Its own layer so the peak can
+     bloom it — a gradient cannot be transitioned, an opacity can. */
+  .hall::after { content: ''; position: absolute; inset: 0; opacity: 0.55;
+    background: radial-gradient(70% 36% at 50% 4%, rgba(160,125,255,0.30), transparent 72%);
+    transition: opacity 380ms ease; }
+
+  .stage { padding: 30px 18px 34px; }
+  /* The beams converge on centre, which is exactly where the title and tagline are. On a
+     narrow screen a full-brightness shaft lands right behind the words and the tagline
+     stops being readable. This is a scrim under the text only — soft-edged and confined to
+     the middle of the header, so it buys the contrast back without dimming the rig or
+     showing an edge of its own. */
+  .stage::before { content: ''; position: absolute; inset: 6% 2%; z-index: 1;
+    pointer-events: none; transition: background 260ms ease;
+    background: radial-gradient(56% 60% at 50% 50%, rgba(6,5,12,0.74), transparent 72%); }
+  /* On the hit the beams behind the words go pure white, and a scrim tuned for coloured
+     light is not enough to keep the tagline off it. Sibling selector because the peak
+     class lives on the hall, which precedes the stage. */
+  .hall.peak ~ .stage::before {
+    background: radial-gradient(56% 60% at 50% 50%, rgba(4,3,10,0.88), transparent 74%); }
+  .stage header { position: relative; z-index: 2; }
+  .stage h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; color: #fff;
+    text-shadow: 0 0 22px rgba(168,85,247,0.45), 0 2px 14px rgba(0,0,0,0.65); }
+  /* Set above the stats line, not below: it is the one sentence that says what the page
+     is, and it has to land before the reader starts parsing tour numbers. */
+  .stage .tagline { font-size: 15px; color: #e7e1f8; margin-top: 8px;
+    text-shadow: 0 1px 10px rgba(0,0,0,0.75); transition: opacity 220ms ease; }
+  .stage .tagline.tagline-out { opacity: 0; }
+
+  .rig { position: absolute; inset: 0; pointer-events: none; }
+  /* Anchored at its fixture point on the truss and rotated about it, which is how a real
+     one moves — the head pans, the beam sweeps from where it is bolted. */
+  .rig .beam {
+    position: absolute; top: 0; left: var(--x); width: var(--w); height: 100%;
+    margin-left: calc(var(--w) / -2); transform-origin: 50% 0;
+    clip-path: polygon(47% 0, 53% 0, 100% 100%, 0% 100%);
+    background: linear-gradient(to bottom, var(--c) 0%, transparent 72%);
+    opacity: var(--o); filter: blur(3.5px); mix-blend-mode: screen;
+    will-change: transform, opacity;
+    animation: sweep var(--dur) ease-in-out var(--delay) infinite alternate;
+    /* transform is transitioned here rather than under .peak so the descent still eases
+       after the peak class comes off. While the sweep is running the animation wins and
+       the transition is inert, so this only ever applies during a peak. */
+    transition: opacity 300ms ease, background 260ms ease,
+                transform 1050ms cubic-bezier(.16,.85,.24,1);
+  }
+  @keyframes sweep { from { transform: rotate(var(--a1)); } to { transform: rotate(var(--a2)); } }
+  .rig.idle .beam { animation-play-state: paused; }
+
+  /* The fanfare: every head blows out to pure white and raises. The colour is dropped
+     outright rather than brightened — a rig hitting full is white light, and keeping a hue
+     would read as "the violet one got louder" instead of as the hit. The raise itself is
+     driven from rigPeak(), which has to pin each head at its live angle first. */
+  .hall.peak .beam { opacity: 1;
+    background: linear-gradient(to bottom, #fff 0%, rgba(255,255,255,0.92) 18%,
+                                rgba(255,255,255,0) 78%); }
+  .hall.peak::after { opacity: 1; }
+
+  /* Reduced motion keeps the rig — it is colour and shape, not just movement — but the
+     heads stop panning and the peak becomes a brightness change only. */
+  @media (prefers-reduced-motion: reduce) {
+    .rig .beam { animation: none; transform: rotate(var(--a1)); }
+    .hall.peak .beam { animation: none; }
+    .stage .tagline { transition: none; }
+  }
+
+  .tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid rgba(255,255,255,0.15); flex-wrap: wrap; align-items: center; }
+  /* Freshness sits in the tab row rather than beside the app's name, pushed to the far
+     right so it reads as a quiet footnote to the row instead of a label on the Data tab. */
+  /* Descendant selector, not a bare .stamp: it is also a .pill, and .pill's own
+     margin-left is declared further down this sheet — at equal specificity that wins on
+     source order and the stamp quietly stays put next to the Data tab. */
+  .tabs .stamp { margin-left: auto; color: #fff;
+    background: rgba(0,0,0,0.30); border-color: rgba(255,255,255,0.22); }
+  /* Narrow enough and it wraps onto its own row, where auto-margin has nothing to push
+     against. Line it up with the tab labels above it instead. */
+  @media (max-width: 560px) { .tabs .stamp { margin: 2px 0 6px 14px; } }
+  /* The nav sits inside the hall now, so it is lit from behind rather than sitting on the
+     page. It is styled for darkness in BOTH themes for that reason — following --ink here
+     would put near-black labels on a near-black hall in light mode. */
+  /* The nav is white-on-dark sitting over moving light, so a beam drifting behind a label
+     takes its contrast with it — and at the peak, when everything goes white, takes it
+     entirely. The shadow is what keeps these legible against their own background. */
+  .tab, .subtab, .stamp { text-shadow: 0 1px 6px rgba(0,0,0,0.85); }
+  /* Full white, no alpha. Dimming an inactive tab is the normal way to rank it, but here
+     the background is moving light — a 0.66 label lands on a bright beam and disappears.
+     Rank is carried by weight and the underline instead, which a beam cannot wash out. */
+  .tab { background: none; border: none; font: inherit; color: #fff; padding: 8px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab:hover { color: #fff; background: rgba(255,255,255,0.09); border-radius: 6px 6px 0 0; }
+  .tab.active { color: #fff; font-weight: 600; border-bottom-color: var(--beam-2); }
+  /* Second level, under Data. Pills rather than underlined tabs, so the two rows never
+     read as competing for the same job. */
+  .subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  /* In the hall too — same reasoning as .tab. */
+  .subtab { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 99px; font: inherit; font-size: 13px; color: #fff; padding: 5px 12px; cursor: pointer; }
+  .subtab:hover { color: #fff; border-color: rgba(255,255,255,0.34); }
+  .subtab.active { color: #fff; border-color: var(--beam-2); background: rgba(139,92,246,0.26); font-weight: 600; }
   .pill { display: inline-block; padding: 1px 8px; border: 1px solid var(--border); border-radius: 99px; font-size: 12px; color: var(--ink-2); background: var(--surface); margin-left: 6px; }
   .grid { display: grid; gap: 16px; margin-top: 20px; }
   .cols-2 { grid-template-columns: 1fr 1fr; }
   .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
   @media (max-width: 900px) { .cols-2, .cols-3 { grid-template-columns: 1fr; } }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; overflow-x: auto; }
+  /* Translucent, so the beams still falling on this part of the page read through the card
+     instead of stopping dead at its edge. Below the hall there is nothing behind a card
+     but the page, so those look exactly as they did. Light mode is held much closer to
+     opaque on purpose: its body text is near-black, and letting the hall through far
+     enough to see would take the card down with it. */
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; overflow-x: auto; }
   .card.card-overflow { overflow: visible; }
   .card h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); margin-bottom: 10px; }
   .card h2 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted); }
@@ -62,6 +204,14 @@
   .setlist { display: flex; flex-wrap: wrap; gap: 4px 0; align-items: baseline; }
   .setlist .s { padding: 2px 6px; border-radius: 6px; cursor: default; position: relative; }
   .setlist .s:hover { background: var(--accent-wash); }
+  /* Playable songs get a pointer and a colour on hover, but deliberately NOT an underline:
+     .overlap already underlines to mean "also in the current top-40 candidates", and
+     underlining every song as a link would erase that signal on the very grid it exists to
+     mark up. :not(.overlap) so the anchor's default underline is stripped everywhere
+     except where the data one has to survive. */
+  .setlist a.s { color: inherit; cursor: pointer; }
+  .setlist a.s:not(.overlap) { text-decoration: none; }
+  .setlist a.s:hover { color: var(--series-3); background: var(--accent-wash); }
   .setlist .t { color: var(--muted); padding: 0 2px; }
   .setlabel { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 10px 0 4px; }
   .marquee { border-left: 3px solid var(--series-1); }
@@ -86,6 +236,29 @@
   #tooltip { position: fixed; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; max-width: 300px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); display: none; z-index: 10; }
   #tooltip .tt-name { font-weight: 600; margin-bottom: 2px; }
   #tooltip .tt-why { color: var(--ink-2); }
+  /* Phone presentation of the same tip — see showTip(). Centred rather than anchored, and
+     given room to breathe, since on touch it is only ever shown deliberately. */
+  /* width, not max-width: the element is position:fixed and so shrink-to-fit, and with
+     left:50% the space it fits into is only what remains to the RIGHT of centre — half the
+     screen. A max-width never gets reached and the text wraps into a column half the width
+     it was given. An explicit width sidesteps the whole calculation. */
+  #tooltip.tt-modal { left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(88vw, 340px); max-width: none; padding: 14px 16px; font-size: 13px;
+    line-height: 1.5; box-shadow: 0 14px 44px rgba(0,0,0,0.5); }
+  /* The Why column carried the longest text in the table by a wide margin and set the row
+     height for every other column with it. Clamped to a single line, with the full text
+     still in the DOM: tableOf filters and sorts on textContent, so shortening the string
+     would quietly break searching for a reason you can no longer see. */
+  .why-trunc { display: block; max-width: 260px; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; cursor: help; }
+  .why-trunc:hover { color: var(--ink); }
+  /* Nowrap keeps every row one line tall, which is what makes the ranked table scan as a
+     ranking rather than as a stack of blocks. The table already scrolls sideways inside
+     its card, so the width this costs is width the card was prepared to give. */
+  .song-link { white-space: nowrap; color: var(--ink); text-decoration: underline;
+    text-decoration-color: var(--series-3); text-underline-offset: 3px;
+    text-decoration-thickness: 1px; cursor: pointer; }
+  .song-link:hover { color: var(--series-3); text-decoration-thickness: 2px; }
   /* predictor */
   .p-login, .p-topbar { margin-bottom: 12px; }
   .p-login { max-width: 420px; } /* full width on any phone; capped so it doesn't stretch edge-to-edge on wide desktop */
@@ -109,7 +282,11 @@
   .ta-item { padding: 6px 10px; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; }
   .ta-item.sel, .ta-item:hover { background: var(--accent-wash); }
   .ta-plays { color: var(--muted); font-size: 12px; }
-  .p-sets { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  /* The bottom margin matches the column gap, so the note under the builder clears the
+     "add to Set 1…" inputs on the same rhythm the grid already uses. Without it the note
+     sat flush against them and read as part of the last field. Set here rather than on
+     .hint, which a dozen other places share. */
+  .p-sets { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   @media (max-width: 900px) { .p-sets { grid-template-columns: 1fr; } }
   .p-songrow { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--grid); }
   .p-songmain { display: flex; flex-direction: column; gap: 1px; }
@@ -137,6 +314,13 @@
      caption size above a label. line-height 1 keeps the glyph centred in the cell. */
   .p-cell.free { font-size: 54px; line-height: 1; cursor: default; }
   .p-cell.checked { background: var(--accent-wash); border-color: var(--series-1); box-shadow: inset 0 0 0 2px var(--series-1); }
+  /* Reordering squares. Drag is mouse-only — see COARSE_POINTER in predictor.js — so no
+     touch-action override here, which would otherwise stop a phone scrolling the moment a
+     finger landed on the grid. */
+  .p-cell.p-swappable { cursor: grab; }
+  .p-cell.p-dragging { opacity: 0.4; cursor: grabbing; }
+  .p-cell.p-swapfrom { border-color: var(--series-2); box-shadow: inset 0 0 0 2px var(--series-2); }
+  .p-cell.p-swaptarget { background: var(--accent-wash); border-style: dashed; border-color: var(--series-2); }
   .p-cell .p-x { position: absolute; top: 0; right: 2px; }
   .p-cell .p-lock { position: absolute; top: 1px; left: 3px; background: none; border: none; cursor: pointer; font-size: 11px; opacity: 0.35; padding: 1px; }
   .p-cell .p-lock:hover { opacity: 1; }
@@ -155,8 +339,58 @@
   .p-help .setlabel:first-child { margin-top: 0; }
   .p-help-note { font-size: 12px; color: var(--muted); line-height: 1.45; margin: -4px 0 12px; }
   .p-help-note:last-child { margin-bottom: 0; }
-  .p-lock { font-size: 12px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: var(--accent-wash); border: 1px solid var(--border); }
+  /* A graded prediction, drawn as the setlist it was. Same three columns as the builder,
+     so a result reads against the thing it is scoring. */
+  .p-scored { margin: 2px 0 14px 14px; padding: 10px 12px; border-left: 2px solid var(--grid); }
+  .p-scoredgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 900px) { .p-scoredgrid { grid-template-columns: 1fr; } }
+  .p-pick { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 2px 0; font-size: 13px; border-bottom: 1px solid var(--grid); }
+  .p-pickname { display: flex; flex-direction: column; gap: 1px; }
+  .p-pickpts { font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; }
+  .p-placed .p-pickname { color: var(--series-3); }
+  .p-called .p-pickname { color: var(--series-1); }
+  /* Struck through rather than only recoloured: the point is that this pick did not
+     happen, which strikethrough says without relying on colour alone. */
+  .p-miss .p-pickname { color: var(--miss); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .p-miss .p-actual, .p-bonus { text-decoration: none; font-size: 11px; color: var(--muted); }
+  .p-bonus { color: var(--series-2); }
+  .p-picktotal, .p-grandtotal { display: flex; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums; }
+  .p-picktotal { margin-top: 5px; font-size: 12px; color: var(--ink-2); font-weight: 600; }
+  .p-grandtotal { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--baseline); font-size: 14px; font-weight: 700; }
+  .p-scoredfoot { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; font-size: 11px; color: var(--muted); }
+  .p-key { display: flex; align-items: center; gap: 5px; }
+  .p-key i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .p-key i.p-placed { background: var(--series-3); }
+  .p-key i.p-called { background: var(--series-1); }
+  .p-key i.p-miss { background: var(--miss); }
+  /* Heading row: game title left, lock countdown pushed right and only as wide as its own
+     text. As a full-width banner the countdown read as an alert; inline up here it is a
+     status you pass on the way into the game. */
+  .p-headrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .p-headrow h2 { margin: 0; }
+  /* Sits with the heading rather than centred between it and the countdown, which is
+     where space-between would otherwise strand a third child. */
+  .p-headnote { font-size: 13px; color: var(--ink-2); margin-right: auto; }
+  .p-lock { font-size: 12px; padding: 4px 10px; border-radius: 99px; background: var(--accent-wash); border: 1px solid var(--border); white-space: nowrap; }
   .p-lock.p-locked { border-color: var(--series-2); color: var(--ink); }
+  /* Sits at the right-hand end of a control row without the row needing to know about it. */
+  .p-pushright { margin-left: auto; }
+  /* Actions dropdown. Anchored to its own button rather than to the row, so it opens under
+     the button wherever a wrapped row has put it. The predictor card is .card-overflow
+     (overflow: visible), which is what lets this escape the card at all. */
+  .p-actions { position: relative; }
+  .p-actions-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20;
+    min-width: 232px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 6px; box-shadow: 0 10px 28px rgba(0,0,0,0.30);
+    display: flex; flex-direction: column; gap: 2px; }
+  .p-actions-item { display: block; width: 100%; text-align: left; background: none;
+    border: none; font: inherit; font-size: 13px; color: var(--ink); padding: 10px;
+    border-radius: 7px; cursor: pointer; min-height: 44px; }
+  .p-actions-item:hover:not(:disabled) { background: var(--accent-wash); }
+  .p-actions-item:disabled { opacity: 0.4; cursor: default; }
+  /* The commit action, centred under whichever game built it. Its own row rather than a
+     margin on the button, so both games centre it the same way. */
+  .p-saverow { display: flex; justify-content: center; }
   .p-cap { font-size: 11px; color: var(--muted); text-align: right; padding: 4px 2px 0; }
   .p-cap-over { color: var(--series-2); font-weight: 600; }
   .p-btn-alt { background: var(--surface); color: var(--ink); border: 1px solid var(--baseline); font-weight: 500; }
@@ -178,6 +412,13 @@
     .p-head, .p-corner { font-size: 11px; }
     .p-drag { font-size: 15px; padding: 6px 8px; }
     .p-songrow { padding: 5px 0; }
+    /* The section tabs and mode buttons are the primary navigation on a phone and were
+       39px tall — under the 44px a fingertip reliably hits. Widened here only, so the
+       desktop bar keeps its tighter proportions. */
+    .tab { padding: 12px 14px; }
+    .p-mode { padding: 12px 14px; }
+    .p-btn { padding: 12px 18px; }
+    .subtab { padding: 12px 14px; }
   }
   .p-bingo-banner { margin: 12px 0; padding: 12px; border: 2px solid var(--series-2); border-radius: 10px; text-align: center; font-size: 16px; }
   .p-histrow { padding: 5px 0; border-bottom: 1px solid var(--grid); }
@@ -214,6 +455,43 @@
   .tr-row.active { background: var(--accent-wash); box-shadow: inset 3px 0 0 var(--series-1); }
   .tr-row-metrics { color: var(--muted); }
   .tr-detail { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-top: 10px; }
+  /* ---- listen (Relisten / phish.in) ---- */
+  .rl { margin-top: 12px; }
+  .rl-open { background: var(--surface); color: var(--ink); border: 1px solid var(--baseline);
+    border-radius: 99px; font: inherit; font-size: 13px; padding: 8px 14px; min-height: 44px;
+    cursor: pointer; }
+  .rl-open::before { content: '\25B6'; margin-right: 7px; color: var(--series-3); }
+  .rl-open:hover { border-color: var(--series-3); background: var(--accent-wash); }
+  .rl-box { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+  .rl-status { font-size: 13px; color: var(--ink-2); }
+  .rl-now { font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+  /* Capped: a Phish show is routinely 25+ tracks, and an uncapped list pushes the credit
+     line and everything after it off the bottom of the card. */
+  .rl-tracks { max-height: 260px; overflow-y: auto; border: 1px solid var(--grid); border-radius: 8px; }
+  .rl-track { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px;
+    background: none; border: none; border-bottom: 1px solid var(--grid); color: var(--ink);
+    font: inherit; font-size: 13px; text-align: left; padding: 6px 10px; cursor: pointer; }
+  .rl-track:last-child { border-bottom: none; }
+  .rl-track:hover { background: var(--accent-wash); }
+  .rl-track.current { background: var(--accent-wash); box-shadow: inset 3px 0 0 var(--series-3); }
+  .rl-ico { color: var(--series-3); font-size: 11px; width: 14px; flex: none; }
+  .rl-title { flex: 1; }
+  .rl-dur { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .rl-credit { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.45; }
+  .rl-credit a { color: var(--ink-2); }
+  .rl-head { font-size: 13px; margin-bottom: 2px; }
+  .rl-likes { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  .rl-sub { font-size: 12px; color: var(--ink-2); margin-bottom: 8px; }
+  /* Triggers inside dense tables and grids. Small, but still 32px tall so a thumb can
+     land on one — the 44px floor the rest of the app keeps would blow a table row open. */
+  .rl-chip { background: none; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--ink-2); font: inherit; font-size: 11px; line-height: 1; padding: 6px 7px;
+    min-height: 32px; margin: 2px 3px 2px 0; cursor: pointer; }
+  .rl-chip:hover { color: var(--ink); border-color: var(--series-3); background: var(--accent-wash); }
+  .rl-chip.on { color: var(--ink); border-color: var(--series-3); background: var(--accent-wash); }
+  .rl-chip-lone { margin-left: 8px; }
+  /* The shared panel a bound container opens at its foot. */
+  .rl-panel { margin-top: 12px; }
   .tr-metrics { font-size: 13px; margin: 8px 0 10px; }
   .tr-songs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
   .tr-song { font-size: 11px; padding: 2px 7px; border-radius: 99px; border: 1px solid currentColor; }
@@ -308,20 +586,198 @@
 <div class="menu-panel" id="menu-panel" role="menu" aria-label="Account"></div>
 <div class="auth-modal-backdrop" id="auth-modal-backdrop" role="dialog" aria-modal="true" aria-label="Sign in"></div>
 <div class="wrap">
-  <header>
-    <h1>Kalphishi <span class="pill" id="asof"></span></h1>
-    <div class="sub" id="nextshow"></div>
-  </header>
+  <!-- Decorative: it carries no state a screen reader needs, so it is hidden from the tree
+       entirely. First in .wrap so it sits behind everything that follows. -->
+  <div class="hall" id="hall" aria-hidden="true"><div class="rig" id="rig"></div></div>
+  <div class="stage" id="stage">
+    <header>
+      <h1>Kalphishi</h1>
+      <!-- What this is, before any of the data. A first-time visitor previously met a
+           freshness note ("data through August 1") and six analytics tabs, which says what
+           the page contains but never what it is for. -->
+      <p class="tagline">Guess what Phish plays next. We score you against the real setlist.</p>
+    </header>
+  </div>
   <nav class="tabs" id="tabs"></nav>
+  <nav class="subtabs" id="subtabs" style="display:none"></nav>
   <div class="grid" id="app"></div>
   <footer class="footer">Powered by <span class="nr">NovoRetro</span></footer>
 </div>
 <div id="tooltip"></div>
 <script src="/web/reorder.js"></script>
+<script src="/web/relisten.js"></script>
 <script src="/web/predictor.js"></script>
 <script>
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// Rotating tagline: punny hybrids of the game and Phish lyrics. The list only grows —
+// add new lines here, nowhere else. Rotates on page load, on a timed cadence while the
+// tab is visible, and on sign-in (see the initPredictor call's onSignedIn below).
+const TAGLINES = [
+  "Place your bets, and lets take a ride",
+  "Boy man - Play Kalphishi drive me to Firenze",
+  "Its 10pm, do you know where your shoes are?",
+  "If you've ever gambled on lot oysters then you'll LOVE this game",
+  "Have you taken care of your shoes today?",
+  "Danger, you were told to expect it",
+  "Welcome to the land of lizards",
+  "Your fingers are the things on your hand that make contact with the board",
+  "You've got a blank space where a setlist should be",
+  "Your bets are like mangoes, you're gonna be a genius if you play!",
+  "Toss away the songs you don't need in the end. But keep what's important and remember to hit save",
+  "Set the gear shift to the high gear of your Bingo!",
+  "Meatosticku jiuando, meatosticku Kalphishi, meatosticku toridashta, jiuan, do do atamaga shock, do do atamaga shock",
+];
+const TAGLINE_INTERVAL_MS = 60_000;
+let taglineIdx = -1;
+function nextTaglineIdx() {
+  if (TAGLINES.length <= 1) return 0;
+  let i;
+  do { i = Math.floor(Math.random() * TAGLINES.length); } while (i === taglineIdx);
+  return i;
+}
+// animate=false on first paint: the markup already has a fallback line, so swap it
+// straight rather than fading from it. Reduced motion always swaps straight, but still
+// rotates — "don't animate" isn't "don't change".
+function showTagline(animate) {
+  const node = document.querySelector('header .tagline');
+  if (!node) return;
+  taglineIdx = nextTaglineIdx();
+  const text = TAGLINES[taglineIdx];
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (!animate || reduced) { node.textContent = text; return; }
+  node.classList.add('tagline-out');
+  setTimeout(() => { node.textContent = text; node.classList.remove('tagline-out'); }, 220);
+}
+showTagline(false);
+setInterval(() => { if (document.visibilityState === 'visible') showTagline(true); }, TAGLINE_INTERVAL_MS);
+
+// ---- the light rig. See the .stage CSS block for the reference this is built from.
+const BEAMS = ['var(--beam-1)', 'var(--beam-2)', 'var(--beam-3)',
+               'var(--beam-4)', 'var(--beam-5)', 'var(--beam-6)'];
+// Fixture positions along the truss, as a percentage from centre. Every one is mirrored to
+// the other side, which is what makes the wall read as a rig rather than as noise — the
+// real one is bolted symmetrically and the symmetry survives even when the heads are
+// panning independently.
+const FIXTURES = [0, 11, 21, 31, 41, 50];
+const BEAMS_PER_FIXTURE = 2; // a head throws a fan, not a single shaft
+const rigEl = document.getElementById('rig');
+const hallEl = document.getElementById('hall');
+const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+const rand = (lo, hi) => lo + Math.random() * (hi - lo);
+
+// side is -1 (stage left) or +1. Angles are negated across the centre line so a mirrored
+// pair opens and closes together, the way a symmetric pair of heads actually moves.
+function makeBeam(offsetPct, side, i) {
+  const b = el('span', 'beam');
+  // Beams splay outward from centre: the further out the fixture, the steeper its throw.
+  const base = (offsetPct / 50) * 34 + rand(4, 14) + i * 7;
+  const spread = rand(7, 16);
+  const a1 = side * (base - spread);
+  b.dataset.a1 = a1.toFixed(1);
+  b.style.cssText =
+    `--x:${50 + side * offsetPct}%;` +
+    // Widths are for the throw length: the cone widens to --w over the hall's full height,
+    // so these scale with it. Too narrow over 760px and the beams read as drawn lines.
+    `--w:${Math.round(rand(100, 250))}px;` +
+    `--c:${BEAMS[Math.floor(Math.random() * BEAMS.length)]};` +
+    `--o:${rand(0.30, 0.62).toFixed(2)};` +
+    `--a1:${a1.toFixed(1)}deg;` +
+    `--a2:${(side * (base + spread)).toFixed(1)}deg;` +
+    // Durations are deliberately coprime-ish and delays are negative, so the rig starts
+    // mid-sweep already scattered instead of every head leaving home together.
+    `--dur:${rand(6, 17).toFixed(1)}s;` +
+    `--delay:${(-rand(0, 14)).toFixed(1)}s;`;
+  return b;
+}
+function seedRig() {
+  if (!rigEl) return;
+  for (const offset of FIXTURES) {
+    for (let i = 0; i < BEAMS_PER_FIXTURE; i++) {
+      // The centre fixture is its own mirror — giving it a twin just doubles the draw.
+      for (const side of offset === 0 ? [1] : [-1, 1]) {
+        rigEl.appendChild(makeBeam(offset, side, i));
+      }
+    }
+  }
+}
+// The fanfare: the whole rig blows out to white and the light raises, then comes back
+// down. Fired when the app has something worth celebrating, not on a timer.
+// The view is front-on, from the floor, so the hit is one vertical move. Every head
+// gathers to straight down, then the light raises: the beams stay bolted to the truss and
+// their broad far end lifts from the floor up toward it. Nothing rotates outward and
+// nothing flips over — the heads never leave the top.
+const PEAK_GATHER_MS = 280;
+const PEAK_UP_MS = 900;
+const PEAK_DOWN_MS = 860; // 280 + 900 + 860 = the sweep is handed back at exactly 2040ms
+// Both ends are written with the SAME transform structure on purpose. Matched function
+// lists interpolate component-wise, which is predictable; mismatched ones fall back to
+// matrix decomposition, which is where a scale collapsing toward zero gets ambiguous.
+// transform-origin is 50% 0, so scaleY shrinks toward the truss rather than about the
+// middle — that is what keeps the beam pinned while its far end travels.
+const BEAM_LOW = 'rotate(0deg) scaleX(1) scaleY(1)';
+// Broader, and raised: the far end lifts to 22% of the hall while the throw widens.
+const BEAM_HIGH = 'rotate(0deg) scaleX(1.6) scaleY(0.22)';
+function rigPeak() {
+  if (!hallEl || !rigEl) return;
+  const beams = [...rigEl.children];
+  // Reduced motion gets the white and the brightness, but nothing swings.
+  if (reducedMotion()) {
+    hallEl.classList.add('peak');
+    setTimeout(() => hallEl.classList.remove('peak'), 1200);
+    return;
+  }
+  const set = (ms, t) => {
+    for (const b of beams) { b.style.transitionDuration = `${ms}ms`; b.style.transform = t; }
+  };
+  // Pin each head at the angle it is actually at before taking the sweep away, otherwise
+  // dropping the animation snaps it home first and the move starts with a jerk.
+  for (const b of beams) {
+    b.style.transform = getComputedStyle(b).transform;
+    b.style.animation = 'none';
+  }
+  void rigEl.offsetWidth; // flush, so the next write transitions instead of jumping
+  hallEl.classList.add('peak');
+  set(PEAK_GATHER_MS, BEAM_LOW);                                // gather: straight down
+  setTimeout(() => set(PEAK_UP_MS, BEAM_HIGH), PEAK_GATHER_MS); // the hit: the light raises
+
+  setTimeout(() => {
+    // Colour returns on the way down, so the white belongs to the top of the raise.
+    hallEl.classList.remove('peak');
+    // Each head back to its own home angle, so the sweep can be handed back below.
+    for (const b of beams) {
+      b.style.transitionDuration = `${PEAK_DOWN_MS}ms`;
+      b.style.transform = `rotate(${b.dataset.a1}deg)`;
+    }
+  }, PEAK_GATHER_MS + PEAK_UP_MS);
+
+  setTimeout(() => {
+    for (const b of beams) {
+      b.style.transform = '';
+      b.style.transitionDuration = '';
+      // Home is exactly where the sweep's first keyframe is, so it can be handed back with
+      // a zero delay and picks up from here seamlessly. Restoring the original negative
+      // delay would drop the head mid-phase and jump.
+      b.style.setProperty('--delay', '0s');
+      b.style.animation = '';
+    }
+  }, PEAK_GATHER_MS + PEAK_UP_MS + PEAK_DOWN_MS);
+}
+seedRig();
+// The header scrolls out of sight within the first screen, and a paused-for-nobody rig is
+// 22 blurred, screen-blended layers still being composited every frame. Browsers throttle
+// background *tabs* on their own but not content scrolled off a visible one, so pause it
+// on the way out and let it pick up where it left off on the way back.
+if (rigEl && hallEl && 'IntersectionObserver' in window) {
+  new IntersectionObserver(
+    ([e]) => rigEl.classList.toggle('idle', !e.isIntersecting),
+  ).observe(hallEl);
+}
+// predictor.js reaches the rig through this — it is loaded before this script runs, so it
+// reads the handle at call time rather than at load time.
+window.KalphishiRig = { peak: rigPeak };
 
 // Show dates are stored and compared as ISO (YYYY-MM-DD) everywhere — sorting, object
 // keys, API params and search all depend on that — so this is display-only. Parsed from
@@ -742,6 +1198,14 @@ let tipOwner = null;
 function showTip(name, why, x, y) {
   tooltip.innerHTML = `<div class="tt-name">${esc(name)}</div><div class="tt-why">${esc(why)}</div>`;
   tooltip.style.display = 'block';
+  // A phone has no hover, so every tip here is a deliberate tap — and anchoring a 300px
+  // card to a fingertip near the edge of a 375px screen leaves it clamped hard against a
+  // margin and half under the thumb that opened it. Centre it instead and let it read as
+  // a small panel. Dismissal is unchanged: it is pointer-events:none, so a tap anywhere
+  // reaches the document handler below.
+  const phone = window.matchMedia('(max-width: 560px)').matches;
+  tooltip.classList.toggle('tt-modal', phone);
+  if (phone) { tooltip.style.left = ''; tooltip.style.top = ''; return; }
   const w = tooltip.offsetWidth, h = tooltip.offsetHeight;
   // Flip above the finger when there is not room below, and keep it on-screen.
   const top = y + 14 + h > window.innerHeight ? Math.max(8, y - 14 - h) : y + 14;
@@ -770,11 +1234,9 @@ function bindTip(node, name, why) {
 }
 
 fetch('/data/analysis.json').then(r => r.json()).then(A => {
-  document.getElementById('asof').textContent = 'data through ' + fmtDate(A.asOf);
-  document.getElementById('nextshow').textContent =
-    `Next show: ${fmtDate(A.nextShow.date)} — ${A.nextShow.venue}, ${A.nextShow.city} · ` +
-    `${A.tour.name}: ${A.tour.shows.length} shows played, ${A.tour.songCount} unique songs · ` +
-    `era window ${A.eraWindow.from} → ${A.eraWindow.to} (${A.eraWindow.totalShows} shows)`;
+  // The header used to carry the next show, the tour totals and the era window. The next
+  // show is stated again by the game below it, and the other two are corpus stats — the
+  // sort of thing that belongs where the corpus is being read, not above a bingo card.
 
   const app = document.getElementById('app');
 
@@ -795,29 +1257,46 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     });
     pred.appendChild(row);
   }
-  pred.dataset.section = 'Prediction';
+  pred.dataset.section = 'Predicted Setlist';
 
-  // ---- user predictor
+  // Both read by renderTabs, and both reachable from initPredictor's onModeChange before
+  // the tab code below runs — see the note at the initPredictor call.
+  let predictor = null;
+  let menuMode = null; // 'history' | 'profile' while the account menu owns the view
+
+  // ---- user predictor. Not filed under a data section: it IS the two game tabs, and the
+  // tab bar shows or hides it directly.
   const up = el('div', 'card card-overflow');
-  up.dataset.section = 'Prediction';
+  up.dataset.games = '1';
 
-  // ---- track record: how past predictions actually did
+  // ---- track record: how past predictions actually did.
+  // Sits with the predicted setlist rather than getting its own tab — it is the same
+  // subject, the model's calls, seen after the fact instead of before.
   const track = el('div', 'card card-overflow');
-  track.dataset.section = 'Prediction';
+  track.dataset.section = 'Predicted Setlist';
 
-  // Order on the Prediction tab: what you *do* first (build a setlist or bingo card),
-  // then the model's call for the same show, then how it has done historically.
   app.appendChild(up);
   app.appendChild(pred);
   app.appendChild(track);
-  initPredictor(up, A);
+  // Declared with `let`, above the call, on purpose: onModeChange can fire from inside
+  // initPredictor, and renderTabs reads both. A `const` after the call would leave them in
+  // the temporal dead zone and throw on the way past.
+  predictor = initPredictor(up, A, {
+    // History and profile are reached from the account menu, which does not go through
+    // the tab bar — so the page hears about them and shows the card with no game selected.
+    onModeChange: m => { menuMode = (m === 'history' || m === 'profile') ? m : null; renderTabs(); },
+    // A fresh tagline greets whoever just arrived, whether that's a login or a new
+    // account — both are "someone showing up", and the fade makes the swap read as
+    // deliberate rather than the page glitching under them.
+    onSignedIn: () => showTagline(true),
+  });
   renderTrackRecord(track);
 
   for (const card of [up, pred, track]) makeCollapsible(card);
 
   // ---- horizontal slice
   const h = el('div', 'grid cols-2');
-  h.dataset.section = 'Rotation';
+  h.dataset.section = 'Song Rotation';
 
   const due = el('div', 'card');
   due.appendChild(el('h2', null, 'Due back up <span class="hint">— in tour rotation, repeat window open</span>'));
@@ -843,16 +1322,20 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   app.appendChild(h);
 
   const h2 = el('div', 'grid cols-2');
-  h2.dataset.section = 'Rotation';
+  h2.dataset.section = 'Song Rotation';
 
   const rot = el('div', 'card');
-  rot.appendChild(el('h2', null, 'Tour rotation <span class="hint">— most-played songs this tour</span>'));
+  rot.appendChild(el('h2', null, 'Tour rotation <span class="hint">— most-played songs this tour, tap a date to hear it</span>'));
   rot.appendChild(tableOf(
     ['Song', 'Plays', 'Dates'],
     A.horizontal.tourSongs.filter(t => t.plays >= 2).slice(0, 18).map(t => [
       `<span class="song">${esc(t.name)}</span>`, num(t.plays),
-      `<span class="why">${t.dates.map(fmtDateShort).join(', ')}</span>`,
+      // Each date is a show reference, so each one is its own trigger. The panel opens
+      // once at the bottom of the card rather than inside a table cell — see bind().
+      `<span class="why">${t.dates.map(d =>
+        `<button class="rl-chip" data-listen-date="${esc(d)}">${esc(fmtDateShort(d))}</button>`).join('')}</span>`,
     ]), [1]));
+  if (window.KalphishiListen) window.KalphishiListen.bind(rot);
   h2.appendChild(rot);
 
   const hist = el('div', 'card');
@@ -877,7 +1360,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
 
   // ---- album slice
   const h3 = el('div', 'grid cols-2');
-  h3.dataset.section = 'Albums';
+  h3.dataset.section = 'Album Coverage';
 
   const alb = el('div', 'card');
   alb.appendChild(el('h2', null, `Album representation <span class="hint">— tour plays by studio album (${A.albums.attributedPlays} of ${A.albums.attributedPlays + A.albums.unattributedPlays} plays attributed)</span>`));
@@ -927,12 +1410,27 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     const setNames = { 1: 'Set 1', 2: 'Set 2', 3: 'Set 3', e: 'Encore', e2: 'Encore 2' };
     for (const show of shows) {
       const card = el('div', 'venue-show');
-      card.appendChild(el('div', null, `<span class="date">${esc(fmtDate(show.date))}</span><span class="tour">${esc(show.tour || '')}</span>`));
+      card.appendChild(el('div', null, `<span class="date">${esc(fmtDate(show.date))}</span><span class="tour">${esc(show.tour || '')}</span>` +
+        `<button class="rl-chip rl-chip-lone" data-listen-date="${esc(show.date)}" title="Hear this show">Listen</button>`));
       for (const [set, items] of Object.entries(show.sets)) {
         card.appendChild(el('div', 'setlabel', setNames[set] || 'Set ' + set));
         const row = el('div', 'setlist');
         items.forEach((it, i) => {
-          const sp = el('span', 's' + (topSlugs.has(it.slug) ? ' overlap' : ''), esc(it.song));
+          // Same idea as the ranked table — the song is the control — but this one plays
+          // THIS show's performance rather than the best-loved one, so it carries the date
+          // alongside the title. The href points at that exact performance on phish.in;
+          // bind() intercepts the plain click and leaves a modified one to the browser.
+          const listen = window.KalphishiListen;
+          const cls = (listen ? 's s-play' : 's') + (topSlugs.has(it.slug) ? ' overlap' : '');
+          const sp = el(listen ? 'a' : 'span', cls, esc(it.song));
+          if (listen) {
+            sp.href = `https://phish.in/${encodeURIComponent(show.date)}/${listen.slugify(it.song)}`;
+            sp.target = '_blank';
+            sp.rel = 'noopener noreferrer';
+            sp.dataset.listenDate = show.date;
+            sp.dataset.listenTrack = it.song;
+            sp.title = `Play ${it.song} from this show`;
+          }
           row.appendChild(sp);
           if (i < items.length - 1) row.appendChild(el('span', 't', esc(it.trans || ',').trim() || ','));
         });
@@ -949,6 +1447,9 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   }
 
   v.appendChild(venueShowsGrid(A.vertical.shows));
+  // Bound on the card, not the grid, so the panel survives the grid being replaced when
+  // someone explores a different venue below.
+  if (window.KalphishiListen) window.KalphishiListen.bind(v);
 
   // venue search: generate a vertical slice for any past venue
   v.appendChild(el('div', 'setlabel', 'Explore another venue'));
@@ -1054,32 +1555,102 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
 
   // ---- candidates table
   const c = el('div', 'card');
-  c.dataset.section = 'Candidates';
-  c.appendChild(el('h2', null, 'All candidates <span class="hint">— ranked by combined horizontal + vertical score</span>'));
-  c.appendChild(tableOf(
+  c.dataset.section = 'Ranked Songs';
+  c.appendChild(el('h2', null, 'All candidates <span class="hint">— ranked by combined horizontal + vertical score. Tap a song for its best-loved version; hover or tap a Why to read it in full.</span>'));
+
+  // The name IS the control, rather than a name plus a play chip beside it — the chip cost
+  // width in every one of 60 rows to say what the link already says.
+  //
+  // Unlike every other trigger in the app this one names a SONG, not a show: there is no
+  // single show behind a ranked candidate, so it resolves to the performance phish.in's
+  // users have liked most. The slug comes from the listen module rather than x.slug or a
+  // local copy of the rule, so the href and the panel it opens can never disagree about
+  // which song they mean — phish.in slugifies apostrophes differently to us.
+  //
+  // A real <a>, so it behaves like one: focusable, right-clickable, and openable in a new
+  // tab. bind() steps aside for a modified click and intercepts the plain one. Degrades to
+  // plain text if the module is absent, rather than rendering a link built on a guess.
+  const songCell = x => (window.KalphishiListen
+    ? `<a class="song song-link" href="https://phish.in/songs/${esc(window.KalphishiListen.slugify(x.name))}"` +
+      ` target="_blank" rel="noopener noreferrer"` +
+      ` data-listen-song="${esc(x.name)}" title="Hear the highest rated version">${esc(x.name)}</a>`
+    : `<span class="song">${esc(x.name)}</span>`);
+
+  const candTable = tableOf(
     ['#', 'Song', 'Score', 'Era freq', 'Shows since', 'Cadence', 'Tour plays', 'Why'],
     A.candidates.slice(0, 60).map((x, i) => [
-      num(i + 1), `<span class="song">${esc(x.name)}</span>`, `<span class="score">${x.score}</span>`,
+      num(i + 1),
+      songCell(x),
+      `<span class="score">${x.score}</span>`,
       pct(x.eraFreq), num(x.currentGap), num(x.medianInterval), num(x.tourPlays),
-      `<span class="why">${esc(x.why.join('; '))}</span>`,
-    ]), [0, 2, 3, 4, 5, 6]));
+      // Full text, clamped to one line by CSS — see .why-trunc. The reason travels in a
+      // data attribute too, so the tip reads it without depending on what the clamp left
+      // visible.
+      `<span class="why why-trunc" data-song="${esc(x.name)}" data-why="${esc(x.why.join('; '))}">${esc(x.why.join('; '))}</span>`,
+    ]), [0, 2, 3, 4, 5, 6]);
+  c.appendChild(candTable);
+  // Bound after the table exists, since tableOf builds its cells from HTML strings and
+  // there is no node to hand a listener to until it has run.
+  for (const cell of candTable.querySelectorAll('.why-trunc')) {
+    bindTip(cell, cell.dataset.song, cell.dataset.why);
+  }
+  if (window.KalphishiListen) window.KalphishiListen.bind(c);
   app.appendChild(c);
 
   // ---- tabs
+  //
+  // The games come first, because they are why the app gets opened. Everything the model
+  // knows sits behind Data, subdivided — it used to all render at once on an "All Data"
+  // default, which was 45,000px and 55 screens of scrolling on a phone before a visitor
+  // had done anything.
   const tabBar = document.getElementById('tabs');
+  const subBar = document.getElementById('subtabs');
   const sections = [...app.children];
-  const tabNames = ['All Data', ...new Set(sections.map(s => s.dataset.section))];
-  let activeTab = 'All Data';
+  const GAME_TABS = [
+    { name: 'Phish Bingo', mode: 'bingo' },
+    { name: 'Setlist Bets', mode: 'setlist' },
+  ];
+  const DATA_TABS = ['Predicted Setlist', 'Song Rotation', 'Album Coverage', 'Venue History', 'Ranked Songs'];
+  let activeTab = GAME_TABS[0].name;
+  let activeDataTab = DATA_TABS[0];
+
   function renderTabs() {
+    const game = GAME_TABS.find(g => g.name === activeTab);
+    // History and profile come from the account menu and belong to no tab, so while one is
+    // open the card shows and no game reads as selected.
+    const showingGames = !!game || !!menuMode;
+
     tabBar.innerHTML = '';
-    for (const name of tabNames) {
-      const b = el('button', 'tab' + (name === activeTab ? ' active' : ''), esc(name));
-      b.addEventListener('click', () => { activeTab = name; renderTabs(); });
+    for (const { name } of GAME_TABS) {
+      const b = el('button', 'tab' + (name === activeTab && !menuMode ? ' active' : ''), esc(name));
+      b.addEventListener('click', () => { activeTab = name; menuMode = null; renderTabs(); });
       tabBar.appendChild(b);
     }
-    for (const s of sections) {
-      s.style.display = (activeTab === 'All Data' || s.dataset.section === activeTab) ? '' : 'none';
+    const dataBtn = el('button', 'tab' + (activeTab === 'Data' ? ' active' : ''), 'Data');
+    dataBtn.addEventListener('click', () => { activeTab = 'Data'; menuMode = null; renderTabs(); });
+    tabBar.appendChild(dataBtn);
+    // Rebuilt with the bar on every render rather than being a fixed node in the markup,
+    // because innerHTML = '' above clears whatever was there.
+    tabBar.appendChild(el('span', 'pill stamp', 'Last updated: ' + esc(fmtDate(A.asOf))));
+
+    subBar.innerHTML = '';
+    subBar.style.display = activeTab === 'Data' ? '' : 'none';
+    if (activeTab === 'Data') {
+      for (const name of DATA_TABS) {
+        const b = el('button', 'subtab' + (name === activeDataTab ? ' active' : ''), esc(name));
+        b.addEventListener('click', () => { activeDataTab = name; renderTabs(); });
+        subBar.appendChild(b);
+      }
     }
+
+    for (const s of sections) {
+      s.style.display = s.dataset.games
+        ? (showingGames ? '' : 'none')
+        : (activeTab === 'Data' && s.dataset.section === activeDataTab ? '' : 'none');
+    }
+    // Only steer the predictor when a game tab is what selected it — otherwise opening
+    // History from the menu would immediately be overwritten by the tab it left behind.
+    if (game && !menuMode && predictor) predictor.setMode(game.mode);
   }
   renderTabs();
 
@@ -1193,6 +1764,10 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       for (const c of r.slotChecks || []) {
         card.appendChild(el('div', 'tr-slot', `${c.ok ? '✓' : '✗'} <b>${esc(c.check)}</b> — ${esc(c.detail)}`));
       }
+      // Hearing the show you were graded against is the natural end of reading the grade.
+      // Attached to the show reference itself — see the note at the top of relisten.js for
+      // why this belongs here and nowhere near a paid surface.
+      if (window.KalphishiListen) window.KalphishiListen.attach(card, s.showdate, fmtDate(s.showdate));
       detail.appendChild(card);
     }
 

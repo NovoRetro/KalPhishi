@@ -161,6 +161,122 @@ test('setlist: the encore has its own, lower soft cap', () => {
   assert.equal(r.breakdown.penaltyPoints, 2 * SETLIST_POINTS.overCap);
 });
 
+// ---- per-pick detail ----
+//
+// The history view redraws a prediction from these rows. If they do not add up to the
+// score printed beside them, the breakdown is actively misleading — so that is the
+// property under test, across every scoring path rather than one tidy case.
+const sumRows = r => ['set1', 'set2', 'encore']
+  .flatMap(k => r.breakdown.rows[k]).reduce((s, x) => s + x.points, 0);
+
+test('detail: every pick gets a row, in the order it was predicted', () => {
+  const r = scoreSetlistPrediction(
+    { set1: [song('a'), song('b')], set2: [song('c')], encore: [song('d')] },
+    [played('a', '1'), played('b', '1'), played('c', '2'), played('d', 'e')],
+  );
+  assert.deepEqual(r.breakdown.rows.set1.map(x => x.slug), ['a', 'b']);
+  assert.deepEqual(r.breakdown.rows.set2.map(x => x.slug), ['c']);
+  assert.deepEqual(r.breakdown.rows.encore.map(x => x.slug), ['d']);
+});
+
+test('detail: status separates right-slot, right-song-wrong-slot, and not played', () => {
+  const actual = ['carini', 'bathtub-gin', 'meatstick', 'blaze-on'].map(s => played(s, '1'));
+  const r = scoreSetlistPrediction(
+    { set1: ['ghost', 'bathtub-gin', 'sand', 'meatstick'].map(song), set2: [], encore: [] },
+    actual,
+  );
+  assert.deepEqual(r.breakdown.rows.set1.map(x => x.status), ['miss', 'placed', 'miss', 'called']);
+});
+
+test('detail: a miss reports what was actually played in that slot', () => {
+  const r = scoreSetlistPrediction(
+    { set1: [song('ghost')], set2: [], encore: [] },
+    [played('carini', '1')],
+  );
+  assert.equal(r.breakdown.rows.set1[0].actual, 'carini');
+});
+
+test('detail: a slot past the end of the real set has no actual song to name', () => {
+  const r = scoreSetlistPrediction(
+    { set1: [song('a'), song('b'), song('c')], set2: [], encore: [] },
+    [played('a', '1')],
+  );
+  assert.equal(r.breakdown.rows.set1[2].actual, null);
+});
+
+test('detail: row points sum to the score, on the worked example', () => {
+  const actual = ['carini', 'bathtub-gin', 'meatstick', 'blaze-on', 'piper', 'twist', 'first-tube']
+    .map(s => played(s, '1'));
+  const r = scoreSetlistPrediction(
+    { set1: ['ghost', 'bathtub-gin', 'sand', 'meatstick', 'blaze-on'].map(song), set2: [], encore: [] },
+    actual,
+  );
+  assert.equal(r.score, 5);
+  assert.equal(sumRows(r), r.score);
+  assert.deepEqual(r.breakdown.rows.set1.map(x => x.points), [0, 3, 0, 1, 1]);
+  assert.equal(r.breakdown.setTotals.set1, 5);
+});
+
+test('detail: row points sum to the score when stressors fire', () => {
+  const r = scoreSetlistPrediction(
+    { set1: [song('a'), song('b')], set2: [song('c'), song('d')], encore: [song('e')] },
+    [played('a', '1'), played('b', '1'), played('c', '2'), played('d', '2'), played('e', 'e')],
+  );
+  assert.equal(sumRows(r), r.score);
+  // The bonus is attributed to the pick that earned it, not left floating in a total.
+  assert.deepEqual(r.breakdown.rows.set1[0].bonuses, ['show opener']);
+  assert.deepEqual(r.breakdown.rows.set2[1].bonuses, ['Set 2 closer']);
+});
+
+test('detail: row points sum to the score when the call cap bites', () => {
+  const many = Array.from({ length: 14 }, (_, i) => song('s' + i));
+  const r = scoreSetlistPrediction(
+    { set1: many, set2: [], encore: [] },
+    [...many].reverse().map(s => played(s.slug, '1')),
+  );
+  assert.equal(sumRows(r), r.score);
+  // The cap is spent in prediction order, so the last four picks earn nothing.
+  assert.deepEqual(r.breakdown.rows.set1.slice(10).map(x => x.points), [0, 0, 0, 0]);
+  assert.ok(r.breakdown.rows.set1.slice(0, 10).every(x => x.points > 0));
+});
+
+test('detail: row points sum to the score when the over-cap penalty bites', () => {
+  const list = [
+    ...Array.from({ length: SETLIST_SOFT_CAP.set1 }, (_, i) => song('miss' + i)),
+    song('over-miss'), song('over-hit'),
+  ];
+  const r = scoreSetlistPrediction({ set1: list, set2: [], encore: [] },
+    [played('z', '1'), played('over-hit', '1')]);
+  assert.equal(sumRows(r), r.score);
+  assert.equal(r.breakdown.rows.set1[10].points, -1, 'a miss past the cap costs a point');
+  assert.equal(r.breakdown.rows.set1[10].beyondCap, true);
+  assert.ok(r.breakdown.rows.set1[11].points > 0, 'a correct call past the cap still scores');
+});
+
+test('detail: row points sum to the score for a negative total', () => {
+  const list = Array.from({ length: 30 }, (_, i) => song('miss' + i));
+  const r = scoreSetlistPrediction({ set1: list, set2: [], encore: [] }, [played('z', '1')]);
+  assert.ok(r.score < 0);
+  assert.equal(sumRows(r), r.score);
+});
+
+test('detail: a duplicate pick is shown but scores nothing twice', () => {
+  const r = scoreSetlistPrediction(
+    { set1: [song('a')], set2: [song('a')], encore: [] },
+    [played('z', '1'), played('a', '1')],
+  );
+  assert.equal(sumRows(r), r.score);
+  assert.equal(r.breakdown.rows.set2[0].points, 0, 'the second copy earns nothing');
+});
+
+test('detail: songs played but never predicted are listed', () => {
+  const r = scoreSetlistPrediction(
+    { set1: [song('a')], set2: [], encore: [] },
+    [played('a', '1'), played('surprise', '1'), played('another', '2')],
+  );
+  assert.deepEqual(r.breakdown.unpredicted, ['surprise', 'another']);
+});
+
 test('setlist: a padded list can score below zero, which is what deters padding', () => {
   const list = Array.from({ length: 30 }, (_, i) => song('miss' + i));
   const r = scoreSetlistPrediction({ set1: list, set2: [], encore: [] }, [played('z', '1')]);
