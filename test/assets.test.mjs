@@ -150,6 +150,18 @@ test('drag is wired through Pointer Events', () => {
   assert.match(predictor, /setPointerCapture/);
 });
 
+test('the ranked-songs Why is clamped visually, not truncated', () => {
+  // tableOf filters and sorts on cell textContent, so shortening the string itself would
+  // break searching for a reason that is no longer on screen — the clamp has to be CSS,
+  // with the whole reason left in the DOM behind it.
+  const rule = html.match(/\.why-trunc \{[^}]*\}/);
+  assert.ok(rule, '.why-trunc rule not found');
+  assert.match(rule[0], /text-overflow:\s*ellipsis/, 'the column must be clamped visually');
+  assert.match(rule[0], /white-space:\s*nowrap/, 'the clamp is a single line');
+  assert.match(html, /class="why why-trunc"[^`]*\$\{esc\(x\.why\.join/,
+    'the cell must still render the full reason');
+});
+
 test('tooltips respond to touch as well as hover', () => {
   assert.match(html, /pointerType !== 'mouse'|pointerType === 'mouse'/,
     'tooltip binding must branch on pointer type');

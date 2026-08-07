@@ -204,6 +204,14 @@
   .setlist { display: flex; flex-wrap: wrap; gap: 4px 0; align-items: baseline; }
   .setlist .s { padding: 2px 6px; border-radius: 6px; cursor: default; position: relative; }
   .setlist .s:hover { background: var(--accent-wash); }
+  /* Playable songs get a pointer and a colour on hover, but deliberately NOT an underline:
+     .overlap already underlines to mean "also in the current top-40 candidates", and
+     underlining every song as a link would erase that signal on the very grid it exists to
+     mark up. :not(.overlap) so the anchor's default underline is stripped everywhere
+     except where the data one has to survive. */
+  .setlist a.s { color: inherit; cursor: pointer; }
+  .setlist a.s:not(.overlap) { text-decoration: none; }
+  .setlist a.s:hover { color: var(--series-3); background: var(--accent-wash); }
   .setlist .t { color: var(--muted); padding: 0 2px; }
   .setlabel { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 10px 0 4px; }
   .marquee { border-left: 3px solid var(--series-1); }
@@ -228,6 +236,29 @@
   #tooltip { position: fixed; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; max-width: 300px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); display: none; z-index: 10; }
   #tooltip .tt-name { font-weight: 600; margin-bottom: 2px; }
   #tooltip .tt-why { color: var(--ink-2); }
+  /* Phone presentation of the same tip — see showTip(). Centred rather than anchored, and
+     given room to breathe, since on touch it is only ever shown deliberately. */
+  /* width, not max-width: the element is position:fixed and so shrink-to-fit, and with
+     left:50% the space it fits into is only what remains to the RIGHT of centre — half the
+     screen. A max-width never gets reached and the text wraps into a column half the width
+     it was given. An explicit width sidesteps the whole calculation. */
+  #tooltip.tt-modal { left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(88vw, 340px); max-width: none; padding: 14px 16px; font-size: 13px;
+    line-height: 1.5; box-shadow: 0 14px 44px rgba(0,0,0,0.5); }
+  /* The Why column carried the longest text in the table by a wide margin and set the row
+     height for every other column with it. Clamped to a single line, with the full text
+     still in the DOM: tableOf filters and sorts on textContent, so shortening the string
+     would quietly break searching for a reason you can no longer see. */
+  .why-trunc { display: block; max-width: 260px; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; cursor: help; }
+  .why-trunc:hover { color: var(--ink); }
+  /* Nowrap keeps every row one line tall, which is what makes the ranked table scan as a
+     ranking rather than as a stack of blocks. The table already scrolls sideways inside
+     its card, so the width this costs is width the card was prepared to give. */
+  .song-link { white-space: nowrap; color: var(--ink); text-decoration: underline;
+    text-decoration-color: var(--series-3); text-underline-offset: 3px;
+    text-decoration-thickness: 1px; cursor: pointer; }
+  .song-link:hover { color: var(--series-3); text-decoration-thickness: 2px; }
   /* predictor */
   .p-login, .p-topbar { margin-bottom: 12px; }
   .p-login { max-width: 420px; } /* full width on any phone; capped so it doesn't stretch edge-to-edge on wide desktop */
@@ -448,6 +479,19 @@
   .rl-dur { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
   .rl-credit { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.45; }
   .rl-credit a { color: var(--ink-2); }
+  .rl-head { font-size: 13px; margin-bottom: 2px; }
+  .rl-likes { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  .rl-sub { font-size: 12px; color: var(--ink-2); margin-bottom: 8px; }
+  /* Triggers inside dense tables and grids. Small, but still 32px tall so a thumb can
+     land on one — the 44px floor the rest of the app keeps would blow a table row open. */
+  .rl-chip { background: none; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--ink-2); font: inherit; font-size: 11px; line-height: 1; padding: 6px 7px;
+    min-height: 32px; margin: 2px 3px 2px 0; cursor: pointer; }
+  .rl-chip:hover { color: var(--ink); border-color: var(--series-3); background: var(--accent-wash); }
+  .rl-chip.on { color: var(--ink); border-color: var(--series-3); background: var(--accent-wash); }
+  .rl-chip-lone { margin-left: 8px; }
+  /* The shared panel a bound container opens at its foot. */
+  .rl-panel { margin-top: 12px; }
   .tr-metrics { font-size: 13px; margin: 8px 0 10px; }
   .tr-songs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
   .tr-song { font-size: 11px; padding: 2px 7px; border-radius: 99px; border: 1px solid currentColor; }
@@ -1154,6 +1198,14 @@ let tipOwner = null;
 function showTip(name, why, x, y) {
   tooltip.innerHTML = `<div class="tt-name">${esc(name)}</div><div class="tt-why">${esc(why)}</div>`;
   tooltip.style.display = 'block';
+  // A phone has no hover, so every tip here is a deliberate tap — and anchoring a 300px
+  // card to a fingertip near the edge of a 375px screen leaves it clamped hard against a
+  // margin and half under the thumb that opened it. Centre it instead and let it read as
+  // a small panel. Dismissal is unchanged: it is pointer-events:none, so a tap anywhere
+  // reaches the document handler below.
+  const phone = window.matchMedia('(max-width: 560px)').matches;
+  tooltip.classList.toggle('tt-modal', phone);
+  if (phone) { tooltip.style.left = ''; tooltip.style.top = ''; return; }
   const w = tooltip.offsetWidth, h = tooltip.offsetHeight;
   // Flip above the finger when there is not room below, and keep it on-screen.
   const top = y + 14 + h > window.innerHeight ? Math.max(8, y - 14 - h) : y + 14;
@@ -1273,13 +1325,17 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   h2.dataset.section = 'Song Rotation';
 
   const rot = el('div', 'card');
-  rot.appendChild(el('h2', null, 'Tour rotation <span class="hint">— most-played songs this tour</span>'));
+  rot.appendChild(el('h2', null, 'Tour rotation <span class="hint">— most-played songs this tour, tap a date to hear it</span>'));
   rot.appendChild(tableOf(
     ['Song', 'Plays', 'Dates'],
     A.horizontal.tourSongs.filter(t => t.plays >= 2).slice(0, 18).map(t => [
       `<span class="song">${esc(t.name)}</span>`, num(t.plays),
-      `<span class="why">${t.dates.map(fmtDateShort).join(', ')}</span>`,
+      // Each date is a show reference, so each one is its own trigger. The panel opens
+      // once at the bottom of the card rather than inside a table cell — see bind().
+      `<span class="why">${t.dates.map(d =>
+        `<button class="rl-chip" data-listen-date="${esc(d)}">${esc(fmtDateShort(d))}</button>`).join('')}</span>`,
     ]), [1]));
+  if (window.KalphishiListen) window.KalphishiListen.bind(rot);
   h2.appendChild(rot);
 
   const hist = el('div', 'card');
@@ -1354,12 +1410,27 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     const setNames = { 1: 'Set 1', 2: 'Set 2', 3: 'Set 3', e: 'Encore', e2: 'Encore 2' };
     for (const show of shows) {
       const card = el('div', 'venue-show');
-      card.appendChild(el('div', null, `<span class="date">${esc(fmtDate(show.date))}</span><span class="tour">${esc(show.tour || '')}</span>`));
+      card.appendChild(el('div', null, `<span class="date">${esc(fmtDate(show.date))}</span><span class="tour">${esc(show.tour || '')}</span>` +
+        `<button class="rl-chip rl-chip-lone" data-listen-date="${esc(show.date)}" title="Hear this show">Listen</button>`));
       for (const [set, items] of Object.entries(show.sets)) {
         card.appendChild(el('div', 'setlabel', setNames[set] || 'Set ' + set));
         const row = el('div', 'setlist');
         items.forEach((it, i) => {
-          const sp = el('span', 's' + (topSlugs.has(it.slug) ? ' overlap' : ''), esc(it.song));
+          // Same idea as the ranked table — the song is the control — but this one plays
+          // THIS show's performance rather than the best-loved one, so it carries the date
+          // alongside the title. The href points at that exact performance on phish.in;
+          // bind() intercepts the plain click and leaves a modified one to the browser.
+          const listen = window.KalphishiListen;
+          const cls = (listen ? 's s-play' : 's') + (topSlugs.has(it.slug) ? ' overlap' : '');
+          const sp = el(listen ? 'a' : 'span', cls, esc(it.song));
+          if (listen) {
+            sp.href = `https://phish.in/${encodeURIComponent(show.date)}/${listen.slugify(it.song)}`;
+            sp.target = '_blank';
+            sp.rel = 'noopener noreferrer';
+            sp.dataset.listenDate = show.date;
+            sp.dataset.listenTrack = it.song;
+            sp.title = `Play ${it.song} from this show`;
+          }
           row.appendChild(sp);
           if (i < items.length - 1) row.appendChild(el('span', 't', esc(it.trans || ',').trim() || ','));
         });
@@ -1376,6 +1447,9 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   }
 
   v.appendChild(venueShowsGrid(A.vertical.shows));
+  // Bound on the card, not the grid, so the panel survives the grid being replaced when
+  // someone explores a different venue below.
+  if (window.KalphishiListen) window.KalphishiListen.bind(v);
 
   // venue search: generate a vertical slice for any past venue
   v.appendChild(el('div', 'setlabel', 'Explore another venue'));
@@ -1482,14 +1556,45 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   // ---- candidates table
   const c = el('div', 'card');
   c.dataset.section = 'Ranked Songs';
-  c.appendChild(el('h2', null, 'All candidates <span class="hint">— ranked by combined horizontal + vertical score</span>'));
-  c.appendChild(tableOf(
+  c.appendChild(el('h2', null, 'All candidates <span class="hint">— ranked by combined horizontal + vertical score. Tap a song for its best-loved version; hover or tap a Why to read it in full.</span>'));
+
+  // The name IS the control, rather than a name plus a play chip beside it — the chip cost
+  // width in every one of 60 rows to say what the link already says.
+  //
+  // Unlike every other trigger in the app this one names a SONG, not a show: there is no
+  // single show behind a ranked candidate, so it resolves to the performance phish.in's
+  // users have liked most. The slug comes from the listen module rather than x.slug or a
+  // local copy of the rule, so the href and the panel it opens can never disagree about
+  // which song they mean — phish.in slugifies apostrophes differently to us.
+  //
+  // A real <a>, so it behaves like one: focusable, right-clickable, and openable in a new
+  // tab. bind() steps aside for a modified click and intercepts the plain one. Degrades to
+  // plain text if the module is absent, rather than rendering a link built on a guess.
+  const songCell = x => (window.KalphishiListen
+    ? `<a class="song song-link" href="https://phish.in/songs/${esc(window.KalphishiListen.slugify(x.name))}"` +
+      ` target="_blank" rel="noopener noreferrer"` +
+      ` data-listen-song="${esc(x.name)}" title="Hear the highest rated version">${esc(x.name)}</a>`
+    : `<span class="song">${esc(x.name)}</span>`);
+
+  const candTable = tableOf(
     ['#', 'Song', 'Score', 'Era freq', 'Shows since', 'Cadence', 'Tour plays', 'Why'],
     A.candidates.slice(0, 60).map((x, i) => [
-      num(i + 1), `<span class="song">${esc(x.name)}</span>`, `<span class="score">${x.score}</span>`,
+      num(i + 1),
+      songCell(x),
+      `<span class="score">${x.score}</span>`,
       pct(x.eraFreq), num(x.currentGap), num(x.medianInterval), num(x.tourPlays),
-      `<span class="why">${esc(x.why.join('; '))}</span>`,
-    ]), [0, 2, 3, 4, 5, 6]));
+      // Full text, clamped to one line by CSS — see .why-trunc. The reason travels in a
+      // data attribute too, so the tip reads it without depending on what the clamp left
+      // visible.
+      `<span class="why why-trunc" data-song="${esc(x.name)}" data-why="${esc(x.why.join('; '))}">${esc(x.why.join('; '))}</span>`,
+    ]), [0, 2, 3, 4, 5, 6]);
+  c.appendChild(candTable);
+  // Bound after the table exists, since tableOf builds its cells from HTML strings and
+  // there is no node to hand a listener to until it has run.
+  for (const cell of candTable.querySelectorAll('.why-trunc')) {
+    bindTip(cell, cell.dataset.song, cell.dataset.why);
+  }
+  if (window.KalphishiListen) window.KalphishiListen.bind(c);
   app.appendChild(c);
 
   // ---- tabs

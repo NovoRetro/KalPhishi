@@ -77,11 +77,52 @@ Nothing half-done. Working tree clean, 180 tests passing, remote migrations curr
    - "You enjoy myself. We'll do the scoring." (YEM)
    - "Call the show before the hose comes on." (phan idiom)
    The user wants a **rotating carousel**, not one line. Respect `prefers-reduced-motion`.
+
+   **DONE.** `TAGLINES` in `web/index.html` — the list is meant to grow, so new lines go
+   there and nowhere else. Rotates on load, on a 60s cadence while the tab is visible, and
+   on sign-in via the `onSignedIn` hook.
 2. **Get the Browser pane rendering** before more visual work — see Gotchas.
+
+   **DONE — it works.** Screenshots, DOM reads and click-driving all function. The rig and
+   the Relisten work were verified by eye, not just by measurement.
 3. On/after **2026-09-01**, merge (see Gotchas — freeze). Land `explain-soft-cap` first,
    confirm production, then the design branch. Ideally done before Dick's on **2026-09-04**.
+
+   **This is now the top priority.** Nothing since `d0d2e3d` has met a user, and Dick's is
+   the best available shot at a burst of real graded predictions — which is what both the
+   track record and the model need before anything else gets built.
 4. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
    rehoming the era window / tour totals, rehoming the attendance toggle.
+5. **"Nerd Zone" — low priority, revisit after fall tour 2026.** A user-selectable
+   analysis mode (calibrated probabilities / simulated odds / etc., with the current model
+   as default). Deferred on **timing, not merit** — do not re-litigate whether it is a good
+   idea, it probably is. This fandom compiles encyclopedic data about the band for fun, so
+   depth is plausibly the thing that gets the app shared.
+
+   The blocker is that the track record has **one graded show**. Any alternative mode needs
+   its own walk-forward backtest to be shown with the same authority as the current one, so
+   offering a menu of lenses now would mean presenting unvalidated output as validated —
+   which is the one thing that would cost the app its credibility. Revisit when the record
+   holds ~30 graded shows.
+
+   Two conclusions from the design review worth keeping, so they are not rediscovered:
+   - Calibrated / Bayesian / Monte Carlo are **not alternatives** — they are layers of one
+     pipeline (Bayesian fits parameters → calibration makes them probabilities → Monte
+     Carlo turns those into outcome odds). A menu presenting them as mutually exclusive
+     teaches the audience most likely to notice something false. If it ships, the axis is
+     *how much uncertainty do you want to see*: ranked picks → probabilities → odds.
+   - It is safe to expose at all only because predictions are graded against the real
+     setlist, never against the model, so a user's mode cannot touch their points or the
+     leaderboard. It **would** fragment Track Record, which grades the model.
+
+   **Calibration itself is not part of this and is worth doing on its own** — as a model
+   change with no UI. Caveat found while scoping it: `lib/model.mjs` gates the opener,
+   closer, set-2-opener and encore pools on `c.score > 0` (four places, ~line 300). Score
+   accumulates penalties from zero, so those gates are load-bearing. A calibrated
+   probability is never ≤ 0, so *replacing* `score` silently makes all four vacuous and
+   changes the predicted setlist. Add `p` alongside `score`; do not swap it. The calibrator
+   must also be fitted inside the walk-forward loop, or the backtest gets optimistically
+   wrong in a way that looks like the calibration helped.
 
 ## Key files
 
