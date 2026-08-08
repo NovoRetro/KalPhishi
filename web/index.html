@@ -305,7 +305,11 @@
   .p-stress { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--series-2); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; }
   .p-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; margin-left: auto; }
   .p-x:hover { color: var(--ink); }
-  .p-grid { display: grid; grid-template-columns: 28px repeat(5, minmax(90px, 130px)); gap: 4px; margin-top: 12px; }
+  /* justify-content, not margin:auto — the columns cap at 130px each, so on a wide card the
+     grid is narrower than its container and would otherwise sit hard left with a lake of
+     empty space beside it. No effect at the phone breakpoint below, where the columns
+     become 1fr and already fill the row. */
+  .p-grid { display: grid; grid-template-columns: 28px repeat(5, minmax(90px, 130px)); gap: 4px; margin-top: 12px; justify-content: center; }
   .p-head, .p-corner { display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--ink-2); }
   .p-cell { position: relative; aspect-ratio: 1; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px; font-size: 12px; line-height: 1.25; cursor: pointer; }
   .p-cell.empty { color: var(--muted); border-style: dashed; }
@@ -550,6 +554,14 @@
   .menu-id { display: flex; align-items: center; gap: 8px; padding: 4px 6px 10px; border-bottom: 1px solid var(--grid); margin-bottom: 8px; }
   .menu-id .p-avatar { font-size: 20px; }
   .menu-stats { color: var(--muted); font-size: 11px; }
+  /* The scoring reference reuses .p-help, which is sized for a card: a 620px cap and its
+     own border and background. Dropped into the menu unchanged it forces the panel wider
+     than a phone viewport and draws a box inside a box. Stripped back to plain content
+     here, with its own scroll so a long reference cannot push Back off the bottom. */
+  .menu-scoring { width: 340px; max-width: 100%; max-height: 60vh; overflow-y: auto;
+    margin-bottom: 8px; }
+  .menu-scoring .p-help { max-width: none; border: none; background: none;
+    padding: 0; margin-top: 0; }
   .menu-item { display: block; width: 100%; text-align: left; padding: 10px 8px; min-height: 44px;
     background: none; border: none; border-radius: 8px; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
   .menu-item:hover { background: var(--accent-wash); }
@@ -921,6 +933,17 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
       return;
     }
 
+    if (view === 'scoring') {
+      // The full reference, both games. Built by predictor.js from the same constants the
+      // scoring code uses, so this cannot drift from what actually gets awarded.
+      const host = el('div', 'menu-scoring');
+      const panelNode = actions?.scoringHelp?.();
+      host.appendChild(panelNode || el('div', 'menu-note', 'Scoring rules are still loading.'));
+      panel.appendChild(host);
+      panel.appendChild(item('← Back', () => drawContent()));
+      return;
+    }
+
     if (view === 'friends') {
       const wrap = el('div', 'menu-form');
       const msg = el('div', 'menu-note');
@@ -1131,6 +1154,7 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
 
     panel.appendChild(item('My History', () => { close(); actions?.goTo('history'); }));
     panel.appendChild(item('Profile', () => { close(); actions?.goTo('profile'); }));
+    panel.appendChild(item('How scoring works', () => drawContent('scoring')));
     panel.appendChild(item('Friends', () => drawContent('friends')));
     panel.appendChild(item('Change password', () => drawContent('password')));
     panel.appendChild(item('Sign out', async () => { close(); await actions?.signOut(); }, 'danger'));
