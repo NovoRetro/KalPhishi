@@ -154,6 +154,10 @@ function initPredictor(mount, A, opts = {}) {
       render();
     },
     openLogin(tab) { authPrompt = { tab, message: null, onAuthed: null }; render(); },
+    // The in-game panels are scoped to the game you are in, so the full reference needs a
+    // home that belongs to neither. Handed over as a factory rather than a rendered node:
+    // the menu can open and close repeatedly, and the constants are read at build time.
+    scoringHelp: () => scoringHelp('all'),
   };
 
   // When set, sign-in/register renders in the header's modal (window.KalphishiAuthModal)
@@ -409,16 +413,34 @@ function initPredictor(mount, A, opts = {}) {
   }
   // Bound once, not per render: a listener added inside render() would be re-added on
   // every redraw and never removed.
-  document.addEventListener('click', () => {
-    if (!actionsOpen) return;
-    actionsOpen = false;
-    render();
+  //
+  // Both the Actions menu and the scoring panel dismiss on an outside click. The panel
+  // checks the target first, because a click INSIDE it is someone reading — selecting a
+  // number out of the table must not close the thing they are reading it from.
+  //
+  // Everything that opens either of these calls stopPropagation. Without that, the click
+  // that opens would bubble to here in the same tick and close it again; and because
+  // render() has already replaced the DOM by then, the target would be a detached node
+  // whose closest() finds nothing, so it would look like the panel refused to open.
+  document.addEventListener('click', ev => {
+    let dirty = false;
+    if (actionsOpen) { actionsOpen = false; dirty = true; }
+    if (helpOpen && !ev.target.closest('.p-help')) { helpOpen = false; dirty = true; }
+    if (dirty) render();
   });
   document.addEventListener('keydown', ev => {
-    if (ev.key === 'Escape' && actionsOpen) { actionsOpen = false; render(); }
+    if (ev.key !== 'Escape') return;
+    if (!actionsOpen && !helpOpen) return;
+    actionsOpen = false;
+    helpOpen = false;
+    render();
   });
 
-  function scoringHelp() {
+  // scope: 'setlist' | 'bingo' | 'all'. Inside a game, the rules for the OTHER game are
+  // noise — half the panel described a system the player was not currently using, which is
+  // also most of why it grew long enough to scroll past. 'all' is the full reference and is
+  // reached from the account menu, where no single game is in view.
+  function scoringHelp(scope = 'all') {
     const box = el('div', 'p-help');
     const row = (what, pts) => `<tr><td>${what}</td><td class="num"><b>${pts}</b></td></tr>`;
     // "10 / 10 / 5" is shorthand that only means anything if you already know the rule, so
@@ -428,7 +450,7 @@ function initPredictor(mount, A, opts = {}) {
       ? `the first ${SOFT_CAP.set1} songs of a set`
       : `the first ${SOFT_CAP.set1} songs of Set 1 and ${SOFT_CAP.set2} of Set 2`)
       + ` (${SOFT_CAP.encore} in the encore)`;
-    box.innerHTML = `
+    const setlistRules = `
       <div class="setlabel">Setlist</div>
       <table><tbody>
         ${row('Any song you call right, anywhere in the show', `1 each, max ${SETLIST_POINTS.callCap}`)}
@@ -471,20 +493,32 @@ function initPredictor(mount, A, opts = {}) {
       <div class="p-help-note">
         Being one slot out scores the same as being ten out — placement is exact or it is not.
         No opener bonus here: the show opened Carini, not Ghost.
-      </div>
+      </div>`;
 
+    const bingoRules = `
       <div class="setlabel">PHISH Bingo</div>
       <table><tbody>
         ${row('Squares you call right', 'up to 80, shared across the 24')}
         ${row('Five in a line — row, column or diagonal', '+20')}
       </tbody></table>
-      <div class="p-help-note">The donut in the middle is yours for free and always counts toward a line.</div>
+      <div class="p-help-note">The donut in the middle is yours for free and always counts toward a line.</div>`;
 
-      <div class="p-help-note">
-        Setlist points and bingo scores are separate scores and are never added together or
-        averaged — a setlist result is a point total, a bingo result is out of 100.
-        Both lock when the show starts.
-      </div>`;
+    // The closing note only makes the both-scales comparison where both scales are on
+    // screen. In a single game it says the one thing that game's player needs.
+    const footer = {
+      setlist: `<div class="p-help-note">A setlist result is a point total. It locks when the
+        show starts, and is never combined with a bingo score.</div>`,
+      bingo: `<div class="p-help-note">A bingo result is out of 100. It locks when the show
+        starts, and is never combined with setlist points.</div>`,
+      all: `<div class="p-help-note">Setlist points and bingo scores are separate scores and
+        are never added together or averaged — a setlist result is a point total, a bingo
+        result is out of 100. Both lock when the show starts.</div>`,
+    }[scope] || '';
+
+    box.innerHTML =
+      (scope === 'bingo' ? '' : setlistRules) +
+      (scope === 'setlist' ? '' : bingoRules) +
+      footer;
     return box;
   }
 
@@ -617,9 +651,20 @@ function initPredictor(mount, A, opts = {}) {
   function renderSetlistBuilder() {
     const usedSlugs = () => new Set([...build.set1, ...build.set2, ...build.encore].map(s => s.slug));
 
+    // Named, because both the Actions item and the empty-state Pick for me button run it.
+    const fillSetlistFromModel = () => {
+      build = {
+        set1: A.prediction.set1.map(s => ({ slug: s.slug, name: s.name })),
+        set2: A.prediction.set2.map(s => ({ slug: s.slug, name: s.name })),
+        encore: A.prediction.encore.map(s => ({ slug: s.slug, name: s.name })),
+      };
+      render();
+    };
+
     const controls = el('div', 'p-row');
-    // Same Actions menu as bingo, minus Clear — the setlist has no equivalent, since its
-    // lists are emptied a row at a time rather than as a board.
+    // Same Actions menu as bingo. Clear used to be omitted on the grounds that setlist rows
+    // are removed one at a time — but that is the argument FOR it: emptying three lists by
+    // hand is twenty-odd presses, where the board version was always one.
     controls.appendChild(actionsMenu([
       ['🎲 Randomize', () => {
         const used = new Set();
@@ -633,30 +678,37 @@ function initPredictor(mount, A, opts = {}) {
         };
         render();
       }],
-      ["🛟 Kalphishi's Prediction", () => {
-        build = {
-          set1: A.prediction.set1.map(s => ({ slug: s.slug, name: s.name })),
-          set2: A.prediction.set2.map(s => ({ slug: s.slug, name: s.name })),
-          encore: A.prediction.encore.map(s => ({ slug: s.slug, name: s.name })),
-        };
-        render();
-      }],
+      ["🛟 Kalphishi's Prediction", fillSetlistFromModel],
+      ['🧹 Clear', () => { build = { set1: [], set2: [], encore: [] }; render(); }],
       [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
         () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
     ]));
-    // Save rides the control row beside Actions rather than sitting alone under the
-    // builder.
-    const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
-    save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
-      try {
-        await api('/api/predictions', 'POST', { showdate, type: 'setlist', payload: build });
-        flash('Saved.');
-        window.KalphishiRig?.peak();
-      } catch (e) { flash(e.message, true); }
-    }));
-    controls.appendChild(save);
+
+    // An empty builder offers Pick for me INSTEAD of Save, not alongside it. Saving nothing
+    // is not a thing anyone wants to do, and a disabled-looking Save is a worse answer to
+    // "how do I start" than a button that just starts it. They swap, so the row never
+    // carries two primary actions at once.
+    const songCount = build.set1.length + build.set2.length + build.encore.length;
+    if (songCount === 0) {
+      const pick = el('button', 'p-btn', '✨ Pick for me');
+      pick.title = "Fill all three lists from Kalphishi's predicted setlist — then edit freely";
+      pick.addEventListener('click', fillSetlistFromModel);
+      controls.appendChild(pick);
+    } else {
+      // Save rides the control row beside Actions rather than sitting alone under the
+      // builder.
+      const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
+      save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
+        try {
+          await api('/api/predictions', 'POST', { showdate, type: 'setlist', payload: build });
+          flash('Saved.');
+          window.KalphishiRig?.peak();
+        } catch (e) { flash(e.message, true); }
+      }));
+      controls.appendChild(save);
+    }
     mount.appendChild(controls);
-    if (helpOpen) mount.appendChild(scoringHelp());
+    if (helpOpen) mount.appendChild(scoringHelp('setlist'));
 
     const wrap = el('div', 'p-sets');
     for (const [key, label] of [['set1', 'Set 1'], ['set2', 'Set 2'], ['encore', 'Encore']]) {
@@ -790,7 +842,7 @@ function initPredictor(mount, A, opts = {}) {
     // A scored card has no controls row to hang it off, and that is precisely when
     // somebody wants to read how the scoring worked — so it gets a row of its own.
     else mount.appendChild(el('div', 'p-row')).appendChild(scoringHelpButton());
-    if (helpOpen) mount.appendChild(scoringHelp());
+    if (helpOpen) mount.appendChild(scoringHelp('bingo'));
     const pickerHost = el('div', 'p-picker');
     mount.appendChild(pickerHost);
 
@@ -1021,26 +1073,37 @@ function initPredictor(mount, A, opts = {}) {
         controls.appendChild(restore);
       }
 
-      // Save rides the control row with the other actions rather than sitting alone under
-      // the grid. Appended before the help button, which pushes itself right.
-      // Same label whether or not a card is already saved: re-saving is the same act, and
-      // now that a save no longer ends the editing phase it is one people will do more
-      // than once. Matches the setlist builder's button exactly.
-      const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
-      save.addEventListener('click', () => {
-        const filled = grid.filter((c, i) => c && i !== FREE).length;
-        if (filled < 24) return flash(`Fill all squares first (${filled}/24).`, true);
-        requireAuth('Sign in or create an account to save your bingo card.', async () => {
-          try {
-            await api('/api/predictions', 'POST', { showdate, type: 'bingo', payload: { grid } });
-            await loadExisting();
-            mode = 'bingo';
-            flash('Card saved — live mode on.');
-            window.KalphishiRig?.peak();
-          } catch (e) { flash(e.message, true); }
+      // An empty board offers Pick for me INSTEAD of Save — same swap as the setlist
+      // builder. Save on an empty card can only ever produce "Fill all squares first
+      // (0/24)", so it is a button whose only available outcome is a scolding.
+      const filledNow = grid.filter((c, i) => c && i !== FREE).length;
+      if (filledNow === 0) {
+        const pick = el('button', 'p-btn', '✨ Pick for me');
+        pick.title = "Fill the card from Kalphishi's predicted setlist, topped up with its highest-ranked candidates — then edit freely";
+        pick.addEventListener('click', fillFromModel);
+        controls.appendChild(pick);
+      } else {
+        // Save rides the control row with the other actions rather than sitting alone under
+        // the grid. Appended before the help button, which pushes itself right.
+        // Same label whether or not a card is already saved: re-saving is the same act, and
+        // now that a save no longer ends the editing phase it is one people will do more
+        // than once. Matches the setlist builder's button exactly.
+        const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
+        save.addEventListener('click', () => {
+          const filled = grid.filter((c, i) => c && i !== FREE).length;
+          if (filled < 24) return flash(`Fill all squares first (${filled}/24).`, true);
+          requireAuth('Sign in or create an account to save your bingo card.', async () => {
+            try {
+              await api('/api/predictions', 'POST', { showdate, type: 'bingo', payload: { grid } });
+              await loadExisting();
+              mode = 'bingo';
+              flash('Card saved — live mode on.');
+              window.KalphishiRig?.peak();
+            } catch (e) { flash(e.message, true); }
+          });
         });
-      });
-      controls.appendChild(save);
+        controls.appendChild(save);
+      }
     }
 
     function declareBingo() {
@@ -1146,7 +1209,9 @@ function initPredictor(mount, A, opts = {}) {
   function scoringHelpButton() {
     const b = el('button', 'p-mode p-keep-live p-pushright' + (helpOpen ? ' active' : ''),
       helpOpen ? '✕ Scoring' : '❓ How scoring works');
-    b.addEventListener('click', () => { helpOpen = !helpOpen; render(); });
+    // stopPropagation for the reason spelled out on the document listener: without it this
+    // click bubbles up and closes the panel it just opened.
+    b.addEventListener('click', ev => { ev.stopPropagation(); helpOpen = !helpOpen; render(); });
     return b;
   }
 
