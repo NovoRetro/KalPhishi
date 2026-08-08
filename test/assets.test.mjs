@@ -205,14 +205,34 @@ test('the listen player credits its sources and never autoplays', () => {
   // of thing a later edit drops without noticing it mattered:
   //   · credit to phish.in (who host the bytes) and Relisten (who index them) renders with
   //     the player itself, every time, not in a footer someone has to go find;
-  //   · nothing plays without a press, which keeps the draw on phish.in's privately funded
-  //     bandwidth proportional to actual listening.
+  //   · nothing STARTS without a press, which keeps the draw on phish.in's privately
+  //     funded bandwidth proportional to actual listening.
   assert.match(relisten, /rl-credit/, 'the credit element must be rendered');
   assert.match(relisten, /phish\.in/, 'phish.in must be credited');
   assert.match(relisten, /relisten\.net/, 'Relisten must be credited');
   assert.ok(!/autoplay\s*=/.test(relisten), 'nothing here may autoplay');
   assert.match(relisten, /preload\s*=\s*'none'/,
     'no audio may be fetched until it is actually asked for');
+});
+
+test('a show advances to the end and then stops', () => {
+  // A show plays straight through once started, which is the one place audio continues
+  // without a fresh press. The bound on it is the whole reason that is acceptable: it
+  // stops at the last track, so a forgotten tab cannot sit pulling recordings all night.
+  // Neither `autoplay=` nor `preload` changes when this breaks, so the test above would
+  // stay green through a regression here.
+  const adv = relisten.match(/function advance\(\)\s*\{[\s\S]*?\n  \}/);
+  assert.ok(adv, 'advance() not found');
+  assert.match(adv[0], /i >= queue\.length - 1/,
+    'advancing must stop at the last track rather than wrapping');
+  assert.ok(!/loop\s*=\s*true/.test(relisten), 'the player must never loop');
+
+  // Every start routes through playFrom, which sets the queue and the source together.
+  // A direct `audio.src = …; play()` elsewhere would leave the two disagreeing, and the
+  // show would advance out of one panel into whatever another panel had listed.
+  const starts = relisten.match(/\.src = /g) || [];
+  assert.equal(starts.length, 2,
+    'only playFrom and advance may assign .src — found ' + starts.length + ' assignments');
 });
 
 test('the build stamps its scripts with a content hash', () => {

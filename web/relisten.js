@@ -12,9 +12,13 @@
 //   1. This only ever attaches to a show or song reference on the Data side. It is not
 //      ambient background audio, and it must not appear on, or be bundled with, anything
 //      paid.
-//   2. Nothing autoplays. Every stream is one deliberate press, which keeps the draw on
-//      phish.in's privately funded bandwidth proportional to actual listening — and is
-//      required anyway, since browsers block autoplay with sound.
+//   2. Nothing starts without a press. A show does play straight through once started —
+//      that is how a show is listened to, and advancing is the continuation of a press
+//      that already happened rather than a stream begun on the listener's behalf — but it
+//      stops at the last track. It never rolls into another show and never loops, so a
+//      forgotten tab cannot sit pulling audience recordings all night. Keeping the draw on
+//      phish.in's privately funded bandwidth proportional to actual listening is the point;
+//      starting silent is also required anyway, since browsers block autoplay with sound.
 //   3. Credit renders with the player itself, not in a footer someone has to go find, and
 //      names whichever upstreams actually supplied that panel.
 //
@@ -152,6 +156,29 @@
   // playing. Detached panels prune themselves on the next event rather than needing an
   // explicit teardown, which re-rendering a box into new nodes would otherwise require.
   const painters = new Set();
+
+  // The list the running stream came out of, so `ended` knows what follows. Set only where
+  // playback actually starts; a single-track panel leaves a queue of one and therefore has
+  // nothing to advance into.
+  let queue = [];
+
+  // A show is meant to be listenable the way a show is listened to — straight through,
+  // without going back to the tab between songs. Advancing is therefore continuation of a
+  // press that already happened, not a new stream started on the listener's behalf.
+  //
+  // It stops dead at the end of the queue. It does not roll into the next show, and it does
+  // not loop: leaving a browser tab quietly pulling audience recordings all night is
+  // exactly the sort of draw the "one press" rule exists to keep off phish.in's privately
+  // funded bandwidth.
+  function advance() {
+    const i = queue.findIndex(t => t.mp3 === audio.src);
+    if (i < 0 || i >= queue.length - 1) return;
+    audio.src = queue[i + 1].mp3;
+    // No status target: whichever panels are live repaint from the transport events, and a
+    // failure here leaves the row showing as stopped, which is the truth.
+    startPlay(audio, () => {});
+  }
+
   function player() {
     if (!audio) {
       audio = new Audio();
@@ -164,8 +191,21 @@
           }
         });
       }
+      // Registered after the repainters, so the row that just finished is drawn as stopped
+      // before the next one is drawn as playing.
+      audio.addEventListener('ended', advance);
     }
     return audio;
+  }
+
+  // The one way playback is allowed to start. Routing every start through here is what
+  // keeps `queue` and `audio.src` from disagreeing about which show is running — the bug
+  // that would otherwise advance from a track in one panel into a show listed in another.
+  function playFrom(list, track, onFail) {
+    const a = player();
+    queue = list;
+    a.src = track.mp3;
+    startPlay(a, onFail);
   }
 
   // play() hands back a promise that rejects with AbortError whenever the media is paused,
@@ -212,8 +252,7 @@
             else startPlay(a, () => { statusEl.textContent = 'That track would not play.'; });
             return;
           }
-          a.src = t.mp3;
-          startPlay(a, () => { statusEl.textContent = 'That track would not play.'; });
+          playFrom(tracks, t, () => { statusEl.textContent = 'That track would not play.'; });
         });
         list.appendChild(row);
       });
@@ -257,9 +296,8 @@
     box.appendChild(creditFor(showdate, true));
 
     if (opts.start && !wantTrack) {
-      const a = player();
-      a.src = show.tracks[0].mp3;
-      startPlay(a, () => { status.textContent = 'That recording would not play.'; });
+      playFrom(show.tracks, show.tracks[0],
+        () => { status.textContent = 'That recording would not play.'; });
       return;
     }
 
@@ -272,9 +310,7 @@
         status.textContent = `${wantTrack} is not in this recording — pick another track.`;
         return;
       }
-      const a = player();
-      a.src = t.mp3;
-      startPlay(a, () => { status.textContent = `${t.title} would not play.`; });
+      playFrom(show.tracks, t, () => { status.textContent = `${t.title} would not play.`; });
     }
   }
 
