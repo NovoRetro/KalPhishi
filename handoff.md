@@ -92,14 +92,61 @@ Nothing half-done. Working tree clean, 186 tests passing, production current.
 
 ## Next steps
 
-1. **Get people playing before Dick's (2026-09-04).** The beta has testers; the track
-   record has one graded show. Nothing else matters as much as closing that gap.
-2. **Calibration** — a model change with no UI. Turn scores into probabilities via Platt
+**Context as of 2026-08-08.** A cohort of willing phans is being assembled to test through
+to Dick's on **2026-09-04** — roughly four weeks. The track record still holds **one graded
+show**, and that cohort is the only thing that changes it. So the ordering below is: remove
+what could lose a tester, then remove what could stop a tester playing, then everything
+else.
+
+### 0. Social readiness — before the cohort arrives
+
+Verified against the code on 2026-08-08. Friendships form **only** by redeeming an invite
+link; they are instant, mutual, and have no approval step. Groups are owner-created,
+owner-managed, and members must already be friends.
+
+1. **Password recovery does not exist. This is the one that loses testers.**
+   There is no reset, no forgot-password, no recovery route anywhere in `src/worker.mjs`.
+   With ~30 people over four weeks somebody will forget theirs, and today that is
+   permanent: they cannot get back in, and whatever they had predicted stops being
+   gradeable. That is a direct hit on the single number this whole exercise exists to
+   raise. There is precedent too — the D1 migration already stranded old scrypt hashes
+   because they fail closed.
+
+   Full email delivery is a large lift for four weeks. Cheaper options that would do:
+   an admin-issued one-time reset link (moderation endpoints and `ADMIN_TOKEN` already
+   exist, so this is one route plus a short-lived token), or a recovery code shown once at
+   registration. Either beats losing a tester and their graded predictions.
+
+2. **Onboarding thirty people is currently sixty manual steps.** A group owner must first
+   be friends with each person — one invite redemption each — and then add them one at a
+   time by handle, because `POST /api/groups/:id/members` is owner-only *and* friends-only.
+   There is no join-by-link for a group. For a cohort this is the difference between
+   "share one link" and an afternoon of admin. Options: a group invite code that joins on
+   redeem, or letting one invite redemption carry an optional group id.
+
+3. **Decide the invite link's default reach.** Redeeming wires two accounts together
+   instantly with no confirmation. `max_uses` and `expires` both exist in the schema and
+   are honoured on redeem — confirm they are actually surfaced when a link is created, and
+   pick sane defaults. Phans share things; a link posted publicly currently means strangers
+   in a tester's friends list, and the leaderboard they were meant to compare against.
+
+4. **Look at day one for a brand-new tester.** They register into an empty Friends
+   leaderboard, no groups, and a Track Record with one graded show in it. Worth walking
+   through as a first-timer and deciding what those empty states should say — this is the
+   moment the cohort decides whether the app is worth a month of their attention.
+
+5. **Not yet checked, worth a pass:** whether anything nudges a tester to predict *before*
+   a show locks. With no email there is no notification channel, so whatever exists has to
+   be in-app. A cohort that forgets to predict produces no graded predictions.
+
+### Then
+
+1. **Calibration** — a model change with no UI. Turn scores into probabilities via Platt
    scaling fitted *inside* the walk-forward loop. Highest value-to-cost item on the model
-   side, and a prerequisite for anything probabilistic later. **See the caveat in step 5.**
-3. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
+   side, and a prerequisite for anything probabilistic later. **See the caveat in step 4.**
+2. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
    rehoming the era window / tour totals, rehoming the attendance toggle.
-4. **"Nerd Zone" — low priority, revisit after fall tour 2026.** A user-selectable analysis
+3. **"Nerd Zone" — low priority, revisit after fall tour 2026.** A user-selectable analysis
    mode (calibrated probabilities / simulated odds / etc., current model as default).
    Deferred on **timing, not merit** — don't re-litigate whether it's a good idea; it
    probably is. This fandom compiles encyclopedic data about the band for fun.
@@ -118,7 +165,7 @@ Nothing half-done. Working tree clean, 186 tests passing, production current.
    - It's safe to expose at all only because predictions are graded against the real
      setlist, never against the model — so a user's mode can't touch their points or the
      leaderboard. It **would** fragment Track Record, which grades the model.
-5. **Calibration caveat, found while scoping the above.** `lib/model.mjs` gates the opener,
+4. **Calibration caveat, found while scoping the above.** `lib/model.mjs` gates the opener,
    closer, set-2-opener and encore pools on `c.score > 0` (four places, in the block
    building `openerPool`/`closerPool`/`s2openPool`/`encorePool`). Score accumulates
    penalties from zero (−15 just played, −10 played at last tour show, −5 for 3+ tour plays)
