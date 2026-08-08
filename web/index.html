@@ -101,7 +101,14 @@
     text-shadow: 0 0 22px rgba(168,85,247,0.45), 0 2px 14px rgba(0,0,0,0.65); }
   /* Set above the stats line, not below: it is the one sentence that says what the page
      is, and it has to land before the reader starts parsing tour numbers. */
-  .stage .tagline { font-size: 15px; color: #e7e1f8; margin-top: 8px;
+  /* Capped and centred so it cannot run underneath the banner actions on the right. The
+     list is meant to grow, so this has to hold for lines nobody has written yet rather
+     than for the ones that happen to fit today: measured across all 13, five of them
+     reached into the actions at full width.
+     min-height reserves the second line every line-length needs, so a rotation from a
+     short tagline to a long one does not shove the whole page down 22px. */
+  .stage .tagline { font-size: 15px; color: #e7e1f8; margin: 8px auto 0;
+    max-width: 420px; min-height: 3em;
     text-shadow: 0 1px 10px rgba(0,0,0,0.75); transition: opacity 220ms ease; }
   .stage .tagline.tagline-out { opacity: 0; }
 
@@ -148,9 +155,30 @@
   /* Pinned right, separated from the three tabs that read the model. margin-left:auto on
      this rather than on the stamp — the stamp then simply follows it to the edge, and a
      primary destination outranks a metadata pill for the prominent position. */
-  .tab-play { margin-left: auto; }
-  .tab-play-ico { font-size: 10px; opacity: 0.8; margin-right: 2px; }
-  .tab-play.active .tab-play-ico { opacity: 1; }
+  /* Banner actions. Neither of these belonged in a row of peers: Play a Show is not a view
+     of the model the way the three tabs are, and the stamp describes the data behind Data
+     rather than the page. Both sit on the banner instead, right-aligned against the centred
+     title, stamp above button — the quiet label above the loud control.
+     Absolute on desktop so the title stays optically centred in the full width instead of
+     being shoved off-centre by a sibling. The top offset clears the menu button, which is
+     position:fixed over the same right edge and occupies the viewport's top 54px. */
+  .stage-actions { position: absolute; top: 46px; right: 18px; z-index: 3;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .stage-actions .stamp { margin-left: 0; color: #fff;
+    background: rgba(0,0,0,0.30); border-color: rgba(255,255,255,0.22); }
+  .btn-play { display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    font: inherit; font-size: 14px; font-weight: 600; color: #fff;
+    padding: 9px 16px; min-height: 44px; border-radius: 99px;
+    border: 1px solid rgba(255,255,255,0.30); background: rgba(255,255,255,0.10);
+    text-shadow: 0 1px 6px rgba(0,0,0,0.85); }
+  .btn-play:hover { background: rgba(255,255,255,0.18); border-color: #fff; }
+  .btn-play.active { background: var(--beam-2); border-color: var(--beam-2); }
+  .btn-play-ico { font-size: 11px; }
+  /* On a phone the centred title fills the width, so an absolute block would land on top
+     of it. Drops into the flow below the tagline instead. */
+  @media (max-width: 560px) {
+    .stage-actions { position: static; align-items: center; margin-top: 16px; }
+  }
 
   /* ---- Play a Show ---- */
   .ps-quick-host:empty { display: none; }
@@ -198,14 +226,6 @@
     .ps-filters .ps-search { max-width: none; }
   }
 
-  /* Descendant selector, not a bare .stamp: it is also a .pill, and .pill's own
-     margin-left is declared further down this sheet — at equal specificity that wins on
-     source order and the stamp quietly stays put next to the Data tab. */
-  .tabs .stamp { margin-left: auto; color: #fff;
-    background: rgba(0,0,0,0.30); border-color: rgba(255,255,255,0.22); }
-  /* Narrow enough and it wraps onto its own row, where auto-margin has nothing to push
-     against. Line it up with the tab labels above it instead. */
-  @media (max-width: 560px) { .tabs .stamp { margin: 2px 0 6px 14px; } }
   /* The nav sits inside the hall now, so it is lit from behind rather than sitting on the
      page. It is styled for darkness in BOTH themes for that reason — following --ink here
      would put near-black labels on a near-black hall in light mode. */
@@ -1854,6 +1874,27 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   let activeTab = GAME_TABS[0].name;
   let activeDataTab = DATA_TABS[0];
 
+  // ---- banner actions
+  //
+  // Built once and left alone, unlike the tab bar, which is emptied and rebuilt on every
+  // render. renderTabs only reaches in to toggle the button's active class.
+  //
+  // The catalogue is fetched the first time the button is pressed, not at page load — 39
+  // years of index is not worth loading for a visitor who came to fill in a bingo card.
+  const stageEl = document.getElementById('stage');
+  const stageActions = el('div', 'stage-actions');
+  // "Updated", not "Last updated:" — the shorter label is what keeps this stack narrow
+  // enough for the tagline to keep a readable column beside it. At the longer wording the
+  // block is 171px wide and the tagline has to drop to a 340px column, which pushes the
+  // longest lines to three rows.
+  stageActions.appendChild(el('span', 'pill stamp', 'Updated ' + esc(fmtDate(A.asOf))));
+  const playBtn = el('button', 'btn-play', '<span class="btn-play-ico">&#9654;</span> Play a Show');
+  playBtn.addEventListener('click', () => {
+    activeTab = 'Play a Show'; menuMode = null; buildPlayShow(); renderTabs();
+  });
+  stageActions.appendChild(playBtn);
+  if (stageEl) stageEl.appendChild(stageActions);
+
   function renderTabs() {
     const game = GAME_TABS.find(g => g.name === activeTab);
     // History and profile come from the account menu and belong to no tab, so while one is
@@ -1870,20 +1911,9 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     dataBtn.addEventListener('click', () => { activeTab = 'Data'; menuMode = null; renderTabs(); });
     tabBar.appendChild(dataBtn);
 
-    // Pinned right, away from the three that read the model. This one plays records; it is
-    // a different kind of destination and the gap says so. The catalogue is only fetched
-    // the first time it is opened — 39 years of index is not worth loading for a visitor
-    // who came to fill in a bingo card.
-    const playBtn = el('button', 'tab tab-play' + (activeTab === 'Play a Show' ? ' active' : ''),
-      '<span class="tab-play-ico">&#9654;</span> Play a Show');
-    playBtn.addEventListener('click', () => {
-      activeTab = 'Play a Show'; menuMode = null; buildPlayShow(); renderTabs();
-    });
-    tabBar.appendChild(playBtn);
-
-    // Rebuilt with the bar on every render rather than being a fixed node in the markup,
-    // because innerHTML = '' above clears whatever was there.
-    tabBar.appendChild(el('span', 'pill stamp', 'Last updated: ' + esc(fmtDate(A.asOf))));
+    // Play a Show and the freshness stamp live on the banner, not in this row — see the
+    // stage-actions block above. Only the active state is driven from here.
+    playBtn.classList.toggle('active', activeTab === 'Play a Show' && !menuMode);
 
     subBar.innerHTML = '';
     subBar.style.display = activeTab === 'Data' ? '' : 'none';
