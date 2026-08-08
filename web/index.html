@@ -405,10 +405,17 @@
     .p-cell.free { font-size: 32px; }
     .p-cellname { -webkit-line-clamp: 4; }
     /* Full opacity, not the desktop hover-reveal design: touch has no hover to reveal
-       these with, so the faint default was effectively invisible. p-x had no mobile
-       override at all before this — stuck at its 14px desktop size in a ~52px cell. */
-    .p-cell .p-lock { font-size: 14px; opacity: 0.85; padding: 3px; }
-    .p-cell .p-x { font-size: 15px; opacity: 0.85; padding: 3px; line-height: 1; }
+       these with, so the faint default was effectively invisible.
+       The opacity was the fix; the size was an overcorrection made alongside it. A 14px
+       glyph sits in a ~52px cell whose song name is 9.5px, so the badge read louder than
+       the square it was labelling. The glyph is back to its desktop size and the padding
+       does the reaching instead — a bigger tap area around a smaller mark, with top/left
+       compensating so it still lands in the same corner.
+       Deliberately NOT the 44px target used elsewhere: these are secondary controls
+       *inside* a primary one, and a 44px hit box would cover most of a 52px cell and
+       swallow the tap that arms a swap. */
+    .p-cell .p-lock { font-size: 11px; opacity: 0.85; padding: 5px; top: 0; left: 1px; }
+    .p-cell .p-x { font-size: 12px; opacity: 0.85; padding: 5px; top: -2px; right: 0; line-height: 1; }
     .p-head, .p-corner { font-size: 11px; }
     .p-drag { font-size: 15px; padding: 6px 8px; }
     .p-songrow { padding: 5px 0; }
