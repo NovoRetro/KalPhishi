@@ -22,6 +22,7 @@
 // <audio> with no dependency and no server involvement.
 (function () {
   const RELISTEN = 'https://api.relisten.net/api/v2/artists/phish/shows/';
+  const RELISTEN_YEARS = 'https://api.relisten.net/api/v2/artists/phish/years';
   const PHISHIN = 'https://phish.in/api/v2/tracks';
 
   const el = (tag, cls, html) => {
@@ -68,6 +69,49 @@
         .catch(() => null));
     }
     return showCache.get(showdate);
+  }
+
+  // The catalogue index: which years exist, and what is in one. Separate caches from
+  // showCache because they answer a different question — "what could I listen to" rather
+  // than "give me this show" — and a year is fetched at most once per session.
+  let yearsPromise = null;
+  const yearCache = new Map();
+
+  function loadYears() {
+    if (!yearsPromise) {
+      yearsPromise = fetch(RELISTEN_YEARS)
+        .then(r => (r.ok ? r.json() : []))
+        .then(a => (Array.isArray(a) ? a : [])
+          .filter(y => y.show_count > 0)
+          .map(y => ({ year: String(y.year), shows: y.show_count }))
+          .sort((x, y) => y.year.localeCompare(x.year)))
+        .catch(() => []);
+    }
+    return yearsPromise;
+  }
+
+  function loadYear(year) {
+    const key = String(year);
+    if (!yearCache.has(key)) {
+      yearCache.set(key, fetch(`${RELISTEN_YEARS}/${encodeURIComponent(key)}`)
+        .then(r => (r.ok ? r.json() : null))
+        .then(j => ((j && j.shows) || [])
+          // A show with no source has nothing to play. Listing it would offer a row that
+          // can only ever answer "no recording available".
+          .filter(s => s.source_count > 0)
+          .map(s => ({
+            date: s.display_date,
+            venue: (s.venue && s.venue.name) || '',
+            location: (s.venue && s.venue.location) || '',
+            tour: (s.tour && s.tour.name) || '',
+            rating: s.avg_rating,
+            soundboard: !!s.has_soundboard_source,
+          }))
+          // Newest first: this view is overwhelmingly used to reach a recent show.
+          .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)))
+        .catch(() => []));
+    }
+    return yearCache.get(key);
   }
 
   function loadBest(songName) {
@@ -124,6 +168,18 @@
     return audio;
   }
 
+  // play() hands back a promise that rejects with AbortError whenever the media is paused,
+  // or its source swapped, before playback actually begins — which happens every time
+  // somebody starts a track and immediately hits pause or picks another one. Reporting
+  // that as a failure told people the recording was broken at the exact moment it was
+  // doing what they asked. Only a genuine failure should reach the status line.
+  function startPlay(a, onFail) {
+    const p = a.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch(err => { if (!err || err.name !== 'AbortError') onFail(); });
+    }
+  }
+
   function creditFor(showdate, viaRelisten) {
     const phishin = `<a href="https://phish.in/${encodeURIComponent(showdate)}" target="_blank" rel="noopener noreferrer">phish.in</a>`;
     const rl = `<a href="https://relisten.net/phish/${encodeURIComponent(showdate)}" target="_blank" rel="noopener noreferrer">Relisten</a>`;
@@ -149,9 +205,15 @@
           `<span class="rl-title">${esc(t.title)}</span>` +
           `<span class="rl-dur">${mmss(t.secs)}</span>`);
         row.addEventListener('click', () => {
-          if (current) { if (playing) a.pause(); else a.play(); return; }
+          // Resuming needs the same guard: bare, its rejection on a quick re-pause has
+          // nowhere to go and surfaces as an unhandled promise rejection.
+          if (current) {
+            if (playing) a.pause();
+            else startPlay(a, () => { statusEl.textContent = 'That track would not play.'; });
+            return;
+          }
           a.src = t.mp3;
-          a.play().catch(() => { statusEl.textContent = 'That track would not play.'; });
+          startPlay(a, () => { statusEl.textContent = 'That track would not play.'; });
         });
         list.appendChild(row);
       });
@@ -170,10 +232,13 @@
   // letters and digits alone is what makes "Wolfman's Brother" match "Wolfmans Brother".
   const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '');
 
-  // wantTrack: optional title to start playing once the show has loaded. It is only ever
-  // set by a click on that specific song, so this is still one press = one stream, not an
-  // autoplay — the press just happened before the fetch it had to wait for.
-  async function renderShow(box, showdate, wantTrack) {
+  // opts.track — title to start playing once the show has loaded.
+  // opts.start — start the recording from the top instead.
+  // Both are only ever set by a press that asked for exactly this, so it remains one
+  // press = one stream, not an autoplay. The press just happened before the fetch it had
+  // to wait for.
+  async function renderShow(box, showdate, opts = {}) {
+    const wantTrack = opts.track;
     box.innerHTML = '';
     box.appendChild(el('div', 'rl-status', 'Looking for a recording…'));
     const show = await loadShow(showdate);
@@ -191,6 +256,13 @@
       `${show.tracks.length} tracks${show.venue ? ' · ' + show.venue : ''}`));
     box.appendChild(creditFor(showdate, true));
 
+    if (opts.start && !wantTrack) {
+      const a = player();
+      a.src = show.tracks[0].mp3;
+      startPlay(a, () => { status.textContent = 'That recording would not play.'; });
+      return;
+    }
+
     if (wantTrack) {
       const t = show.tracks.find(x => norm(x.title) === norm(wantTrack));
       if (!t) {
@@ -202,7 +274,7 @@
       }
       const a = player();
       a.src = t.mp3;
-      a.play().catch(() => { status.textContent = `${t.title} would not play.`; });
+      startPlay(a, () => { status.textContent = `${t.title} would not play.`; });
     }
   }
 
@@ -264,10 +336,10 @@
       if (!box) { box = el('div', 'rl-box'); panel.appendChild(box); }
       for (const prev of container.querySelectorAll('.rl-chip.on')) prev.classList.remove('on');
       t.classList.add('on');
-      if (t.dataset.listenDate) renderShow(box, t.dataset.listenDate, t.dataset.listenTrack);
+      if (t.dataset.listenDate) renderShow(box, t.dataset.listenDate, { track: t.dataset.listenTrack });
       else renderBest(box, t.dataset.listenSong);
     });
   }
 
-  window.KalphishiListen = { attach, bind, slugify };
+  window.KalphishiListen = { attach, bind, slugify, loadYears, loadYear, renderShow };
 })();
