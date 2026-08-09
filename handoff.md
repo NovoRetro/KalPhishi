@@ -141,12 +141,51 @@ owner-managed, and members must already be friends.
 
 ### Then
 
-1. **Calibration** — a model change with no UI. Turn scores into probabilities via Platt
+1. **Pre-cache the next track — HIGH priority, but after the cohort blockers above.**
+   Deliberately sequenced behind password recovery: this makes a good thing better, that
+   one stops a tester being lost outright.
+
+   **The gap is 255ms, measured — not guessed.** Captured off real transport events by
+   grabbing the module's detached `Audio` and seeking to two seconds before a track's end:
+
+   ```
+   ended        0 ms   Sample in a Jar
+   waiting     +1 ms   next track
+   loadstart   +1 ms
+   canplay   +255 ms
+   playing   +255 ms   Sparkle
+   ```
+
+   The entire gap is one network round-trip. `advance()` fires in ~1ms, so nothing in our
+   code is slow; `preload="none"` simply means the fetch cannot start until the previous
+   track has already ended. Anyone re-measuring should expect ~255ms on desktop broadband
+   and should not go looking for a bug in `advance()`.
+
+   **Shape that fits:** two `Audio` elements ping-ponging — one plays while the other holds
+   the next track pre-buffered, swap on `ended`, the old one becomes the next preloader. A
+   single element cannot do this: assigning `.src` tears down the buffer it is playing from.
+
+   **Preload late, via `timeupdate`, ~20-30s from the end.** This is the part that keeps it
+   honest. Most sessions stop mid-track, so preloading at track start would fetch files
+   nobody hears — and phish.in pays for that bandwidth. Being 20s from the end of a song is
+   a strong signal somebody is actually listening. Same reasoning that put `preload="none"`
+   there in the first place; see the header block in `relisten.js`.
+
+   **Two things that will bite:**
+   - `paint()` decides the playing row with `a.src === t.mp3`, and `advance()` locates
+     itself with `queue.findIndex(t => t.mp3 === audio.src)`. Both assume ONE element.
+     Two makes "which src counts" ambiguous, and the failure lands exactly at the swap —
+     the wrong row highlighting at the moment the track changes. Needs an explicit
+     active-element concept before either function is touched.
+   - iOS Safari restricts multiple media elements and largely ignores `preload` on
+     cellular. Expect this to be a desktop-and-Android improvement only.
+
+2. **Calibration** — a model change with no UI. Turn scores into probabilities via Platt
    scaling fitted *inside* the walk-forward loop. Highest value-to-cost item on the model
-   side, and a prerequisite for anything probabilistic later. **See the caveat in step 4.**
-2. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
+   side, and a prerequisite for anything probabilistic later. **See the caveat in step 5.**
+3. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
    rehoming the era window / tour totals, rehoming the attendance toggle.
-3. **"Nerd Zone" — low priority, revisit after fall tour 2026.** A user-selectable analysis
+4. **"Nerd Zone" — low priority, revisit after fall tour 2026.** A user-selectable analysis
    mode (calibrated probabilities / simulated odds / etc., current model as default).
    Deferred on **timing, not merit** — don't re-litigate whether it's a good idea; it
    probably is. This fandom compiles encyclopedic data about the band for fun.
@@ -165,7 +204,7 @@ owner-managed, and members must already be friends.
    - It's safe to expose at all only because predictions are graded against the real
      setlist, never against the model — so a user's mode can't touch their points or the
      leaderboard. It **would** fragment Track Record, which grades the model.
-4. **Calibration caveat, found while scoping the above.** `lib/model.mjs` gates the opener,
+5. **Calibration caveat, found while scoping the above.** `lib/model.mjs` gates the opener,
    closer, set-2-opener and encore pools on `c.score > 0` (four places, in the block
    building `openerPool`/`closerPool`/`s2openPool`/`encorePool`). Score accumulates
    penalties from zero (−15 just played, −10 played at last tour show, −5 for 3+ tour plays)
