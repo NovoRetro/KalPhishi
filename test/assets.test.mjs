@@ -247,6 +247,35 @@ test('the build stamps its scripts with a content hash', () => {
     'a stamp that matched nothing would silently reinstate the staleness it exists to fix');
 });
 
+test('the cache policy ships, and points the right way for each kind of file', () => {
+  // Publishing is an allowlist, so a _headers file that is not on it simply does not
+  // deploy — and nothing fails. The policy would revert to the defaults and the only
+  // symptom would be a visitor stuck on a stale index.html, which reads as "the feature
+  // you shipped isn't there" rather than as a caching problem.
+  assert.match(buildPublic, /\['web\/_headers', '_headers'\]/,
+    'the cache policy must be published, or it does nothing');
+
+  const headers = read('web/_headers');
+
+  // index.html is the one file whose URL never changes, and it carries the ?v= stamps
+  // pointing at everything else, so a stale copy pins a visitor to a stale bundle.
+  assert.match(headers, /^\/\s*\n\s*Cache-Control:\s*no-cache/m,
+    'the root must never be reused without revalidating');
+
+  // The scripts are content-hashed, so a given URL's bytes cannot change. Not revalidating
+  // them is the payoff for stamping them at all.
+  assert.match(headers, /^\/web\/\*\s*\n\s*Cache-Control:[^\n]*immutable/m,
+    'hashed assets should not be revalidated on every load');
+
+  // The trap for a later edit: /data/*.json are NOT hashed and change in place on a data
+  // refresh. A long max-age there would freeze the analysis, the showtimes and the lock
+  // table on whatever a visitor fetched first — a worse staleness bug than the one this
+  // file exists to fix, and one that would silently break the prediction lock.
+  const dataRule = headers.match(/^\/data\/[^\n]*\n(?:[ \t]+[^\n]*\n)*/m);
+  assert.ok(!dataRule || !/immutable|max-age=[1-9]/.test(dataRule[0]),
+    'data files change in place and must keep revalidating');
+});
+
 test('history.json is in the deploy allowlist', () => {
   // The track-record UI fetches /data/history.json; if the build does not publish it,
   // the panel silently degrades to "no history available" in production only.

@@ -12,6 +12,10 @@ const pub = path.join(root, 'public');
 // everything else keeps the URL the frontend already hardcodes.
 const ALLOW = [
   ['web/index.html', 'index.html'],
+  // Cache policy for the deployed assets — see the file itself for why the HTML and the
+  // hashed scripts get opposite rules. Published at the root because that is where the
+  // assets runtime looks for it.
+  ['web/_headers', '_headers'],
   ['web/reorder.js', 'web/reorder.js'],
   ['web/relisten.js', 'web/relisten.js'],
   ['web/predictor.js', 'web/predictor.js'],
