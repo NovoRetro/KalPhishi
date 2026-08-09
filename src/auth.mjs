@@ -2,6 +2,9 @@
 
 export const SESSION_COOKIE = 'kalphishi_session';
 export const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
+// Long enough that an operator can mint a link, find the person and get it to them without
+// racing a clock; short enough that one left in a chat log stops working the next day.
+export const RESET_TTL_MS = 24 * 3600 * 1000;
 // Temporarily lowered from 12 for easier user testing (2026-08-01) — raise it back
 // before this matters for real; nothing else assumes a specific value.
 export const MIN_PASSWORD_LENGTH = 6;
@@ -67,9 +70,16 @@ export function clearedSessionCookie() {
   return `${SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
 }
 
+// 256 bits of CSPRNG, hex-encoded. One definition, so a session token and a reset token
+// are the same strength by construction rather than by coincidence — and so neither can be
+// quietly weakened without the other noticing.
+export function newToken() {
+  return hex(crypto.getRandomValues(new Uint8Array(32)));
+}
+
 // Returns the statement to insert the session plus the raw token for the cookie.
 export async function newSession(env, userId) {
-  const token = hex(crypto.getRandomValues(new Uint8Array(32)));
+  const token = newToken();
   const stmt = env.DB
     .prepare('INSERT INTO sessions (token_hash, user_id, expires) VALUES (?1, ?2, ?3)')
     .bind(await sha256hex(token), userId, Date.now() + SESSION_TTL_MS);

@@ -7,8 +7,9 @@ import {
 } from '../lib/identity.mjs';
 import { fetchActualSetlist } from '../lib/phishnet-core.mjs';
 import {
-  MIN_PASSWORD_LENGTH, hashPassword, verifyPassword, newSession, currentUser,
+  MIN_PASSWORD_LENGTH, hashPassword, verifyPassword, newSession, newToken, currentUser,
   sessionCookie, clearedSessionCookie, getCookie, sha256hex, timingSafeEqualStr, SESSION_COOKIE,
+  RESET_TTL_MS,
 } from './auth.mjs';
 import {
   rowToPrediction, userStats, publicUser, ownUser, publicName,
@@ -176,6 +177,49 @@ async function api(request, env, ctx, { p, m, q, url }) {
         .bind(user.id, await sha256hex(token)),
     ]);
     return json({ ok: true });
+  }
+
+  // Redeem a reset link. Unauthenticated by necessity — the whole point is that the caller
+  // cannot sign in — so the token is the entire proof, and everything below exists to keep
+  // it from being worth more than one use.
+  if (p === '/api/password/reset' && m === 'POST') {
+    const { token, newPassword } = await body(request);
+    if (!token) return err(400, 'that reset link is not valid');
+
+    const row = await env.DB.prepare(
+      'SELECT token_hash, user_id, expires, used_at FROM password_resets WHERE token_hash = ?1'
+    ).bind(await sha256hex(String(token))).first();
+
+    // One message for missing, spent and expired alike. Telling the difference would say
+    // whether a token ever existed, which is the only thing guessing could learn.
+    const dead = !row || row.used_at || row.expires < Date.now();
+    if (dead) return err(410, 'that reset link has expired or already been used');
+
+    if (!newPassword || newPassword.length < MIN_PASSWORD_LENGTH) {
+      return err(400, `new password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+    }
+    const target = await getUser(env, row.user_id);
+    if (!target) return err(410, 'that reset link has expired or already been used');
+    // Re-checked here and not only at issue time: a ban can land in between.
+    if (target.banned_at) return err(403, 'that account is not available');
+
+    await env.DB.batch([
+      env.DB.prepare('UPDATE users SET passhash = ?1 WHERE id = ?2')
+        .bind(await hashPassword(newPassword), target.id),
+      // Spent, not deleted. The row is what makes a second attempt fail closed, and it
+      // records that a reset happened at all.
+      env.DB.prepare('UPDATE password_resets SET used_at = ?1 WHERE token_hash = ?2')
+        .bind(new Date().toISOString(), row.token_hash),
+      // Every session, including any the previous holder still had open. /api/password
+      // spares the caller's own session because it knows who the caller is; here nobody is
+      // signed in, and a forgotten password is exactly the case where somebody else may
+      // have had the account open.
+      env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(target.id),
+    ]);
+
+    // No session is issued. They sign in with the new password, which proves it took and
+    // means a leaked link cannot become a live session on its own.
+    return json({ ok: true, email: target.email || null });
   }
 
   if (p === '/api/logout' && m === 'POST') {
@@ -626,6 +670,42 @@ async function api(request, env, ctx, { p, m, q, url }) {
     });
   }
 
+  // Mint a single-use password reset link. Admin-only and handed over out of band, because
+  // nothing is ever sent to the address on file — see migrations/0007_password_resets.sql.
+  //
+  // Deliberately NOT self-service. A public "forgot password" route with no mail delivery
+  // could only ever verify the requester by something already in the database, which is
+  // the same thing an attacker would have. An operator vouching for the person is the
+  // stronger check while it stays a closed beta.
+  if (p.startsWith('/api/admin/users/') && p.endsWith('/reset') && m === 'POST') {
+    if (!isAdmin(request, env)) return err(403, 'forbidden');
+    const target = await getUserByHandle(env, decodeURIComponent(p.split('/').slice(-2)[0]));
+    if (!target) return err(404, 'no such user');
+    // A reset would otherwise hand a banned account its way back in, quietly undoing the
+    // ban for anyone who asked an operator nicely enough.
+    if (target.banned_at) return err(409, 'that account is banned — unban it first');
+
+    const token = newToken();
+    const expires = Date.now() + RESET_TTL_MS;
+    await env.DB.batch([
+      // Issuing supersedes: only the newest link for an account can ever be redeemed, so a
+      // link handed over twice by mistake does not leave two live ways in.
+      env.DB.prepare('DELETE FROM password_resets WHERE user_id = ?1').bind(target.id),
+      env.DB.prepare(
+        'INSERT INTO password_resets (token_hash, user_id, created, expires) VALUES (?1, ?2, ?3, ?4)'
+      ).bind(await sha256hex(token), target.id, new Date().toISOString(), expires),
+    ]);
+
+    // The secret exists in this response and nowhere else — the row holds only its hash,
+    // so it cannot be recovered later. Re-issue rather than go looking for it.
+    return json({
+      handle: target.handle,
+      url: `${new URL(request.url).origin}/?reset=${token}`,
+      expires: new Date(expires).toISOString(),
+      expiresInHours: RESET_TTL_MS / 3600_000,
+    });
+  }
+
   if (p.startsWith('/api/score/') && m === 'POST') {
     if (!isAdmin(request, env)) return err(403, 'forbidden');
     const showdate = p.split('/').pop();
@@ -741,6 +821,12 @@ export default {
       const n = await scoreShow(env, showdate, actual);
       console.log(`scored ${n} prediction(s) for ${showdate}`);
     }
-    ctx.waitUntil(env.DB.prepare('DELETE FROM sessions WHERE expires < ?1').bind(Date.now()).run());
+    // Expired sessions and expired reset links age out the same way. A spent reset row is
+    // swept on expiry too — it has already done its job of failing a second attempt, and
+    // by then the link is dead on time alone.
+    ctx.waitUntil(env.DB.batch([
+      env.DB.prepare('DELETE FROM sessions WHERE expires < ?1').bind(Date.now()),
+      env.DB.prepare('DELETE FROM password_resets WHERE expires < ?1').bind(Date.now()),
+    ]));
   },
 };

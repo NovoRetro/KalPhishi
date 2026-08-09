@@ -219,6 +219,13 @@ function initPredictor(mount, A, opts = {}) {
         : el('span', 'p-lock', `🔓 Locks in <b>${untilText(L.at - Date.now())}</b> · ${esc(clock)}`));
     }
     mount.appendChild(head);
+    // A reset link outranks everything else on the panel. Whoever is holding one cannot get
+    // in any other way, so offering them a sign-in box would be offering the door they
+    // already know they cannot open.
+    if (resetToken) {
+      if (window.KalphishiAuthModal) window.KalphishiAuthModal.hide();
+      return renderPasswordReset();
+    }
     if (!user && authPrompt) renderAuthPanel();
     else if (window.KalphishiAuthModal) window.KalphishiAuthModal.hide();
     if (user && user.needsEmail) return renderLinkEmail();
@@ -1446,6 +1453,69 @@ function initPredictor(mount, A, opts = {}) {
     const f = el('div', 'p-flash' + (isErr ? ' err' : ''), esc(msg));
     mount.appendChild(f);
     setTimeout(() => f.remove(), 2500);
+  }
+
+  // ---------- password reset links ----------
+  // A /?reset=TOKEN link is opened by someone who by definition cannot sign in, so this
+  // runs entirely outside the session. Unlike an invite the token is NOT stashed in
+  // sessionStorage: there is no round trip to survive, and a credential-grade secret should
+  // not outlive the tab it arrived in. It is stripped from the URL immediately so a refresh
+  // or a screenshot of the address bar does not carry it further.
+  let resetToken = (() => {
+    const t = new URLSearchParams(location.search).get('reset');
+    if (!t) return null;
+    const clean = new URL(location.href);
+    clean.searchParams.delete('reset');
+    history.replaceState({}, '', clean);
+    return t;
+  })();
+
+  function renderPasswordReset() {
+    const box = el('div', 'p-login card');
+    box.appendChild(el('div', 'setlabel', 'Set a new password'));
+    box.appendChild(el('div', 'hint',
+      'This link works once. Choose a password and then sign in with it.'));
+
+    const pass = el('input', 'ta-input');
+    pass.type = 'password'; pass.placeholder = 'new password';
+    pass.autocomplete = 'new-password';
+    const again = el('input', 'ta-input');
+    again.type = 'password'; again.placeholder = 'new password again';
+    again.autocomplete = 'new-password';
+    const err = el('div', 'p-flash err');
+    const btn = el('button', 'p-btn', 'Set password');
+
+    async function go() {
+      err.textContent = '';
+      // Checked here as well as on the server: mistyping it twice is the common failure,
+      // and spending the one use of the link to discover that would be a poor trade.
+      if (pass.value !== again.value) { err.textContent = 'those two do not match'; return; }
+      btn.disabled = true;
+      try {
+        await api('/api/password/reset', 'POST', { token: resetToken, newPassword: pass.value });
+        // Burn it locally too, so a re-render cannot present a form for a spent token.
+        resetToken = null;
+        // The sign-in box only renders when nobody is signed in — and somebody can be, if
+        // they opened a link minted for a different account. Without the flash that case
+        // shows the form vanishing and nothing else, which reads as a failure rather than
+        // as the success it is. The flash renders either way.
+        authPrompt = user ? null : { tab: 'login', message: 'Password set — sign in with it now.', onAuthed: null };
+        render();
+        flash('Password set — sign in with the new password.');
+      } catch (e) {
+        btn.disabled = false;
+        err.textContent = e.message;
+      }
+    }
+    btn.addEventListener('click', go);
+    for (const i of [pass, again]) i.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); });
+
+    const row = el('div', 'p-row');
+    row.appendChild(pass); row.appendChild(again); row.appendChild(btn);
+    box.appendChild(row);
+    box.appendChild(err);
+    mount.appendChild(box);
+    pass.focus();
   }
 
   // ---------- invite links ----------
