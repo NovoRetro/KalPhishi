@@ -1,0 +1,27 @@
+# Cache policy. Published to public/_headers by scripts/build-public.js.
+#
+# Two opposite rules, and the split is the whole point:
+#
+#   · index.html is the ONE file whose URL never changes, so it is the only thing that can
+#     go stale in a way nothing recovers from. It carries the ?v= stamps that point at
+#     every other file, so a stale copy pins a visitor to a stale bundle — the failure
+#     reads as "the feature you shipped isn't there", which is indistinguishable from a bug
+#     and is exactly the report a tester would send. no-cache does not mean "do not store";
+#     it means "never reuse without asking", which is what a pointer file needs.
+#
+#   · /web/*.js are content-hashed by the build (?v=<sha256 prefix>), so a given URL's bytes
+#     can never change. Revalidating them was pure waste — a round trip per script per page
+#     load to be told nothing moved. immutable says not to bother, and the stamp is what
+#     makes that safe: new content means a new URL, not a changed response.
+#
+# /data/*.json are deliberately absent. They are NOT hashed and do change in place on a
+# data refresh, so they keep the default revalidate-every-time behaviour.
+
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+/web/*
+  Cache-Control: public, max-age=31536000, immutable
