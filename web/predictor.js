@@ -24,6 +24,7 @@ function initPredictor(mount, A, opts = {}) {
   let grid = Array(25).fill(null);
   let locks = Array(25).fill(false); // build-mode only: locked squares survive Randomize
   let livePrediction = null; // saved bingo prediction being played live
+  let savedSetlist = null;   // saved setlist prediction, kept so it can be restored
   let bingoDeclared = false;
   // Bingo square armed for a swap: tap one, tap another, they trade places. Held out here
   // because render() rebuilds the grid and the selection has to survive that.
@@ -612,8 +613,28 @@ function initPredictor(mount, A, opts = {}) {
     else if (!draftCells) grid = Array(25).fill(null);
     locks = Array(25).fill(false);
     livePrediction = bg || null;
+    // Retained so the setlist builder can offer the same way back as the board does. The
+    // payload is what gets restored, so it must not be the same object `build` is edited
+    // through — otherwise editing the draft would quietly rewrite the thing being kept as
+    // the way to undo it. `build` is already a deep copy above; this keeps the original.
+    savedSetlist = sl || null;
     bingoDeclared = false;
     render();
+  }
+
+  // Same question as gridDiffersFromSaved, asked of the three lists. Compares slugs in
+  // order: reordering changes no song on the list but is exactly the kind of unsaved edit
+  // that matters here, since first and last in each set carry the opener and closer bonuses.
+  function setlistDiffersFromSaved() {
+    const saved = savedSetlist && savedSetlist.payload;
+    if (!saved) return false;
+    for (const key of ['set1', 'set2', 'encore']) {
+      const a = build[key] || [];
+      const b = saved[key] || [];
+      if (a.length !== b.length) return true;
+      for (let i = 0; i < a.length; i++) if (a[i].slug !== b[i].slug) return true;
+    }
+    return false;
   }
 
   // ---------- setlist builder ----------
@@ -651,7 +672,20 @@ function initPredictor(mount, A, opts = {}) {
   function renderSetlistBuilder() {
     const usedSlugs = () => new Set([...build.set1, ...build.set2, ...build.encore].map(s => s.slug));
 
-    // Named, because both the Actions item and the empty-state Pick for me button run it.
+    // Both named, because the Actions menu and the Pick for me button each run one.
+    const randomizeSetlist = () => {
+      const used = new Set();
+      const s1n = 8 + Math.floor(Math.random() * 3);              // 8–10
+      const s2n = 7 + Math.floor(Math.random() * 4);              // 7–10
+      const en = [1, 1, 2, 2, 2, 3, 4][Math.floor(Math.random() * 7)]; // usually 1–2, capped at 4
+      build = {
+        set1: randomSongs(s1n, used),
+        set2: randomSongs(s2n, used),
+        encore: randomSongs(en, used),
+      };
+      render();
+    };
+
     const fillSetlistFromModel = () => {
       build = {
         set1: A.prediction.set1.map(s => ({ slug: s.slug, name: s.name })),
@@ -661,52 +695,66 @@ function initPredictor(mount, A, opts = {}) {
       render();
     };
 
+    // Row order, left to right: Save, Pick for me, Reload, then Actions pinned to the far
+    // right. The three that change the draft sit together where the eye lands first;
+    // Actions holds everything else and is deliberately the furthest thing from Save, so
+    // the destructive items inside it are never adjacent to the button people press most.
     const controls = el('div', 'p-row');
-    // Same Actions menu as bingo. Clear used to be omitted on the grounds that setlist rows
-    // are removed one at a time — but that is the argument FOR it: emptying three lists by
-    // hand is twenty-odd presses, where the board version was always one.
-    controls.appendChild(actionsMenu([
-      ['🎲 Randomize', () => {
-        const used = new Set();
-        const s1n = 8 + Math.floor(Math.random() * 3);              // 8–10
-        const s2n = 7 + Math.floor(Math.random() * 4);              // 7–10
-        const en = [1, 1, 2, 2, 2, 3, 4][Math.floor(Math.random() * 7)]; // usually 1–2, capped at 4
-        build = {
-          set1: randomSongs(s1n, used),
-          set2: randomSongs(s2n, used),
-          encore: randomSongs(en, used),
-        };
-        render();
-      }],
-      ["🛟 Kalphishi's Prediction", fillSetlistFromModel],
-      ['🧹 Clear', () => { build = { set1: [], set2: [], encore: [] }; render(); }],
-      [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
-        () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
-    ]));
-
-    // An empty builder offers Pick for me INSTEAD of Save, not alongside it. Saving nothing
-    // is not a thing anyone wants to do, and a disabled-looking Save is a worse answer to
-    // "how do I start" than a button that just starts it. They swap, so the row never
-    // carries two primary actions at once.
     const songCount = build.set1.length + build.set2.length + build.encore.length;
-    if (songCount === 0) {
-      const pick = el('button', 'p-btn', '✨ Pick for me');
-      pick.title = "Fill all three lists from Kalphishi's predicted setlist — then edit freely";
-      pick.addEventListener('click', fillSetlistFromModel);
-      controls.appendChild(pick);
-    } else {
-      // Save rides the control row beside Actions rather than sitting alone under the
-      // builder.
+
+    // Save only appears once there is something to save. Saving three empty lists is not a
+    // thing anyone means to do, and Pick for me is the better answer to "how do I start".
+    if (songCount > 0) {
       const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
       save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
         try {
           await api('/api/predictions', 'POST', { showdate, type: 'setlist', payload: build });
+          savedSetlist = { payload: JSON.parse(JSON.stringify(build)) };
           flash('Saved.');
           window.KalphishiRig?.peak();
+          render(); // Reload should disappear the moment the draft and the save agree again
         } catch (e) { flash(e.message, true); }
       }));
       controls.appendChild(save);
     }
+
+    // Pick for me rolls a random setlist, and stays on the row afterwards — a first roll is
+    // rarely the one you want, and hiding it meant reopening Actions to roll again. It
+    // deliberately does NOT use the model: Kalphishi's Prediction is one press away in the
+    // menu and is a different offer, "show me the answer" rather than "give me a board".
+    // Drops to secondary styling once Save is present, so the row never carries two primary
+    // actions at once.
+    const pick = el('button', 'p-btn' + (songCount ? ' p-btn-alt' : ''), '✨ Pick for me');
+    pick.title = 'Roll a random setlist — press again for a different one';
+    pick.addEventListener('click', randomizeSetlist);
+    controls.appendChild(pick);
+
+    // The way back from a mis-press, matching the board's. Only offered when there is a
+    // save to return to AND the draft has actually moved away from it — otherwise it is a
+    // button that does nothing, sitting next to ones that do.
+    if (savedSetlist && setlistDiffersFromSaved()) {
+      const restore = el('button', 'p-btn p-btn-alt', '↩ Reload last save');
+      restore.title = 'Put all three lists back to the setlist you last saved';
+      restore.addEventListener('click', () => {
+        // Deep copy on the way out, so editing the restored draft cannot reach back into
+        // the saved payload and rewrite what "last saved" means.
+        build = JSON.parse(JSON.stringify(savedSetlist.payload));
+        render();
+        flash('Reloaded your last saved setlist.');
+      });
+      controls.appendChild(restore);
+    }
+
+    controls.appendChild(actionsMenu([
+      ['🎲 Randomize', randomizeSetlist],
+      ["🛟 Kalphishi's Prediction", fillSetlistFromModel],
+      // Clear used to be omitted on the grounds that setlist rows are removed one at a
+      // time — but that is the argument FOR it: emptying three lists by hand is twenty-odd
+      // presses, where the board version was always one.
+      ['🧹 Clear', () => { build = { set1: [], set2: [], encore: [] }; render(); }],
+      [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
+        () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
+    ]));
     mount.appendChild(controls);
     if (helpOpen) mount.appendChild(scoringHelp('setlist'));
 
@@ -1043,15 +1091,55 @@ function initPredictor(mount, A, opts = {}) {
         render();
       };
 
-      controls.appendChild(actionsMenu([
-        ['🎲 Randomize', randomize],
-        ["🛟 Kalphishi's Prediction", fillFromModel],
-        ['🧹 Clear', clearCard],
-        [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
-          () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
-      ]));
+      // Row order, left to right: Save, Pick for me, Reload, then Actions pinned to the far
+      // right — matching the setlist builder exactly. The three that change the card sit
+      // together where the eye lands first; Actions holds everything else and is
+      // deliberately the furthest thing from Save, so the destructive items inside it are
+      // never adjacent to the button people press most.
+      const filledNow = grid.filter((c, i) => c && i !== FREE).length;
 
-      // The way out of a mis-click. Clear and Randomize both overwrite 24 squares in one
+      // A part-filled card saves. There is no minimum: nothing on the server enforces one,
+      // and scoreBingoPrediction already guards empty cells (`!!cell`) and still divides by
+      // 24, so an unfinished card simply scores fewer hits out of the same denominator.
+      // bingoLine treats the donut as always-counting, so a line can still complete through
+      // the middle. Blocking the save only ever stopped somebody committing a card they had
+      // half-built and meant to come back to — and until the show locks they can.
+      if (filledNow > 0) {
+        // Same label whether or not a card is already saved: re-saving is the same act, and
+        // now that a save no longer ends the editing phase it is one people will do more
+        // than once. Matches the setlist builder's button exactly.
+        const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
+        save.addEventListener('click', () => {
+          requireAuth('Sign in or create an account to save your bingo card.', async () => {
+            try {
+              await api('/api/predictions', 'POST', { showdate, type: 'bingo', payload: { grid } });
+              await loadExisting();
+              mode = 'bingo';
+              flash(filledNow < 24
+                ? `Saved ${filledNow}/24 — finish it any time before the show.`
+                : 'Card saved — live mode on.');
+              window.KalphishiRig?.peak();
+            } catch (e) { flash(e.message, true); }
+          });
+        });
+        controls.appendChild(save);
+      }
+
+      // Pick for me randomizes the card, and stays on the row afterwards so it can be
+      // pressed repeatedly — a first roll is rarely the one you want, and hiding it meant
+      // reopening Actions to roll again. It deliberately does NOT use the model:
+      // Kalphishi's Prediction is one press away in the menu and is a different offer,
+      // "show me the answer" rather than "give me a card".
+      //
+      // Because it routes through randomize, locked squares survive a re-roll — which is
+      // what makes repeated pressing useful rather than destructive: lock the ones you
+      // like, roll the rest.
+      const pick = el('button', 'p-btn' + (filledNow ? ' p-btn-alt' : ''), '✨ Pick for me');
+      pick.title = 'Fill the unlocked squares at random — press again for a different card';
+      pick.addEventListener('click', randomize);
+      controls.appendChild(pick);
+
+      // The way out of a mis-click. Clear and Randomize both overwrite the board in one
       // press, and until the show locks the saved card is the only copy that is not in
       // this tab — without this, one stray press means rebuilding it by hand.
       //
@@ -1073,37 +1161,13 @@ function initPredictor(mount, A, opts = {}) {
         controls.appendChild(restore);
       }
 
-      // An empty board offers Pick for me INSTEAD of Save — same swap as the setlist
-      // builder. Save on an empty card can only ever produce "Fill all squares first
-      // (0/24)", so it is a button whose only available outcome is a scolding.
-      const filledNow = grid.filter((c, i) => c && i !== FREE).length;
-      if (filledNow === 0) {
-        const pick = el('button', 'p-btn', '✨ Pick for me');
-        pick.title = "Fill the card from Kalphishi's predicted setlist, topped up with its highest-ranked candidates — then edit freely";
-        pick.addEventListener('click', fillFromModel);
-        controls.appendChild(pick);
-      } else {
-        // Save rides the control row with the other actions rather than sitting alone under
-        // the grid. Appended before the help button, which pushes itself right.
-        // Same label whether or not a card is already saved: re-saving is the same act, and
-        // now that a save no longer ends the editing phase it is one people will do more
-        // than once. Matches the setlist builder's button exactly.
-        const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
-        save.addEventListener('click', () => {
-          const filled = grid.filter((c, i) => c && i !== FREE).length;
-          if (filled < 24) return flash(`Fill all squares first (${filled}/24).`, true);
-          requireAuth('Sign in or create an account to save your bingo card.', async () => {
-            try {
-              await api('/api/predictions', 'POST', { showdate, type: 'bingo', payload: { grid } });
-              await loadExisting();
-              mode = 'bingo';
-              flash('Card saved — live mode on.');
-              window.KalphishiRig?.peak();
-            } catch (e) { flash(e.message, true); }
-          });
-        });
-        controls.appendChild(save);
-      }
+      controls.appendChild(actionsMenu([
+        ['🎲 Randomize', randomize],
+        ["🛟 Kalphishi's Prediction", fillFromModel],
+        ['🧹 Clear', clearCard],
+        [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
+          () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
+      ]));
     }
 
     function declareBingo() {
