@@ -455,8 +455,12 @@
   /* Actions dropdown. Anchored to its own button rather than to the row, so it opens under
      the button wherever a wrapped row has put it. The predictor card is .card-overflow
      (overflow: visible), which is what lets this escape the card at all. */
-  .p-actions { position: relative; }
-  .p-actions-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20;
+  /* Pinned to the far right of the control row, away from Save. margin-left:auto rather
+     than order/float so it also lands last when the row wraps on a narrow screen. */
+  .p-actions { position: relative; margin-left: auto; }
+  /* Anchored to the button's RIGHT edge, not its left: opening leftward from a right-pinned
+     button keeps the panel on screen, where left:0 would push a 220px menu off it. */
+  .p-actions-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 20;
     min-width: 232px; background: var(--surface); border: 1px solid var(--border);
     border-radius: 10px; padding: 6px; box-shadow: 0 10px 28px rgba(0,0,0,0.30);
     display: flex; flex-direction: column; gap: 2px; }
@@ -720,6 +724,20 @@ const TAGLINES = [
   "Toss away the songs you don't need in the end. But keep what's important and remember to hit save",
   "Set the gear shift to the high gear of your Bingo!",
   "Meatosticku jiuando, meatosticku Kalphishi, meatosticku toridashta, jiuan, do do atamaga shock, do do atamaga shock",
+  "Come waste your setlist with me",
+  "Grind, Grind, Grind, Grind, Grind, Grind, Grind, Griiiiiiiiiiiiiind",
+  "Melt the guns!",
+  "I SAW YOU with a setlist in your hand",
+  "You Enjoy My App",
+  "Fluffhead?",
+  "Never Woo A Wilson",
+  "Let's go out to dinner and pick a setlist",
+  "I'm soon overwhelmed by olfactory",
+  "I'd like to bet your setlist so I weigh it, what do ya say?",
+  "Here come the ambassadors!",
+  "WE LOVE TO TAKE A BATH!",
+  "I think Wendy might still be on the windowsill",
+  "Your time is near, the setlist is clear",
 ];
 const TAGLINE_INTERVAL_MS = 60_000;
 let taglineIdx = -1;
