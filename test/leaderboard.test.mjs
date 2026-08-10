@@ -59,9 +59,33 @@ test('the tab row stays one line on a phone', () => {
   // landing view was cut to ~2,700px for. The short labels are what buy the fourth slot.
   assert.match(index, /SHORT_LABELS/, 'the narrow-viewport labels are gone');
   assert.match(index, /Leaderboard: 'Board'/, 'Leaderboard has no short form to fall back on');
-  assert.match(index, /matchMedia\('\(max-width: 460px\)'\)/, 'the breakpoint that selects them is gone');
   // Labels are chosen in JS at render time, not by CSS, so nothing rebuilds them on rotate
   // unless something listens.
   assert.match(index, /narrowTabs\.addEventListener\('change', renderTabs\)/,
     'crossing the breakpoint without a reload must rebuild the row');
+});
+
+test('the label breakpoint matches the CSS that shrinks the same row', () => {
+  // These size one row between them, so they have to agree. They did not once: labels
+  // switched at 460px while the full-length set needs ~522px to fit, leaving 461–530 —
+  // tablet widths — wrapping to two rows. Swept 320px to 1440px to find it, because it is
+  // invisible at both ends.
+  const js = index.match(/matchMedia\('\(max-width: (\d+)px\)'\)/);
+  assert.ok(js, 'the tab-label breakpoint is gone');
+  assert.equal(js[1], '560', 'the JS breakpoint moved without the CSS');
+  const css = index.match(/@media \(max-width: (\d+)px\) \{\s*\n\s*\.btn-play \{ min-width: 44px/);
+  assert.ok(css, 'the icon-only Play a Show rule is gone');
+  assert.equal(css[1], js[1],
+    'the button and the labels must shorten at the same width or the row wraps between them');
+});
+
+test('Play a Show sits in the tab row and keeps its name when it loses its label', () => {
+  // It used to float on the banner above the row, which read as elevated above the things
+  // it is a peer of. Below 560px it is the glyph alone — 44x44, no text — so the accessible
+  // name has to be attached explicitly or the control becomes unnamed on exactly the
+  // devices where it is hardest to guess at.
+  assert.match(index, /tabBar\.appendChild\(playBtn\)/, 'the button must be in the tab row');
+  assert.match(index, /playBtn\.setAttribute\('aria-label', 'Play a Show'\)/,
+    'the icon-only form must carry its name');
+  assert.match(index, /\.btn-play \{ margin-left: auto;/, 'it must stay pinned to the right of the row');
 });

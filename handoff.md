@@ -56,14 +56,21 @@ everything else. The app is shipped and good enough; what it needs is players, n
 
 ### The app surface
 - Landing view opens on the games: **45,175px → ~2,700px on a phone**.
-- Tabs are **Phish Bingo | Setlist Bets | Data | Leaderboard** (Data has five sub-tabs).
-  **Play a Show** and the "Last updated" stamp sit on the banner, right-aligned — neither is
-  a place you go, so neither belongs in a row of peers with the four that are.
-- **The tab labels shorten below 460px** — `Bingo | Setlist | Data | Board`, via
-  `SHORT_LABELS` in `index.html`. Measured: the bar is 327px at 375px wide and four
-  full-length labels need 378px, so without this the row wraps to two lines and pushes the
-  games down on the one viewport the landing view was cut to ~2,700px for. Chosen in JS at
-  render time, not by CSS, so a `matchMedia` listener rebuilds the row on rotate.
+- Tabs are **Phish Bingo | Setlist Bets | Data | Leaderboard**, with **Play a Show pinned to
+  the right of the same row** (Data has five sub-tabs). Play a Show used to float on the
+  banner above the row; it read as elevated above the things it is a peer of, and it is a
+  destination like the other four. Only the **"Updated" stamp** stays on the banner — it
+  describes the data behind Data and is not somewhere you go at all.
+- **The row shortens below 560px** — `Bingo | Setlist | Data | Board`, and Play a Show
+  becomes the ▶ glyph alone at 44×44 with an explicit `aria-label`. `SHORT_LABELS` and
+  `narrowTabs` in `index.html`, plus a matching `@media (max-width: 560px)` for the button.
+  **The JS breakpoint and that CSS rule size one row between them and must agree** — a test
+  asserts it. They didn't once: labels switched at 460px while the full-length set needs
+  ~522px, so 461–530 (tablets) wrapped to two rows, invisible at both ends of the range.
+  A further `@media (max-width: 360px)` trims tab padding, without which 320px overflows by
+  15px. Labels are chosen in JS at render time, so a `matchMedia` listener rebuilds the row
+  on rotate. **Swept 320 → 1440 after changing it; the tight points are 320px (17px spare)
+  and 561px (23px spare).**
 - **Rotating tagline** — `TAGLINES` in `web/index.html`, currently 26. The list is meant to
   grow; new lines go there and nowhere else. The picker draws uniformly and only excludes
   the immediately previous line, so it needs no change as the list grows.

@@ -150,15 +150,10 @@
   }
 
   .tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid rgba(255,255,255,0.15); flex-wrap: wrap; align-items: center; }
-  /* Freshness sits in the tab row rather than beside the app's name, pushed to the far
-     right so it reads as a quiet footnote to the row instead of a label on the Data tab. */
-  /* Pinned right, separated from the three tabs that read the model. margin-left:auto on
-     this rather than on the stamp — the stamp then simply follows it to the edge, and a
-     primary destination outranks a metadata pill for the prominent position. */
-  /* Banner actions. Neither of these belonged in a row of peers: Play a Show is not a view
-     of the model the way the three tabs are, and the stamp describes the data behind Data
-     rather than the page. Both sit on the banner instead, right-aligned against the centred
-     title, stamp above button — the quiet label above the loud control.
+  /* The freshness stamp alone, right-aligned against the centred title. It describes the
+     data behind Data rather than the page, and it is not somewhere you go, so it stays off
+     the tab row — unlike Play a Show, which is a destination and now sits in the row with
+     the other four.
      Absolute on desktop so the title stays optically centred in the full width instead of
      being shoved off-centre by a sibling. The top offset clears the menu button, which is
      position:fixed over the same right edge and occupies the viewport's top 54px. */
@@ -166,9 +161,12 @@
     display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
   .stage-actions .stamp { margin-left: 0; color: #fff;
     background: rgba(0,0,0,0.30); border-color: rgba(255,255,255,0.22); }
-  .btn-play { display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
-    font: inherit; font-size: 14px; font-weight: 600; color: #fff;
-    padding: 9px 16px; min-height: 44px; border-radius: 99px;
+  /* Pinned to the far right of the tab row, so it reads as separated from the four views
+     rather than a fifth one. margin-left:auto here rather than a spacer element, so the
+     tabs keep their natural widths and only the gap absorbs the change. */
+  .btn-play { margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer; font: inherit; font-size: 14px; font-weight: 600; color: #fff;
+    padding: 6px 14px; min-height: 36px; border-radius: 99px;
     border: 1px solid rgba(255,255,255,0.30); background: rgba(255,255,255,0.10);
     text-shadow: 0 1px 6px rgba(0,0,0,0.85); }
   .btn-play:hover { background: rgba(255,255,255,0.18); border-color: #fff; }
@@ -507,6 +505,22 @@
     .p-mode { padding: 12px 14px; }
     .p-btn { padding: 12px 18px; }
     .subtab { padding: 12px 14px; }
+    /* Same rule, same reason. It is shorter than 44px in the tab row on desktop on purpose
+       — a 44px pill next to 36px text tabs reads as a banner that fell into the row — but a
+       fingertip does not care why. */
+    .btn-play { min-height: 44px; padding: 10px 14px; }
+  }
+  /* Same breakpoint as SHORT_LABELS, so the button and the tab labels shorten together —
+     the row is sized by the pair of them and staggering the two leaves a band of widths
+     where the full set wraps. Square at the tap minimum once the label is gone. */
+  @media (max-width: 560px) {
+    .btn-play { min-width: 44px; padding: 10px; justify-content: center; }
+  }
+  /* At 320px — the narrowest phone still worth supporting — even the short row overflows by
+     15px. The horizontal padding gives it back without touching the 44px height, so the tap
+     targets stay legal and only the dead space between labels shrinks. */
+  @media (max-width: 360px) {
+    .tab { padding: 12px 10px; }
   }
   .p-bingo-banner { margin: 12px 0; padding: 12px; border: 2px solid var(--series-2); border-radius: 10px; text-align: center; font-size: 16px; }
   .p-histrow { padding: 5px 0; border-bottom: 1px solid var(--grid); }
@@ -1966,29 +1980,40 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   // the viewport the landing view was cut to ~2,700px for, so the labels shorten instead.
   // The short forms only ever appear where the long ones do not fit.
   const SHORT_LABELS = { 'Phish Bingo': 'Bingo', 'Setlist Bets': 'Setlist', Leaderboard: 'Board' };
-  const narrowTabs = window.matchMedia('(max-width: 460px)');
+  // 560px, the same breakpoint the touch sizing and the banner stack already use, rather
+  // than the 460 this started at. Measured by sweeping widths: the full labels plus the full
+  // Play a Show button need 498px and do not fit until about 522px, so a 460px switch left a
+  // band from 461 to ~530 where the row wrapped — narrow enough to miss on a phone and a
+  // desktop and to only turn up on a tablet.
+  const narrowTabs = window.matchMedia('(max-width: 560px)');
   const tabLabel = name => (narrowTabs.matches && SHORT_LABELS[name]) || name;
 
   // ---- banner actions
   //
   // Built once and left alone, unlike the tab bar, which is emptied and rebuilt on every
-  // render. renderTabs only reaches in to toggle the button's active class.
+  // render — so renderTabs re-appends the button rather than re-creating it, and its click
+  // handler survives.
+  //
+  // Play a Show rides the tab row, pinned right. It sat floating on the banner above the
+  // row, which read as elevated above the things it is actually a peer of — it is somewhere
+  // you go, and every other somewhere-you-go is in that row. The freshness stamp stays on
+  // the banner: it describes the data behind Data and is not a destination at all.
   //
   // The catalogue is fetched the first time the button is pressed, not at page load — 39
   // years of index is not worth loading for a visitor who came to fill in a bingo card.
   const stageEl = document.getElementById('stage');
   const stageActions = el('div', 'stage-actions');
-  // "Updated", not "Last updated:" — the shorter label is what keeps this stack narrow
-  // enough for the tagline to keep a readable column beside it. At the longer wording the
-  // block is 171px wide and the tagline has to drop to a 340px column, which pushes the
-  // longest lines to three rows.
+  // "Updated", not "Last updated:" — the shorter label is what keeps this narrow enough for
+  // the tagline to keep a readable column beside it. At the longer wording the block is
+  // 171px wide and the tagline has to drop to a 340px column, which pushes the longest
+  // lines to three rows.
   stageActions.appendChild(el('span', 'pill stamp', 'Updated ' + esc(fmtDate(A.asOf))));
-  const playBtn = el('button', 'btn-play', '<span class="btn-play-ico">&#9654;</span> Play a Show');
+  if (stageEl) stageEl.appendChild(stageActions);
+
+  const playBtn = el('button', 'btn-play');
   playBtn.addEventListener('click', () => {
     activeTab = 'Play a Show'; menuMode = null; buildPlayShow(); renderTabs();
   });
-  stageActions.appendChild(playBtn);
-  if (stageEl) stageEl.appendChild(stageActions);
 
   function renderTabs() {
     const game = GAME_TABS.find(g => g.name === activeTab);
@@ -2018,9 +2043,21 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     });
     tabBar.appendChild(boardBtn);
 
-    // Play a Show and the freshness stamp live on the banner, not in this row — see the
-    // stage-actions block above. Only the active state is driven from here.
+    // Pinned to the far right of the row by margin-left:auto in the CSS, so it reads as
+    // separated from the four that are views rather than a fifth one. Re-appended rather
+    // than rebuilt — the row is emptied every render and the handler lives on the element.
+    // Measured at 375px: the bar is 327px, the four short tabs and the gaps take 267, and
+    // "▶ Play a Show" needs 71 — 11px too many, so the row wrapped. Text-only "Play" fits
+    // with 4px to spare, which is not enough margin to trust across devices and fonts, so
+    // the narrow form is the glyph alone at a 44px minimum. It keeps its name for anything
+    // that reads the button rather than looks at it.
+    playBtn.innerHTML = narrowTabs.matches
+      ? '<span class="btn-play-ico">&#9654;</span>'
+      : '<span class="btn-play-ico">&#9654;</span> Play a Show';
+    playBtn.setAttribute('aria-label', 'Play a Show');
+    playBtn.title = 'Play a Show';
     playBtn.classList.toggle('active', activeTab === 'Play a Show' && !menuMode);
+    tabBar.appendChild(playBtn);
 
     subBar.innerHTML = '';
     subBar.style.display = activeTab === 'Data' ? '' : 'none';
