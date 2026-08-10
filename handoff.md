@@ -69,16 +69,19 @@ everything else. The app is shipped and good enough; what it needs is players, n
   beside it. The API orders by setlist points, so the bingo board **re-ranks and re-filters
   client-side** — somebody with only setlist scores is absent from the bingo board, not last
   on it.
-- **The row shortens below 560px** — `Bingo | Setlist | Data | Board`, and Play a Show
-  becomes the ▶ glyph alone at 44×44 with an explicit `aria-label`. `SHORT_LABELS` and
-  `narrowTabs` in `index.html`, plus a matching `@media (max-width: 560px)` for the button.
-  **The JS breakpoint and that CSS rule size one row between them and must agree** — a test
-  asserts it. They didn't once: labels switched at 460px while the full-length set needs
-  ~522px, so 461–530 (tablets) wrapped to two rows, invisible at both ends of the range.
-  A further `@media (max-width: 360px)` trims tab padding, without which 320px overflows by
-  15px. Labels are chosen in JS at render time, so a `matchMedia` listener rebuilds the row
-  on rotate. **Swept 320 → 1440 after changing it; the tight points are 320px (17px spare)
-  and 561px (23px spare).**
+- **The row shortens below 560px** — `Bingo | Setlist | Data` with `▶ Play` pinned right
+  (`▶ Play a Show` above it). `SHORT_LABELS` and `narrowTabs` in `index.html`, plus a
+  matching `@media (max-width: 560px)` for the button. **The JS breakpoint and that CSS rule
+  size one row between them and must agree** — a test asserts it. They didn't once: labels
+  switched at 460px while the full-length set needs ~522px, so 461–530 (tablets) wrapped to
+  two rows, invisible at both ends of the range. A further `@media (max-width: 360px)` trims
+  tab padding for 320px. Labels are chosen in JS at render time, so a `matchMedia` listener
+  rebuilds the row on rotate. **Swept 320 → 1440 after every change to it; tightest is 320px
+  with 50px spare.**
+  - Play was briefly the **bare ▶** here. That was only ever forced by the short-lived
+    Leaderboard tab competing for the same row; with three tabs the word fits everywhere,
+    and an unlabelled triangle asked the reader to guess. Don't reintroduce it without
+    re-measuring — the room exists now.
 - **Rotating tagline** — `TAGLINES` in `web/index.html`, currently 26. The list is meant to
   grow; new lines go there and nowhere else. The picker draws uniformly and only excludes
   the immediately previous line, so it needs no change as the list grows.
@@ -87,10 +90,17 @@ everything else. The app is shipped and good enough; what it needs is players, n
   crossings brighten, masked so light falls off rather than ending on an edge. Cards are
   translucent so it reads through them. Peaks on save and on BINGO. Parked by
   `IntersectionObserver` when scrolled away.
-- **Control row, both games, left to right:** Save · Pick for me · Reload last save ·
-  ⟶ Actions pinned right. Actions holds Randomize, Kalphishi's Prediction, Clear and the
-  scoring rules, and is deliberately the furthest thing from Save.
-- **Pick for me randomizes** (it does *not* use the model — that is Kalphishi's Prediction,
+- **Control row, both games, left to right:** Save · Ask Diego? · ⟶ Actions pinned right.
+  Two buttons and a menu, nothing else — Actions holds Randomize, Kalphishi's Prediction,
+  Reload last save, Clear, Standings and the scoring rules, and is deliberately the furthest
+  thing from Save. **Reload sits above Clear**: the way back is read before the way to need
+  it, and Clear stays the last of the pair, furthest from a stray press.
+- **The row holds one line at 375px and that is load-bearing.** It measures 282px in a 290px
+  row. Adding a fourth control puts it over: that is why **Reload last save lives in Actions**
+  rather than on the row, and why **Actions is a ⋮ below 560px** (the word costs 100px to say
+  what the glyph says in 44). `.p-row .p-btn` also trims side padding to 12px on touch. Any
+  new control here has ~8px of slack — put it in the menu instead.
+- **Ask Diego? randomizes** (it does *not* use the model — that is Kalphishi's Prediction,
   one press away in Actions) and stays on the row so it can be pressed repeatedly. Locked
   bingo squares survive a re-roll, which is what makes repeat-pressing useful.
 - **Part-filled bingo cards save.** No minimum: nothing server-side enforced one, and
@@ -235,8 +245,8 @@ and members must already be friends.
      **viewable signed out** on the everyone scope, which the route always allowed — a
      visitor deciding whether to register is now shown the reason to. My History keeps only
      the prediction list.
-   - Minor, unresolved: an empty bingo card offers only **Pick for me** and **Actions ▾** —
-     no Save until something is picked, so day one shows a 5×5 of `＋` with no stated goal.
+   - Minor, unresolved: an empty bingo card offers only **Ask Diego?** and the **⋮** — no
+     Save until something is picked, so day one shows a 5×5 of `＋` with no stated goal.
      Defensible (nothing to save yet), but nobody has decided it.
 
 4. **Partly answered.** Both games carry a prominent live countdown — `🔓 Locks in 26d 1h ·

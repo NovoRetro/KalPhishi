@@ -117,7 +117,7 @@ test('changing a password lives in Profile, not the menu', () => {
     'the result must say what it did to other sessions');
 });
 
-test('the label breakpoint matches the CSS that shrinks the same row', () => {
+test('the label breakpoint matches the CSS that sizes the same row', () => {
   // These size one row between them, so they have to agree. They did not once: labels
   // switched at 460px while the full-length set needs ~522px to fit, leaving 461–530 —
   // tablet widths — wrapping to two rows. Swept 320px to 1440px to find it, because it is
@@ -125,17 +125,19 @@ test('the label breakpoint matches the CSS that shrinks the same row', () => {
   const js = index.match(/matchMedia\('\(max-width: (\d+)px\)'\)/);
   assert.ok(js, 'the tab-label breakpoint is gone');
   assert.equal(js[1], '560', 'the JS breakpoint moved without the CSS');
-  const css = index.match(/@media \(max-width: (\d+)px\) \{\s*\n\s*\.btn-play \{ min-width: 44px/);
-  assert.ok(css, 'the icon-only Play a Show rule is gone');
+  const css = index.match(/@media \(max-width: (\d+)px\) \{[\s\S]*?\.btn-play \{ min-height: 44px/);
+  assert.ok(css, 'the touch sizing for the Play button is gone');
   assert.equal(css[1], js[1],
-    'the button and the labels must shorten at the same width or the row wraps between them');
+    'the button and the labels must switch at the same width or the row wraps between them');
 });
 
-test('Play a Show sits in the tab row and keeps its name when it loses its label', () => {
+test('Play a Show sits in the tab row and is never an unlabelled glyph', () => {
   // It used to float on the banner above the row, which read as elevated above the things
-  // it is a peer of. Below 560px it is the glyph alone — 44x44, no text — so the accessible
-  // name has to be attached explicitly or the control becomes unnamed on exactly the
-  // devices where it is hardest to guess at.
+  // it is a peer of. It was also briefly the bare ▶ on phones, from when a Leaderboard tab
+  // shared the row and there was no width for a word. That tab is gone and the word fits,
+  // so the narrow form is "▶ Play" — nobody is asked to guess what a triangle does.
+  assert.match(index, /narrowTabs\.matches\s*\n?\s*\?[^:]*Play'/,
+    'the narrow form must keep a visible word, not fall back to the glyph alone');
   assert.match(index, /tabBar\.appendChild\(playBtn\)/, 'the button must be in the tab row');
   assert.match(index, /playBtn\.setAttribute\('aria-label', 'Play a Show'\)/,
     'the icon-only form must carry its name');
