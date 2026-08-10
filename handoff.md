@@ -82,7 +82,7 @@ everything else. The app is shipped and good enough; what it needs is players, n
     Leaderboard tab competing for the same row; with three tabs the word fits everywhere,
     and an unlabelled triangle asked the reader to guess. Don't reintroduce it without
     re-measuring — the room exists now.
-- **Rotating tagline** — `TAGLINES` in `web/index.html`, currently 26. The list is meant to
+- **Rotating tagline** — `TAGLINES` in `web/index.html`, currently 27. The list is meant to
   grow; new lines go there and nowhere else. The picker draws uniformly and only excludes
   the immediately previous line, so it needs no change as the list grows.
 - **The light rig** (the `CK5` comment block in `index.html`). A dark hall behind the top of
