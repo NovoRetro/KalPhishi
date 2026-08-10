@@ -1218,11 +1218,17 @@ function initPredictor(mount, A, opts = {}) {
     const box = el('div');
     mount.appendChild(box);
     box.appendChild(el('div', 'setlabel', 'My profile'));
+    // Hometown and favourite song are gone. What identifies somebody here is their name,
+    // their avatar and their record; the other two were a form to fill in before playing.
+    //
+    // The stored values are deliberately left alone rather than cleared: PUT /api/profile
+    // merges (`if (!(f in b)) continue`), so anything already saved simply stops being sent
+    // and stops being shown. Nothing is destroyed, and restoring the fields is this edit
+    // in reverse. They are dropped from the public card too — a field nobody can edit has
+    // no business still being published.
     const fields = [
       ['displayName', 'display name', p.displayName || ''],
       ['avatar', 'avatar (an emoji or two)', p.avatar || ''],
-      ['hometown', 'hometown', p.hometown || ''],
-      ['favoriteSong', 'favorite song', p.favoriteSong || ''],
     ];
     const inputs = {};
     for (const [key, label, val] of fields) {
@@ -1297,7 +1303,6 @@ function initPredictor(mount, A, opts = {}) {
       const card = el('div', 'p-profilecard');
       card.appendChild(el('div', null,
         `<span class="p-avatar">${esc(avatarOf(u))}</span> <b>${esc(displayName(u))}</b> <span class="hint">@${esc(u.handle)} · member since ${(u.created || '').slice(0, 10)}</span>`));
-      if (p.hometown || p.favoriteSong) card.appendChild(el('div', 'hint', [p.hometown && `from ${p.hometown}`, p.favoriteSong && `favorite song: ${p.favoriteSong}`].filter(Boolean).map(esc).join(' · ')));
       if (p.bio) card.appendChild(el('div', null, esc(p.bio)));
       card.appendChild(el('div', 'hint',
         `${s.predictions} predictions · ${s.scored} scored · ` +
