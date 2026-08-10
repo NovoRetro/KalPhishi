@@ -56,11 +56,19 @@ everything else. The app is shipped and good enough; what it needs is players, n
 
 ### The app surface
 - Landing view opens on the games: **45,175px → ~2,700px on a phone**.
-- Tabs are **Phish Bingo | Setlist Bets | Data | Leaderboard**, with **Play a Show pinned to
-  the right of the same row** (Data has five sub-tabs). Play a Show used to float on the
-  banner above the row; it read as elevated above the things it is a peer of, and it is a
-  destination like the other four. Only the **"Updated" stamp** stays on the banner — it
-  describes the data behind Data and is not somewhere you go at all.
+- Tabs are **Phish Bingo | Setlist Bets | Data**, with **Play a Show pinned to the right of
+  the same row** (Data has five sub-tabs). Play a Show used to float on the banner above the
+  row; it read as elevated above the things it is a peer of. Only the **"Updated" stamp**
+  stays on the banner — it describes the data behind Data and is not somewhere you go.
+- **The standings are not a tab.** They were briefly, and it cost a permanent slot in the
+  row a phone can least afford for something read occasionally. They now open **per game
+  from that game's Actions menu** (`boardMenuItem`/`boardPanel` in `predictor.js`), plus a
+  standalone button on a scored bingo card, which has no Actions row and is the screen most
+  likely to prompt "where did that put me". **Per game, not combined:** the two scales are
+  never merged, so one board would have had to rank by one game and print the other's number
+  beside it. The API orders by setlist points, so the bingo board **re-ranks and re-filters
+  client-side** — somebody with only setlist scores is absent from the bingo board, not last
+  on it.
 - **The row shortens below 560px** — `Bingo | Setlist | Data | Board`, and Play a Show
   becomes the ▶ glyph alone at 44×44 with an explicit `aria-label`. `SHORT_LABELS` and
   `narrowTabs` in `index.html`, plus a matching `@media (max-width: 560px)` for the button.
@@ -91,7 +99,14 @@ everything else. The app is shipped and good enough; what it needs is players, n
 - **A saved bingo card stays editable until the show locks.** Checking squares off is a
   during-the-show act, so the lock starts it, not the save.
 - **The scoring panel is scoped to the game you are in**, closes on an outside click, and
-  the full both-games reference lives in the account menu.
+  the full both-games reference lives in the account menu. The standings panel behaves
+  identically and for the same reasons — including the outside-click exemption, since a
+  click inside either one is somebody reading it.
+- **The account menu is ordered by engagement, not by architecture:** the identity block
+  (avatar, name, totals) **is** the Profile button, then My History, Friends, How scoring
+  works, Sign out. Friends sits inside the loop people return for rather than below the
+  reference material. **Change password lives at the foot of Profile**, not in the menu — it
+  is account maintenance and was taking a top-level slot ahead of the social loop.
 - Bingo squares reorder — drag on desktop, tap-then-tap on touch. All tap targets ≥44px.
 
 ### Audio

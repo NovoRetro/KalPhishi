@@ -537,6 +537,15 @@
   .p-profilecard { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
   .p-boardrow { cursor: pointer; }
   .p-boardrow:hover { background: var(--accent-wash); }
+  /* Your own row, so a long board answers "where am I" without reading every line. */
+  .p-boardrow-me { background: var(--accent-wash); font-weight: 600; }
+  /* The standings panel borrows the rules panel's box — same job, same place in the flow,
+     opened from the same menu — but keeps its own class so the outside-click handler can
+     tell them apart. Clicking inside the board is somebody reading it. */
+  .p-board { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--surface); max-width: 620px; }
+  .p-board .setlabel:first-child { margin-top: 0; }
+  .p-board .p-modes { margin: 6px 0 8px; }
   /* ---- attendance ---- */
   .p-attend { align-self: flex-start; background: var(--surface); color: var(--ink-2); border: 1px solid var(--border);
     border-radius: 99px; font: inherit; font-size: 12px; padding: 7px 14px; min-height: 36px; cursor: pointer; }
@@ -642,8 +651,14 @@
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px;
     box-shadow: 0 8px 30px rgba(0,0,0,0.25); display: none; }
   .menu-open .menu-panel, .menu-open .menu-backdrop { display: block; }
-  .menu-id { display: flex; align-items: center; gap: 8px; padding: 4px 6px 10px; border-bottom: 1px solid var(--grid); margin-bottom: 8px; }
+  /* Also a .menu-item — it is the Profile button — so it needs the flex row back, and the
+     rule below has to win on the properties .menu-item sets. The separator stays: it is the
+     header of the list as well as the first thing in it. */
+  .menu-id { display: flex; align-items: center; gap: 8px; padding: 8px 6px 10px;
+    border-bottom: 1px solid var(--grid); border-radius: 0; margin-bottom: 8px;
+    text-align: left; width: 100%; }
   .menu-id .p-avatar { font-size: 20px; }
+  .menu-id:hover { background: var(--accent-wash); }
   .menu-stats { color: var(--muted); font-size: 11px; }
   /* The scoring reference reuses .p-help, which is sized for a card: a 620px cap and its
      own border and background. Dropped into the menu unchanged it forces the panel wider
@@ -1012,8 +1027,12 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
       return;
     }
 
+    // The identity block IS the Profile button. It already carried the name, handle and
+    // totals; a separate "Profile" row below it was a second way to say the same thing, and
+    // the block itself looked like a header you could not do anything with. Tapping who you
+    // are to go to who you are needs no label.
     const s = user.stats || {};
-    const id = el('div', 'menu-id',
+    const id = el('button', 'menu-id menu-item',
       `<span class="p-avatar">${esc((user.profile && user.profile.avatar) || '🎣')}</span>` +
       `<span><b>${esc((user.profile && user.profile.displayName) || user.name)}</b> <span class="menu-stats">@${esc(user.handle)}</span><br>` +
       `<span class="menu-stats">${s.predictions ?? 0} predictions · ${s.scored ?? 0} scored` +
@@ -1021,27 +1040,14 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
       `${s.setlistPoints != null ? ' · ' + s.setlistPoints + ' pts' : ''}` +
       `${s.bingoScore != null ? ' · bingo ' + s.bingoScore : ''}` +
       `${s.bingos ? ' · ' + s.bingos + ' 🍩' : ''}</span></span>`);
+    id.setAttribute('role', 'menuitem');
+    id.title = 'Your profile';
+    id.addEventListener('click', () => { close(); actions?.goTo('profile'); });
     panel.appendChild(id);
 
-    if (view === 'password') {
-      const form = el('div', 'menu-form');
-      const cur = el('input', 'ta-input'); cur.type = 'password'; cur.placeholder = 'current password'; cur.autocomplete = 'current-password';
-      const nw = el('input', 'ta-input'); nw.type = 'password'; nw.placeholder = 'new password (6+ chars for now)'; nw.autocomplete = 'new-password';
-      const msg = el('div', 'menu-note');
-      const save = el('button', 'p-btn', 'Change password');
-      save.addEventListener('click', async () => {
-        msg.textContent = '';
-        try {
-          await mfetch('/api/password', 'PUT', { currentPassword: cur.value, newPassword: nw.value });
-          msg.textContent = 'Password changed. Other devices were signed out.';
-          cur.value = nw.value = '';
-        } catch (e) { msg.textContent = e.message; }
-      });
-      form.appendChild(cur); form.appendChild(nw); form.appendChild(save); form.appendChild(msg);
-      panel.appendChild(form);
-      panel.appendChild(item('← Back', () => drawContent()));
-      return;
-    }
+    // Changing a password used to be a view here. It now lives at the foot of Profile in
+    // predictor.js — same account, one place — which is also why this panel no longer needs
+    // a password branch at all.
 
     if (view === 'scoring') {
       // The full reference, both games. Built by predictor.js from the same constants the
@@ -1322,11 +1328,16 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
       return;
     }
 
+    // Ordered by how often a returning player reaches for each thing, not by how the app is
+    // built. Who you are, then what you did, then who you are playing against — that is the
+    // loop the cohort is here for, and Friends now sits inside it rather than below the
+    // reference material. How scoring works is read once or twice and then rarely, so it
+    // drops to just above the way out. Change password is gone from this list entirely: it
+    // is account maintenance, it lives in Profile with the rest of the account, and it was
+    // taking a top-level slot ahead of the social loop.
     panel.appendChild(item('My History', () => { close(); actions?.goTo('history'); }));
-    panel.appendChild(item('Profile', () => { close(); actions?.goTo('profile'); }));
-    panel.appendChild(item('How scoring works', () => drawContent('scoring')));
     panel.appendChild(item('Friends', () => drawContent('friends')));
-    panel.appendChild(item('Change password', () => drawContent('password')));
+    panel.appendChild(item('How scoring works', () => drawContent('scoring')));
     panel.appendChild(item('Sign out', async () => { close(); await actions?.signOut(); }, 'danger'));
   }
 
@@ -1971,15 +1982,15 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   let activeTab = GAME_TABS[0].name;
   let activeDataTab = DATA_TABS[0];
 
-  // Leaderboard earns the fourth slot rather than a menu item because comparing against
-  // your crew is the reason a tester accepts an invite, and it used to be reachable only by
-  // opening the account menu and scrolling past someone's prediction history.
+  // The standings are not in this row. They were, briefly, and a fourth tab cost a
+  // permanent slot in the one row a phone can least afford for something read occasionally
+  // — and a combined board had to rank by one game's scale while printing the other's
+  // beside it. They now open per game from that game's Actions menu, ranked by the game
+  // they belong to.
   //
-  // A fourth full-length label wraps this row to two lines at 375px — measured: the bar is
-  // 327px and the four would need 378px. Two rows of tabs push the games down on exactly
-  // the viewport the landing view was cut to ~2,700px for, so the labels shorten instead.
-  // The short forms only ever appear where the long ones do not fit.
-  const SHORT_LABELS = { 'Phish Bingo': 'Bingo', 'Setlist Bets': 'Setlist', Leaderboard: 'Board' };
+  // The short labels stay: three full labels plus Play a Show still need more room than a
+  // 375px phone has, and shortening them is what keeps this to one line.
+  const SHORT_LABELS = { 'Phish Bingo': 'Bingo', 'Setlist Bets': 'Setlist' };
   // 560px, the same breakpoint the touch sizing and the banner stack already use, rather
   // than the 460 this started at. Measured by sweeping widths: the full labels plus the full
   // Play a Show button need 498px and do not fit until about 522px, so a 460px switch left a
@@ -2018,10 +2029,8 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   function renderTabs() {
     const game = GAME_TABS.find(g => g.name === activeTab);
     // History and profile come from the account menu and belong to no tab, so while one is
-    // open the card shows and no game reads as selected. Leaderboard is the same card but
-    // does own a tab, so it keeps the card visible on its own account.
-    const onBoard = activeTab === 'Leaderboard' && !menuMode;
-    const showingGames = !!game || !!menuMode || onBoard;
+    // open the card shows and no game reads as selected.
+    const showingGames = !!game || !!menuMode;
 
     tabBar.innerHTML = '';
     for (const { name } of GAME_TABS) {
@@ -2032,16 +2041,6 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     const dataBtn = el('button', 'tab' + (activeTab === 'Data' ? ' active' : ''), 'Data');
     dataBtn.addEventListener('click', () => { activeTab = 'Data'; menuMode = null; renderTabs(); });
     tabBar.appendChild(dataBtn);
-
-    const boardBtn = el('button', 'tab' + (onBoard ? ' active' : ''), esc(tabLabel('Leaderboard')));
-    boardBtn.addEventListener('click', () => {
-      activeTab = 'Leaderboard'; menuMode = null;
-      // goTo re-renders the predictor and scrolls the card into view, the same path the
-      // account menu takes — renderTabs alone would leave the previous view mounted.
-      if (predictor) predictor.goTo('leaderboard');
-      renderTabs();
-    });
-    tabBar.appendChild(boardBtn);
 
     // Pinned to the far right of the row by margin-left:auto in the CSS, so it reads as
     // separated from the four that are views rather than a fifth one. Re-appended rather

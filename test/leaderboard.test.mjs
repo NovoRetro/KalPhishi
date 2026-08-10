@@ -21,26 +21,51 @@ const predictor = read('web/predictor.js');
 const index = read('web/index.html');
 
 const history = predictor.match(/async function renderHistory\(\)[\s\S]*?\n  }\n/);
-const board = predictor.match(/async function renderLeaderboard\(\)[\s\S]*?\n  }\n/);
+const board = predictor.match(/async function renderLeaderboard\(game, wrap\)[\s\S]*?\n  }\n/);
 
-test('the leaderboard is its own view, not a tail on My History', () => {
+test('the leaderboard is not a tail on My History', () => {
   assert.ok(board, 'renderLeaderboard not found');
   assert.ok(history, 'renderHistory not found');
-  assert.match(board[0], /\/api\/leaderboard/, 'the board view must be the thing that fetches the board');
+  assert.match(board[0], /\/api\/leaderboard/, 'the board must be the thing that fetches the board');
   assert.ok(!/\/api\/leaderboard/.test(history[0]),
     'My History must not render a leaderboard of its own — that is the burial this undid');
 });
 
-test('the predictor exposes goTo, so the tab can actually switch to it', () => {
-  // The tab shipped inert once already: goTo lived only on menuActions, which the page never
-  // receives, so predictor.goTo was undefined and pressing the tab threw a TypeError into
-  // the console while the bar sat there looking fine. Nothing about the rendered markup was
-  // wrong, which is exactly why this needs a test rather than a glance.
-  const api = predictor.match(/\n  return \{\n    setMode[\s\S]*?\n  \};/);
-  assert.ok(api, 'the returned predictor API was not found');
-  assert.match(api[0], /goTo/, 'the page needs goTo to reach a non-game view');
-  assert.match(index, /predictor\.goTo\('leaderboard'\)/,
-    'the Leaderboard tab must drive the predictor, not only paint itself active');
+test('the board is per game and ranked by that game', () => {
+  // The API orders by setlist points because that is the main game. A bingo board that
+  // rendered the response as-is would be a setlist ranking under a bingo heading — right
+  // numbers, wrong order, and nothing about it looks broken.
+  assert.match(board[0], /const G = game === 'bingo'/, 'the per-game descriptor is gone');
+  assert.match(board[0], /board\.filter\(G\.played\)\.sort\(G\.rank\)/,
+    'the board must be re-ranked and filtered for the game it belongs to');
+  // Filtered, not just sorted: somebody with only setlist scores is absent from the bingo
+  // board, not last on it.
+  assert.match(board[0], /bingoScored \|\| 0\) > 0/, 'the bingo board must exclude non-players');
+  assert.match(board[0], /setlistScored \|\| 0\) > 0/, 'the setlist board must exclude non-players');
+});
+
+test('both games can reach their standings, including a scored bingo card', () => {
+  // A scored card has no Actions menu — it is the one screen where the controls row is gone,
+  // and the screen most likely to prompt "so where did that put me".
+  // Counted, not matched. Asserting the entry merely exists passed while only Setlist Bets
+  // had it — one call site is indistinguishable from two to a bare regex, and the missing
+  // one was the game that opens by default.
+  const entries = [...predictor.matchAll(/^\s*boardMenuItem\(\),$/gm)];
+  assert.equal(entries.length, 2, 'both games must carry the Actions entry, not just one');
+  assert.match(predictor, /if \(boardOpen\) mount\.appendChild\(boardPanel\('setlist'\)\)/,
+    'Setlist Bets must render its own board');
+  assert.match(predictor, /if \(boardOpen\) mount\.appendChild\(boardPanel\('bingo'\)\)/,
+    'Phish Bingo must render its own board');
+  assert.match(predictor, /row\.appendChild\(boardButton\(\)\)/,
+    'a scored bingo card must still offer the standings');
+});
+
+test('the standings are not a tab', () => {
+  // A fourth tab cost a permanent slot in the row a phone can least afford, for something
+  // read occasionally. Re-adding one is a two-line change, so it is worth a guard.
+  assert.ok(!/Leaderboard: 'Board'/.test(index), 'the Leaderboard tab label is back');
+  assert.ok(!/predictor\.goTo\('leaderboard'\)/.test(index), 'the Leaderboard tab is back');
+  assert.ok(!/mode === 'leaderboard'/.test(predictor), 'leaderboard is a panel now, not a view');
 });
 
 test('a signed-out visitor gets the open scope and no 401s', () => {
@@ -54,15 +79,42 @@ test('a signed-out visitor gets the open scope and no 401s', () => {
 });
 
 test('the tab row stays one line on a phone', () => {
-  // Measured: the bar is 327px at 375px wide and four full-length labels need 378px, so a
-  // fourth tab wraps to a second row and pushes the games down — on exactly the viewport the
-  // landing view was cut to ~2,700px for. The short labels are what buy the fourth slot.
+  // Measured: the bar is 327px at 375px wide, and the full labels plus Play a Show do not
+  // fit there. Shortening them is what keeps this to one line — two rows of tabs push the
+  // games down on exactly the viewport the landing view was cut to ~2,700px for.
   assert.match(index, /SHORT_LABELS/, 'the narrow-viewport labels are gone');
-  assert.match(index, /Leaderboard: 'Board'/, 'Leaderboard has no short form to fall back on');
   // Labels are chosen in JS at render time, not by CSS, so nothing rebuilds them on rotate
   // unless something listens.
   assert.match(index, /narrowTabs\.addEventListener\('change', renderTabs\)/,
     'crossing the breakpoint without a reload must rebuild the row');
+});
+
+test('the account menu is ordered for a returning player', () => {
+  // Identity, then what you did, then who you are playing against. Friends sits inside that
+  // loop rather than below the reference material, and the reference material sits just
+  // above the way out.
+  const tail = index.match(/panel\.appendChild\(item\('My History'[\s\S]*?'danger'\)\);/);
+  assert.ok(tail, 'the menu list was not found');
+  const order = [...tail[0].matchAll(/item\('([^']+)'/g)].map(m => m[1]);
+  assert.deepEqual(order, ['My History', 'Friends', 'How scoring works', 'Sign out'],
+    'the account menu order changed');
+  // The identity block is the Profile button — a separate Profile row was a second way to
+  // say the same thing, and the block looked like a header you could not press.
+  assert.match(index, /const id = el\('button', 'menu-id menu-item'/,
+    'the identity block must be the Profile button');
+  assert.match(index, /id\.addEventListener\('click', \(\) => \{ close\(\); actions\?\.goTo\('profile'\); \}\)/,
+    'pressing it must go to Profile');
+});
+
+test('changing a password lives in Profile, not the menu', () => {
+  const profile = predictor.match(/function renderProfile\(\)[\s\S]*?\n  }\n/);
+  assert.ok(profile, 'renderProfile not found');
+  assert.match(profile[0], /'\/api\/password', 'PUT'/, 'Profile must own the password form');
+  assert.ok(!/view === 'password'/.test(index),
+    'the menu must not keep a password view that nothing can reach');
+  // The consequence, not just the confirmation: every other session is gone.
+  assert.match(profile[0], /Other devices were signed out/,
+    'the result must say what it did to other sessions');
 });
 
 test('the label breakpoint matches the CSS that shrinks the same row', () => {

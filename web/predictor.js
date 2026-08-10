@@ -192,7 +192,6 @@ function initPredictor(mount, A, opts = {}) {
       setlist: 'Setlist Bets',
       history: 'My history',
       profile: 'Profile',
-      leaderboard: 'Leaderboard',
     };
     // The countdown rides the heading row, pushed right and only as wide as its text.
     // As a full-width banner under the top bar it read as an alert; up here it is a
@@ -238,7 +237,6 @@ function initPredictor(mount, A, opts = {}) {
     if (mode === 'setlist') renderSetlistBuilder();
     else if (mode === 'bingo') renderBingo();
     else if (mode === 'profile') renderProfile();
-    else if (mode === 'leaderboard') renderLeaderboard();
     else renderHistory();
 
     // Once the show starts, everything that edits or re-saves a prediction goes dead.
@@ -388,6 +386,9 @@ function initPredictor(mount, A, opts = {}) {
   // reads them. As a table with a worked example they are actually legible, and folding
   // them behind a button keeps the builder itself uncluttered.
   let helpOpen = false;
+  // The standings, folded into whichever game you are in. Same shape as helpOpen and for
+  // the same reason: it is occasional, it is reference, and it belongs to one game.
+  let boardOpen = false;
   // Held out here for the same reason as swapFrom: render() rebuilds the control row, so
   // an open menu has to survive being redrawn.
   let actionsOpen = false;
@@ -436,13 +437,17 @@ function initPredictor(mount, A, opts = {}) {
     let dirty = false;
     if (actionsOpen) { actionsOpen = false; dirty = true; }
     if (helpOpen && !ev.target.closest('.p-help')) { helpOpen = false; dirty = true; }
+    // Same exemption as the rules panel: a click inside the board is somebody reading it,
+    // and clicking a name to open a profile must not close the thing they clicked from.
+    if (boardOpen && !ev.target.closest('.p-board')) { boardOpen = false; dirty = true; }
     if (dirty) render();
   });
   document.addEventListener('keydown', ev => {
     if (ev.key !== 'Escape') return;
-    if (!actionsOpen && !helpOpen) return;
+    if (!actionsOpen && !helpOpen && !boardOpen) return;
     actionsOpen = false;
     helpOpen = false;
+    boardOpen = false;
     render();
   });
 
@@ -549,9 +554,7 @@ function initPredictor(mount, A, opts = {}) {
     // between the heading and the board.
     // Nothing for a signed-out visitor either way: the "Sign in to save" button says what
     // happens, at the moment they go to do it.
-    // Leaderboard keeps it for a different reason than the other two: your own totals are
-    // the reference the other rows are read against.
-    if (user && (mode === 'history' || mode === 'profile' || mode === 'leaderboard')) {
+    if (user && (mode === 'history' || mode === 'profile')) {
       const s = user.stats || {};
       const summary = statSummary(s);
       const statText = ` · ${s.predictions ?? 0} predictions, ${s.scored ?? 0} scored${summary ? ' · ' + summary : ''}`;
@@ -763,10 +766,12 @@ function initPredictor(mount, A, opts = {}) {
       // time — but that is the argument FOR it: emptying three lists by hand is twenty-odd
       // presses, where the board version was always one.
       ['🧹 Clear', () => { build = { set1: [], set2: [], encore: [] }; render(); }],
+      boardMenuItem(),
       [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
         () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
     ]));
     mount.appendChild(controls);
+    if (boardOpen) mount.appendChild(boardPanel('setlist'));
     if (helpOpen) mount.appendChild(scoringHelp('setlist'));
 
     const wrap = el('div', 'p-sets');
@@ -898,9 +903,16 @@ function initPredictor(mount, A, opts = {}) {
     // controls + cell picker live ABOVE the grid
     const controls = el('div', 'p-row');
     if (!scored) mount.appendChild(controls);
-    // A scored card has no controls row to hang it off, and that is precisely when
-    // somebody wants to read how the scoring worked — so it gets a row of its own.
-    else mount.appendChild(el('div', 'p-row')).appendChild(scoringHelpButton());
+    // A scored card has no controls row to hang the Actions menu off, and that is precisely
+    // when somebody wants to read how the scoring worked and where it put them — so both
+    // get a row of their own rather than becoming unreachable on the one screen that most
+    // invites the question.
+    else {
+      const row = mount.appendChild(el('div', 'p-row'));
+      row.appendChild(boardButton());
+      row.appendChild(scoringHelpButton());
+    }
+    if (boardOpen) mount.appendChild(boardPanel('bingo'));
     if (helpOpen) mount.appendChild(scoringHelp('bingo'));
     const pickerHost = el('div', 'p-picker');
     mount.appendChild(pickerHost);
@@ -1176,6 +1188,7 @@ function initPredictor(mount, A, opts = {}) {
         ['🎲 Randomize', randomize],
         ["🛟 Kalphishi's Prediction", fillFromModel],
         ['🧹 Clear', clearCard],
+        boardMenuItem(),
         [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
           () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
       ]));
@@ -1247,6 +1260,32 @@ function initPredictor(mount, A, opts = {}) {
     box.appendChild(el('div', 'hint',
       `Member since ${(user.created || '').slice(0, 10)} · ${s.predictions ?? 0} predictions · ${s.scored ?? 0} scored · ` +
       (statSummary(s) || 'nothing graded yet')));
+
+    // Moved here from a view of its own in the account menu. It is account maintenance, the
+    // account is what this page is, and as a top-level menu row it outranked the social loop
+    // people actually come back for. Last on the page because it is the rarest thing here.
+    box.appendChild(el('div', 'setlabel', 'Change password'));
+    const cur = el('input', 'ta-input');
+    cur.type = 'password'; cur.placeholder = 'current password'; cur.autocomplete = 'current-password';
+    const nw = el('input', 'ta-input');
+    // 6 mirrors MIN_PASSWORD_LENGTH in src/auth.mjs, which is the only place it is enforced.
+    nw.type = 'password'; nw.placeholder = 'new password (6+ chars for now)'; nw.autocomplete = 'new-password';
+    const pwMsg = el('div', 'hint');
+    const pwSave = el('button', 'p-btn', 'Change password');
+    pwSave.addEventListener('click', async () => {
+      pwMsg.textContent = '';
+      try {
+        await api('/api/password', 'PUT', { currentPassword: cur.value, newPassword: nw.value });
+        // Said plainly because it is a consequence, not a confirmation: every other session
+        // is gone, and somebody who changed their password on a hunch should know that.
+        pwMsg.textContent = 'Password changed. Other devices were signed out.';
+        cur.value = nw.value = '';
+      } catch (e) { pwMsg.textContent = e.message; }
+    });
+    box.appendChild(cur);
+    box.appendChild(nw);
+    box.appendChild(pwSave);
+    box.appendChild(pwMsg);
   }
 
   async function showPublicProfile(container, userId) {
@@ -1281,6 +1320,34 @@ function initPredictor(mount, A, opts = {}) {
   // The scoring-rules toggle, pushed to the right-hand end of whichever control row it is
   // dropped into. Carries p-keep-live so the lock sweep leaves it alone: once a show has
   // started is exactly when someone wants to check how they are being scored.
+  // The standings for one game, built where the rules panel is built and dismissed the same
+  // way. renderLeaderboard fills it in asynchronously, so the box exists in the flow from
+  // the first frame and the panel does not jump into place once the fetch lands.
+  function boardPanel(game) {
+    const wrap = el('div', 'p-board');
+    renderLeaderboard(game, wrap);
+    return wrap;
+  }
+
+  // The Actions entry both games share. Same wording either side, because the panel it
+  // opens names the game itself.
+  const boardMenuItem = () => [
+    boardOpen ? '✕ Hide standings' : '🏆 Standings',
+    () => { boardOpen = !boardOpen; render(); },
+    { keepLive: true },
+  ];
+
+  // The same toggle as a button, for the scored-card row that has no Actions menu. Carries
+  // p-keep-live for the reason the rules button does: a finished show is when this is read.
+  function boardButton() {
+    const b = el('button', 'p-mode p-keep-live' + (boardOpen ? ' active' : ''),
+      boardOpen ? '✕ Standings' : '🏆 Standings');
+    // stopPropagation for the reason spelled out on the document listener: without it this
+    // click bubbles up and closes the panel it just opened.
+    b.addEventListener('click', ev => { ev.stopPropagation(); boardOpen = !boardOpen; render(); });
+    return b;
+  }
+
   function scoringHelpButton() {
     const b = el('button', 'p-mode p-keep-live p-pushright' + (helpOpen ? ' active' : ''),
       helpOpen ? '✕ Scoring' : '❓ How scoring works');
@@ -1404,17 +1471,22 @@ function initPredictor(mount, A, opts = {}) {
 
   // ---------- leaderboard ----------
   //
-  // Its own view, reached from its own tab. It used to render at the foot of My History,
-  // which meant the entire payoff of friends, groups and invites sat below a prediction
-  // list behind a menu item named after something else — a tester invited to compare
-  // against their crew had no path to the thing they were invited to.
+  // Scoped to the game you are in and opened from that game's Actions menu — the same shape
+  // as the scoring rules, for the same reasons. It was briefly a fourth tab, which cost a
+  // permanent slot in the one row a phone can least afford, for something read occasionally.
+  // Before that it was buried at the foot of My History, which is the burial this undid.
+  //
+  // Per game rather than one combined board because setlist points and bingo scores are
+  // separate scales that are never merged (see the ORDER BY in worker.mjs). One board had to
+  // pick a scale to rank by and then print the other one beside it, which reads as a single
+  // ranking with a stray number attached. Two boards, each ranked by the game it belongs to.
   //
   // Signed out is a first-class state here, not a bounce: the everyone scope is open by
   // design (see the route in worker.mjs), and a visitor who can see the standings before
   // registering is being shown the reason to.
-  async function renderLeaderboard() {
-    const wrap = el('div');
-    mount.appendChild(wrap);
+  //
+  // GAME is 'setlist' or 'bingo' — the mode the panel was opened from, not a user choice.
+  async function renderLeaderboard(game, wrap) {
     // The friend count comes along because an empty Friends board has two completely
     // different causes — nobody to compare against, or nobody graded yet — and only one of
     // them is something the reader can act on.
@@ -1429,10 +1501,29 @@ function initPredictor(mount, A, opts = {}) {
     // 401 it cannot explain.
     if (!user) leaderboardScope = 'everyone';
 
+    // Everything that differs between the two boards, in one place. Both scales are
+    // averages of that game's graded predictions, so neither can be compared to the other
+    // and neither is printed on the other's board.
+    const G = game === 'bingo'
+      ? {
+        name: 'Phish Bingo',
+        played: u => (u.bingoScored || 0) > 0,
+        rank: (a, b) => (b.bingoScore ?? -1) - (a.bingoScore ?? -1) || (b.bingos || 0) - (a.bingos || 0),
+        line: u => `${u.bingoScore} avg over ${u.bingoScored}`
+          + (u.bingos ? ` · ${u.bingos} BINGO${u.bingos > 1 ? 's' : ''} 🍩` : ''),
+      }
+      : {
+        name: 'Setlist Bets',
+        played: u => (u.setlistScored || 0) > 0,
+        rank: (a, b) => (b.setlistPoints ?? -1) - (a.setlistPoints ?? -1)
+          || (b.setlistScored || 0) - (a.setlistScored || 0),
+        line: u => `${u.setlistPoints} pts over ${u.setlistScored}`,
+      };
+
     const profilePanel = el('div');
-    // Just the instruction: the heading above already says Leaderboard, and it did not when
-    // this label was written to introduce the board at the foot of My History.
-    wrap.appendChild(el('div', 'setlabel', 'Click a name for their profile'));
+    // Names the game, because this panel is now reachable from two places that look alike
+    // and the numbers below mean different things in each.
+    wrap.appendChild(el('div', 'setlabel', `${G.name} standings — click a name for their profile`));
     const scopeRow = el('div', 'p-modes');
     const boardHost = el('div');
     const scopes = user
@@ -1458,40 +1549,52 @@ function initPredictor(mount, A, opts = {}) {
         boardHost.appendChild(el('div', 'hint', e.message));
         return;
       }
-      if (!board.length) {
+      // The API ranks by setlist points because that is the main game, so the bingo board
+      // has to re-rank client-side rather than print a setlist ordering under a bingo
+      // heading. Filtered as well as sorted: somebody with only setlist scores is not last
+      // at bingo, they are absent from it.
+      const played = board.filter(G.played).sort(G.rank);
+
+      if (!played.length) {
         // Day one is the moment somebody decides whether this is worth a month of their
         // attention, and it used to read "scores appear once a show is graded" — a wait
         // instruction — to a person whose actual problem is that they have no friends here
-        // yet. Empty because there is nobody, and empty because nobody has been graded, are
-        // different states and only the first one has something to do about it.
+        // yet. These are four different causes and only some have anything to act on.
         const grp = leaderboardScope.startsWith('group:')
           ? groups.find(g => `group:${g.id}` === leaderboardScope) : null;
         let msg;
-        if (leaderboardScope === 'everyone') {
-          msg = 'Nobody has a scored prediction yet.';
-        } else if (leaderboardScope === 'friends' && !friends.length) {
+        if (leaderboardScope === 'friends' && !friends.length) {
           msg = 'No friends here yet — open the menu and share an invite link, '
             + 'then this becomes you against them.';
         } else if (grp && grp.memberCount <= 1) {
           msg = `${grp.name} is just you so far — share a link for it from the Friends menu `
             + 'and whoever opens it joins the group.';
+        } else if (board.length) {
+          // People are here and graded, just not at this game. Saying "nobody has a scored
+          // prediction" here would be flatly untrue and readable as a bug.
+          msg = `No graded ${G.name} predictions here yet — the other game's scores are a `
+            + 'separate scale and do not carry over.';
+        } else if (leaderboardScope === 'everyone') {
+          msg = `Nobody has a graded ${G.name} prediction yet.`;
         } else {
-          msg = 'Nobody here has a scored prediction yet — scores appear once a show is graded.';
+          msg = `Nobody here has a graded ${G.name} prediction yet — scores appear once a `
+            + 'show is graded.';
         }
         boardHost.appendChild(el('div', 'hint', msg));
         return;
       }
       // Attendance across this scope, for the show most of them predicted.
-      const attended = board.filter(u => u.showsAttended > 0).length;
+      const attended = played.filter(u => u.showsAttended > 0).length;
       if (leaderboardScope !== 'everyone' && attended) {
         boardHost.appendChild(el('div', 'hint',
-          `🎟 ${attended} of ${board.length} here have marked shows they attended.`));
+          `🎟 ${attended} of ${played.length} here have marked shows they attended.`));
       }
-      board.forEach((u, i) => {
+      played.forEach((u, i) => {
         const att = u.showsAttended ? ` · 🎟 ${u.showsAttended}` : '';
-        const row = el('div', 'p-histrow p-boardrow',
+        const me = user && u.handle === user.handle ? ' p-boardrow-me' : '';
+        const row = el('div', 'p-histrow p-boardrow' + me,
           `#${i + 1} <span class="p-avatar">${esc(avatarOf(u))}</span> <b>${esc(displayName(u))}</b> — `
-          + (statSummary(u) || `${u.scored} scored, none on the current scale`) + att);
+          + esc(G.line(u)) + att);
         row.addEventListener('click', () => showPublicProfile(profilePanel, u.handle));
         boardHost.appendChild(row);
       });
@@ -1633,12 +1736,6 @@ function initPredictor(mount, A, opts = {}) {
       actionsOpen = false;
       render();
     },
-    // The Leaderboard tab performs the same view switch the account menu does, so it needs
-    // the same entry point. goTo lives on menuActions, which the page never receives —
-    // reaching for predictor.goTo without this returns undefined and the tab does nothing.
-    // Unlike setMode it re-renders even when the mode is unchanged, which is what makes
-    // pressing the tab you are already on reload the board rather than sit there.
-    goTo: m => menuActions.goTo(m),
     getMode: () => mode,
   };
 }
