@@ -28,6 +28,22 @@ const err = (status, error, extra = {}) => json({ error, ...extra }, status);
 
 const PROFILE_FIELDS = ['displayName', 'avatar', 'hometown', 'favoriteSong', 'bio'];
 
+// Defaults for a new invite link. Enough for a household or a small crew without thinking
+// about it; a cohort organizer raises them deliberately. The schema has always honoured
+// NULL as "no limit" — these decide what you get when you don't say.
+const DEFAULT_INVITE_USES = 10;
+const DEFAULT_INVITE_DAYS = 30;
+
+// An omitted limit takes the default; an explicit 0 means no limit. Distinguishing the two
+// is the whole point — defaulting a missing field to unlimited is how every link ends up
+// unlimited, which is where this started.
+const pickLimit = (v, fallback) => {
+  if (v === undefined || v === null) return fallback;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.floor(n);
+};
+
 async function body(request) {
   try { return await request.json(); } catch { return {}; }
 }
@@ -469,13 +485,21 @@ async function api(request, env, ctx, { p, m, q, url }) {
   if (p === '/api/invites' && m === 'GET') {
     const user = await currentUser(request, env);
     if (!user) return err(401, 'not signed in');
+    // The group is joined to its name here rather than fetched per row by the UI: a link
+    // that says only "invite" gives the sharer no way to tell a plain one from one that
+    // drops whoever opens it into a group.
     const { results } = await env.DB.prepare(
-      'SELECT code, created, expires, max_uses, uses FROM invites WHERE owner_id = ?1 ORDER BY created DESC'
+      `SELECT i.code, i.created, i.expires, i.max_uses, i.uses, i.group_id, g.name AS group_name
+         FROM invites i
+         LEFT JOIN friend_groups g ON g.id = i.group_id
+        WHERE i.owner_id = ?1
+        ORDER BY i.created DESC`
     ).bind(user.id).all();
     return json({
       invites: results.map(r => ({
         code: r.code, created: r.created, expires: r.expires,
         maxUses: r.max_uses, uses: r.uses,
+        group: r.group_id && r.group_name ? { id: r.group_id, name: r.group_name } : null,
         // Computed server-side so the UI doesn't re-derive expiry rules and drift.
         spent: r.max_uses != null && r.uses >= r.max_uses,
         expired: r.expires != null && r.expires < Date.now(),
@@ -486,17 +510,36 @@ async function api(request, env, ctx, { p, m, q, url }) {
   if (p === '/api/invites' && m === 'POST') {
     const user = await currentUser(request, env);
     if (!user) return err(401, 'not signed in');
-    const { maxUses, expiresInDays } = await body(request).catch(() => ({}));
+    const { maxUses, expiresInDays, groupId } = await body(request).catch(() => ({}));
+
+    // Only the group's owner can mint a link into it, because redeeming one is exactly the
+    // add-a-member act, and that is owner-only everywhere else. Re-checked at redemption.
+    let group = null;
+    if (groupId) {
+      group = await env.DB.prepare(
+        'SELECT id, name FROM friend_groups WHERE id = ?1 AND owner_id = ?2'
+      ).bind(String(groupId), user.id).first();
+      if (!group) return err(404, 'no such group');
+    }
+
     // 16 bytes of randomness, hex — a bearer token, so unguessable matters more than short.
     const code = [...crypto.getRandomValues(new Uint8Array(16))]
       .map(b => b.toString(16).padStart(2, '0')).join('');
-    const expires = Number.isFinite(expiresInDays) && expiresInDays > 0
-      ? Date.now() + expiresInDays * 86_400_000 : null;
-    const max = Number.isInteger(maxUses) && maxUses > 0 ? maxUses : null;
+    // Bounded unless the creator says otherwise: an unlimited link is one forum post away
+    // from putting strangers in a tester's friends list and on the leaderboard they meant
+    // to compare against. 0 is the explicit opt-out, kept distinct from "field omitted" so
+    // an old client sending {} still gets the safe shape.
+    const days = pickLimit(expiresInDays, DEFAULT_INVITE_DAYS);
+    const expires = days == null ? null : Date.now() + days * 86_400_000;
+    const max = pickLimit(maxUses, DEFAULT_INVITE_USES);
     await env.DB.prepare(
-      'INSERT INTO invites (code, owner_id, created, expires, max_uses, uses) VALUES (?1, ?2, ?3, ?4, ?5, 0)'
-    ).bind(code, user.id, new Date().toISOString(), expires, max).run();
-    return json({ code, url: `${url.origin}/?invite=${code}` });
+      `INSERT INTO invites (code, owner_id, created, expires, max_uses, uses, group_id)
+       VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6)`
+    ).bind(code, user.id, new Date().toISOString(), expires, max, group?.id ?? null).run();
+    return json({
+      code, url: `${url.origin}/?invite=${code}`,
+      maxUses: max, expires, group: group ? { id: group.id, name: group.name } : null,
+    });
   }
 
   if (p.startsWith('/api/invites/') && p.endsWith('/redeem') && m === 'POST') {
@@ -504,7 +547,7 @@ async function api(request, env, ctx, { p, m, q, url }) {
     if (!user) return err(401, 'not signed in');
     const code = decodeURIComponent(p.split('/').slice(-2)[0]);
     const inv = await env.DB.prepare(
-      'SELECT code, owner_id, expires, max_uses, uses FROM invites WHERE code = ?1'
+      'SELECT code, owner_id, expires, max_uses, uses, group_id FROM invites WHERE code = ?1'
     ).bind(code).first();
     if (!inv) return err(404, 'that invite link is not valid');
     if (inv.owner_id === user.id) return err(400, "that's your own invite link");
@@ -514,23 +557,61 @@ async function api(request, env, ctx, { p, m, q, url }) {
     const owner = await getUser(env, inv.owner_id);
     if (!owner) return err(404, 'that invite link is not valid');
 
-    // Already friends is a no-op success, not an error: re-opening a link you already
-    // redeemed should be reassuring, not a failure. Doesn't burn a use.
-    if (await areFriends(env, user.id, owner.id)) {
-      return json({ ok: true, already: true, friend: { handle: owner.handle, name: publicName(owner) } });
+    // Re-resolved at redemption, and pinned to the invite's owner — the same re-check the
+    // reset flow does for bans. A group deleted since the link was minted, or somehow no
+    // longer the owner's, degrades this to a plain friend invite rather than failing: the
+    // friendship is still the thing the redeemer was promised.
+    const group = inv.group_id
+      ? await env.DB.prepare('SELECT id, name FROM friend_groups WHERE id = ?1 AND owner_id = ?2')
+        .bind(inv.group_id, inv.owner_id).first()
+      : null;
+
+    const alreadyFriends = await areFriends(env, user.id, owner.id);
+    const alreadyMember = group
+      ? !!(await env.DB.prepare('SELECT 1 AS ok FROM friend_group_members WHERE group_id = ?1 AND user_id = ?2')
+        .bind(group.id, user.id).first())
+      : true;
+
+    // Nothing left to do is a no-op success, not an error: re-opening a link you already
+    // redeemed should be reassuring, not a failure. Doesn't burn a use. Being friends is no
+    // longer enough on its own — a group link handed to an existing friend still has the
+    // join to perform, and returning early there is how someone ends up outside the group
+    // they were invited to with the app insisting it worked.
+    if (alreadyFriends && alreadyMember) {
+      return json({
+        ok: true, already: true,
+        friend: { handle: owner.handle, name: publicName(owner) },
+        group: group ? { id: group.id, name: group.name } : null,
+      });
     }
 
     const now = new Date().toISOString();
-    // One batch: a friendship can never be half-formed, and a redeem can never succeed
-    // without also being counted against max_uses.
-    await env.DB.batch([
-      env.DB.prepare('INSERT INTO friendships (user_id, friend_id, created) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING')
-        .bind(user.id, owner.id, now),
-      env.DB.prepare('INSERT INTO friendships (user_id, friend_id, created) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING')
-        .bind(owner.id, user.id, now),
-      env.DB.prepare('UPDATE invites SET uses = uses + 1 WHERE code = ?1').bind(code),
-    ]);
-    return json({ ok: true, friend: { handle: owner.handle, name: publicName(owner) } });
+    // One batch: a friendship can never be half-formed, the group join can never land
+    // without the friendship that authorises it, and a redeem can never succeed without
+    // also being counted against max_uses.
+    const stmts = [];
+    if (!alreadyFriends) {
+      stmts.push(
+        env.DB.prepare('INSERT INTO friendships (user_id, friend_id, created) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING')
+          .bind(user.id, owner.id, now),
+        env.DB.prepare('INSERT INTO friendships (user_id, friend_id, created) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING')
+          .bind(owner.id, user.id, now),
+      );
+    }
+    if (group && !alreadyMember) {
+      stmts.push(
+        env.DB.prepare('INSERT INTO friend_group_members (group_id, user_id, created) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING')
+          .bind(group.id, user.id, now),
+      );
+    }
+    stmts.push(env.DB.prepare('UPDATE invites SET uses = uses + 1 WHERE code = ?1').bind(code));
+    await env.DB.batch(stmts);
+    return json({
+      ok: true,
+      friend: { handle: owner.handle, name: publicName(owner) },
+      group: group ? { id: group.id, name: group.name } : null,
+      joinedGroup: !!(group && !alreadyMember),
+    });
   }
 
   if (p.startsWith('/api/invites/') && m === 'DELETE') {

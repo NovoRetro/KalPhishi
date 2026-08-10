@@ -5,9 +5,10 @@
 **Written:** 2026-08-09 (replaces the 2026-08-07 version, which predates Play a Show,
 password reset and the cache policy)
 
-> **Production is current.** `main` is at `1bdf3e3`, everything below is deployed, and the
-> last deploy went green. 197 tests passing, working tree clean, **no pending migrations**
-> (`0007_password_resets.sql` is applied to remote).
+> **Production is current, but the branch is ahead of it.** `main` is at `1bdf3e3` and
+> everything deployed is green. Group invites (`group-invites`) are code-complete and
+> unmerged, and **`0008_invite_groups.sql` is pending on remote** — see In progress.
+> 206 tests passing, working tree clean.
 
 Still **closed beta** (~30 testers). The URL is public and registration is open, but this is
 not a public launch — say "in beta," never "launched."
@@ -55,9 +56,29 @@ everything else. The app is shipped and good enough; what it needs is players, n
 
 ### The app surface
 - Landing view opens on the games: **45,175px → ~2,700px on a phone**.
-- Tabs are **Phish Bingo | Setlist Bets | Data** (five sub-tabs). **Play a Show** and the
-  "Last updated" stamp sit on the banner, right-aligned — neither is a view of the model, so
-  neither belongs in a row of peers with the three that are.
+- Tabs are **Phish Bingo | Setlist Bets | Data**, with **Play a Show pinned to the right of
+  the same row** (Data has five sub-tabs). Play a Show used to float on the banner above the
+  row; it read as elevated above the things it is a peer of. Only the **"Updated" stamp**
+  stays on the banner — it describes the data behind Data and is not somewhere you go.
+- **The standings are not a tab.** They were briefly, and it cost a permanent slot in the
+  row a phone can least afford for something read occasionally. They now open **per game
+  from that game's Actions menu** (`boardMenuItem`/`boardPanel` in `predictor.js`), plus a
+  standalone button on a scored bingo card, which has no Actions row and is the screen most
+  likely to prompt "where did that put me". **Per game, not combined:** the two scales are
+  never merged, so one board would have had to rank by one game and print the other's number
+  beside it. The API orders by setlist points, so the bingo board **re-ranks and re-filters
+  client-side** — somebody with only setlist scores is absent from the bingo board, not last
+  on it.
+- **The row shortens below 560px** — `Bingo | Setlist | Data | Board`, and Play a Show
+  becomes the ▶ glyph alone at 44×44 with an explicit `aria-label`. `SHORT_LABELS` and
+  `narrowTabs` in `index.html`, plus a matching `@media (max-width: 560px)` for the button.
+  **The JS breakpoint and that CSS rule size one row between them and must agree** — a test
+  asserts it. They didn't once: labels switched at 460px while the full-length set needs
+  ~522px, so 461–530 (tablets) wrapped to two rows, invisible at both ends of the range.
+  A further `@media (max-width: 360px)` trims tab padding, without which 320px overflows by
+  15px. Labels are chosen in JS at render time, so a `matchMedia` listener rebuilds the row
+  on rotate. **Swept 320 → 1440 after changing it; the tight points are 320px (17px spare)
+  and 561px (23px spare).**
 - **Rotating tagline** — `TAGLINES` in `web/index.html`, currently 26. The list is meant to
   grow; new lines go there and nowhere else. The picker draws uniformly and only excludes
   the immediately previous line, so it needs no change as the list grows.
@@ -78,7 +99,14 @@ everything else. The app is shipped and good enough; what it needs is players, n
 - **A saved bingo card stays editable until the show locks.** Checking squares off is a
   during-the-show act, so the lock starts it, not the save.
 - **The scoring panel is scoped to the game you are in**, closes on an outside click, and
-  the full both-games reference lives in the account menu.
+  the full both-games reference lives in the account menu. The standings panel behaves
+  identically and for the same reasons — including the outside-click exemption, since a
+  click inside either one is somebody reading it.
+- **The account menu is ordered by engagement, not by architecture:** the identity block
+  (avatar, name, totals) **is** the Profile button, then My History, Friends, How scoring
+  works, Sign out. Friends sits inside the loop people return for rather than below the
+  reference material. **Change password lives at the foot of Profile**, not in the menu — it
+  is account maintenance and was taking a top-level slot ahead of the social loop.
 - Bingo squares reorder — drag on desktop, tap-then-tap on touch. All tap targets ≥44px.
 
 ### Audio
@@ -111,6 +139,22 @@ issued on redeem, so the new password must be proved by signing in with it; bann
 are refused at issue *and* re-checked at redemption. `newToken()` lives in `auth.mjs` and
 `newSession` uses it too, so session and reset tokens are the same strength by construction.
 
+### Group invites (2026-08-09, on `group-invites` — not yet deployed)
+```
+POST /api/invites            { groupId?, maxUses?, expiresInDays? }   owner-only for groupId
+POST /api/invites/:code/redeem   befriends the owner AND joins the group, one batch
+```
+`invites.group_id` is a nullable FK with **ON DELETE SET NULL**, not CASCADE: deleting a
+group must not revoke links people are already holding — it degrades to the plain friend
+invite the link always also was. Redemption re-resolves the group anyway, so a dangling id
+fails safe even with foreign keys off.
+
+Verified end-to-end against a real local D1, not by reading the code: an existing friend
+redeeming a group link still joins; re-opening a spent-on-you link is a no-op that doesn't
+burn a use; a non-owner minting into someone else's group gets 404; deleting the group
+leaves the link working as a friend invite. The unit tests are source-property assertions in
+`test/group-invites.test.mjs` — same pattern and same reason as the password-reset ones.
+
 ### Cache policy (2026-08-09)
 `web/_headers`, published to `public/_headers` by the build:
 ```
@@ -126,7 +170,18 @@ change in place, so they keep revalidating.
 
 ## In progress
 
-Nothing half-done. Working tree clean, 197 tests passing, production current.
+**Branch `group-invites` — code complete, NOT deployed.** 206 tests passing, working tree
+clean. Two things stand between it and production:
+
+1. **`0008_invite_groups.sql` must be applied to remote BEFORE this merges.** It is applied
+   locally only. CI deliberately does not run migrations, and the deploy fires on push to
+   `main`, so merging first means a Worker selecting `group_id` from a column that isn't
+   there — every invite route 500s, including plain friend invites.
+   ```
+   npx wrangler d1 migrations apply kalphishi --remote
+   ```
+2. The branch was cut from `handoff-refresh`, so it carries this document too. That branch
+   is still unmerged on its own.
 
 ## Next steps
 
@@ -136,27 +191,59 @@ Verified against the code 2026-08-08. Friendships form **only** by redeeming an 
 they are instant, mutual, and have no approval step. Groups are owner-created, owner-managed,
 and members must already be friends.
 
-1. **Onboarding thirty people is about sixty manual steps.** A group owner must first be
-   friends with each person — one invite redemption each — then add them one at a time by
-   handle, because `POST /api/groups/:id/members` is owner-only *and* friends-only. There is
-   no join-by-link for a group. For a cohort this is the difference between sharing one link
-   and an afternoon of admin. Options: a group invite code that joins on redeem, or letting
-   one invite redemption carry an optional group id. **This is now the top blocker.**
+1. ~~Onboarding thirty people is about sixty manual steps~~ — **done on `group-invites`,
+   2026-08-09.** An invite can now carry a group (`invites.group_id`), so one link both
+   befriends the owner and joins the redeemer to the group. Thirty people is one link.
 
-2. **Decide the invite link's default reach.** Redeeming wires two accounts together
-   instantly with no confirmation. `max_uses` and `expires` exist in the schema and are
-   honoured on redeem — confirm they are surfaced when a link is created, and pick sane
-   defaults. Phans share things; a link posted publicly currently means strangers in a
-   tester's friends list and on the leaderboard they were meant to compare against.
+   The alternative — a standalone join-by-group code — was **rejected, don't revisit it
+   without a reason**: group membership is drawn from the owner's friends, and carrying the
+   group on the existing invite preserves that exactly, because by the time the membership
+   insert runs the redeemer is already the owner's friend, established in the same batch. A
+   standalone code would put non-friends on a group leaderboard and would break the
+   friend-removal cascade, which assumes friendship implies the membership.
 
-3. **Look at day one for a brand-new tester.** They register into an empty Friends
-   leaderboard, no groups, and a Track Record with one graded show. Worth walking through as
-   a first-timer and deciding what those empty states should say — this is the moment the
-   cohort decides whether the app is worth a month of their attention.
+   Two decisions inside it worth keeping. Minting a group link is **owner-only** and
+   **re-checked at redemption** against the invite's owner, the same way the reset flow
+   re-checks bans — the mint-time check can be weeks stale by the time anyone opens the
+   link. And the "already friends" early return now requires membership **as well as**
+   friendship: on friendship alone, a group link handed to an existing friend would report
+   success and join nobody. That is the one bug this feature is shaped to avoid, and there
+   is a test named for it.
 
-4. **Not yet checked:** whether anything nudges a tester to predict *before* a show locks.
-   With no email there is no notification channel, so whatever exists has to be in-app. A
-   cohort that forgets to predict produces no graded predictions.
+2. ~~Decide the invite link's default reach~~ — **done on `group-invites`, 2026-08-09.**
+   The answer to "confirm they are surfaced" was **no**: the client posted `{}` and every
+   link ever created was unlimited-use and never-expiring. New links now default to
+   **10 uses / 30 days**, both editable at creation, with **0 meaning no limit**.
+
+   `pickLimit` in `worker.mjs` keeps "field omitted" distinct from "explicitly 0" —
+   collapsing those is exactly how every link ended up unlimited, since the old code fell
+   through to NULL for both. Existing unlimited links are untouched; the ~30 testers holding
+   them keep what they have.
+
+3. ~~Look at day one for a brand-new tester~~ — **walked 2026-08-09, empty states fixed on
+   `group-invites`.** Findings worth keeping:
+
+   - **The Data tab is fully populated on day one** — it is model output, not user data. All
+     five sub-tabs are rich for someone who registered a minute ago. The empty surfaces are
+     only the social ones, which is a much smaller problem than it looked.
+   - The Friends board said *"scores appear once a show is graded"* to someone with **no
+     friends at all** — wrong about the cause, and it prescribed waiting at the exact moment
+     the reader should be sharing a link. Now distinguishes no-one-here from nobody-graded,
+     and does the same for a group that is still just its owner.
+   - ~~The leaderboard is buried inside My History~~ — **fixed 2026-08-09: it is now the
+     fourth tab.** Its own view (`renderLeaderboard`), reachable without opening a menu, and
+     **viewable signed out** on the everyone scope, which the route always allowed — a
+     visitor deciding whether to register is now shown the reason to. My History keeps only
+     the prediction list.
+   - Minor, unresolved: an empty bingo card offers only **Pick for me** and **Actions ▾** —
+     no Save until something is picked, so day one shows a 5×5 of `＋` with no stated goal.
+     Defensible (nothing to save yet), but nobody has decided it.
+
+4. **Partly answered.** Both games carry a prominent live countdown — `🔓 Locks in 26d 1h ·
+   19:30 local` — so a signed-in tester *looking at the app* cannot miss the deadline, and
+   `No predictions yet` now names the open show too. What does not exist is anything that
+   reaches somebody who **isn't** looking. With no email there is no channel, so this stays
+   an in-app problem: a cohort that forgets to open the app produces no graded predictions.
 
 5. ~~Password recovery~~ — **done 2026-08-09**, see above.
 
@@ -280,16 +367,21 @@ had drifted 80 lines by the time anyone read it.
 
 - **Migrations are manual and must be applied to remote BEFORE merging dependent code.**
   `npx wrangler d1 migrations apply kalphishi --remote`. CI deliberately does not do this.
-  Latest applied: `0007_password_resets.sql`. Currently nothing pending.
+  Latest applied to remote: `0008_invite_groups.sql`. **Nothing pending.**
 - **`wrangler dev` does not pick up brand-new files.** It hot-reloads edits to existing ones
   but 404s a file added since startup — restart after adding one. Cost a wrong diagnosis
   twice.
 - **`npm test` does not rebuild `public/`.** Editing `web/*` and then testing in the browser
   serves the OLD bundle. Run `npm run build:ci` first. This is the single most common way to
   waste ten minutes here, and it looks exactly like a caching bug.
-- **The asset watcher can die with `EBUSY: resource busy or locked`** on Windows, disabling
-  hot reload. Serving still reads from disk per request, so it affects convenience, not
-  correctness — verify with a hash comparison rather than assuming staleness.
+- **Restart `wrangler dev` after every `npm run build:ci`.** Not "if hot reload seems stuck"
+  — every time. A rebuild rewrites `public/index.html` with new `?v=` stamps, and the running
+  server keeps serving the *previous* `index.html`, so the page asks for the previous stamp
+  and the browser answers from cache. The scripts on disk are current the whole time, which
+  is what makes it so convincing: the file is right, the fetch is right, the page is wrong.
+  Observed on every rebuild in a long session, not intermittently. (The older note here said
+  the `EBUSY: resource busy or locked` watcher death was a convenience problem affecting hot
+  reload only — that undersold it. It changes what the browser executes.)
 - **Cloudflare's edge lags a deploy by a few minutes.** Right after a merge some fraction of
   fetches return the previous version; it converges on its own. **Re-check before
   diagnosing** — this has produced false "the route is broken" and false "the stamp didn't
@@ -303,6 +395,22 @@ had drifted 80 lines by the time anyone read it.
 - **Browser tests drift between tool calls.** Holding a DOM reference across a repaint, or a
   tab selection across calls, has produced two false results. Do a whole browser check in
   ONE evaluation.
+- **The stale-`index.html` symptom, and how to tell it apart from a real bug.** It presents
+  as "my change didn't take", never as an error: the feature is simply absent and the source
+  looks correct, because it *is* correct. `wrangler dev` does not appear to apply `_headers`,
+  so the `no-cache` that prevents this in production is not in play locally. It has cost two
+  wrong diagnoses — an hour on the leaderboard tab, and a second on a missing Actions entry
+  that turned out to be half real. **Compare the stamp on disk against the stamp in the DOM
+  before touching any source:**
+  ```bash
+  grep -o 'predictor\.js?v=[0-9a-f]*' public/index.html
+  ```
+  ```js
+  [...document.querySelectorAll('script[src]')].find(s => /predictor/.test(s.src)).src
+  ```
+  Different stamps means restart the server; the code was never the problem. **Same stamps
+  means it is a real bug** — which is how the missing Bingo Actions entry was eventually
+  found, after the restart failed to make it appear.
 - **The Browser pane can stop compositing mid-session** — screenshots fail with *"the Browser
   pane is not displayed"* while DOM reads keep working. Geometry, copy and computed styles
   are still verifiable; only the visual check is lost. Ask for the pane.
@@ -329,7 +437,9 @@ had drifted 80 lines by the time anyone read it.
 ## Branches
 
 ```
-main  1bdf3e3   ← production, current
+main            1bdf3e3   ← production, current
+handoff-refresh           ← this document, unmerged
+group-invites             ← branched from handoff-refresh; needs 0008 on remote first
 ```
 
 Everything is merged. Nine branches are fully merged and safe to delete: `explain-soft-cap`,
