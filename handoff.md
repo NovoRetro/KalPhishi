@@ -367,17 +367,21 @@ had drifted 80 lines by the time anyone read it.
 
 - **Migrations are manual and must be applied to remote BEFORE merging dependent code.**
   `npx wrangler d1 migrations apply kalphishi --remote`. CI deliberately does not do this.
-  Latest applied to remote: `0007_password_resets.sql`. **`0008_invite_groups.sql` is
-  pending** — local only, and `group-invites` must not merge before it lands.
+  Latest applied to remote: `0008_invite_groups.sql`. **Nothing pending.**
 - **`wrangler dev` does not pick up brand-new files.** It hot-reloads edits to existing ones
   but 404s a file added since startup — restart after adding one. Cost a wrong diagnosis
   twice.
 - **`npm test` does not rebuild `public/`.** Editing `web/*` and then testing in the browser
   serves the OLD bundle. Run `npm run build:ci` first. This is the single most common way to
   waste ten minutes here, and it looks exactly like a caching bug.
-- **The asset watcher can die with `EBUSY: resource busy or locked`** on Windows, disabling
-  hot reload. Serving still reads from disk per request, so it affects convenience, not
-  correctness — verify with a hash comparison rather than assuming staleness.
+- **Restart `wrangler dev` after every `npm run build:ci`.** Not "if hot reload seems stuck"
+  — every time. A rebuild rewrites `public/index.html` with new `?v=` stamps, and the running
+  server keeps serving the *previous* `index.html`, so the page asks for the previous stamp
+  and the browser answers from cache. The scripts on disk are current the whole time, which
+  is what makes it so convincing: the file is right, the fetch is right, the page is wrong.
+  Observed on every rebuild in a long session, not intermittently. (The older note here said
+  the `EBUSY: resource busy or locked` watcher death was a convenience problem affecting hot
+  reload only — that undersold it. It changes what the browser executes.)
 - **Cloudflare's edge lags a deploy by a few minutes.** Right after a merge some fraction of
   fetches return the previous version; it converges on its own. **Re-check before
   diagnosing** — this has produced false "the route is broken" and false "the stamp didn't
@@ -391,17 +395,22 @@ had drifted 80 lines by the time anyone read it.
 - **Browser tests drift between tool calls.** Holding a DOM reference across a repaint, or a
   tab selection across calls, has produced two false results. Do a whole browser check in
   ONE evaluation.
-- **The Browser pane serves a stale `index.html` even after a reload.** Cost an hour on the
-  leaderboard tab: the bundle on disk had the fix, a `fetch()` of the script URL returned the
-  fix, and the *running* page did not have it — because the pane was still on the previous
-  `index.html`, holding the previous `?v=` stamp. `wrangler dev` does not appear to apply
-  `_headers`, so the `no-cache` on the HTML that prevents exactly this in production is not
-  in play locally. **Diagnose by comparing the stamp in the DOM against a fresh fetch:**
-  ```js
-  (await (await fetch('/', {cache:'reload'})).text()).match(/predictor\.js\?v=(\w+)/)[1]
+- **The stale-`index.html` symptom, and how to tell it apart from a real bug.** It presents
+  as "my change didn't take", never as an error: the feature is simply absent and the source
+  looks correct, because it *is* correct. `wrangler dev` does not appear to apply `_headers`,
+  so the `no-cache` that prevents this in production is not in play locally. It has cost two
+  wrong diagnoses — an hour on the leaderboard tab, and a second on a missing Actions entry
+  that turned out to be half real. **Compare the stamp on disk against the stamp in the DOM
+  before touching any source:**
+  ```bash
+  grep -o 'predictor\.js?v=[0-9a-f]*' public/index.html
   ```
-  Navigate to `/?cb=<something-new>` to force it. Reaching for the source is the wrong first
-  move here — the code was right the whole time.
+  ```js
+  [...document.querySelectorAll('script[src]')].find(s => /predictor/.test(s.src)).src
+  ```
+  Different stamps means restart the server; the code was never the problem. **Same stamps
+  means it is a real bug** — which is how the missing Bingo Actions entry was eventually
+  found, after the restart failed to make it appear.
 - **The Browser pane can stop compositing mid-session** — screenshots fail with *"the Browser
   pane is not displayed"* while DOM reads keep working. Geometry, copy and computed styles
   are still verifiable; only the visual check is lost. Ask for the pane.
