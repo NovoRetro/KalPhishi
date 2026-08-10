@@ -87,10 +87,16 @@ everything else. The app is shipped and good enough; what it needs is players, n
   crossings brighten, masked so light falls off rather than ending on an edge. Cards are
   translucent so it reads through them. Peaks on save and on BINGO. Parked by
   `IntersectionObserver` when scrolled away.
-- **Control row, both games, left to right:** Save · Pick for me · Reload last save ·
-  ⟶ Actions pinned right. Actions holds Randomize, Kalphishi's Prediction, Clear and the
-  scoring rules, and is deliberately the furthest thing from Save.
-- **Pick for me randomizes** (it does *not* use the model — that is Kalphishi's Prediction,
+- **Control row, both games, left to right:** Save · Ask Diego? · ⟶ Actions pinned right.
+  Two buttons and a menu, nothing else — Actions holds Randomize, Kalphishi's Prediction,
+  Clear, Reload last save, Standings and the scoring rules, and is deliberately the furthest
+  thing from Save.
+- **The row holds one line at 375px and that is load-bearing.** It measures 282px in a 290px
+  row. Adding a fourth control puts it over: that is why **Reload last save lives in Actions**
+  rather than on the row, and why **Actions is a ⋮ below 560px** (the word costs 100px to say
+  what the glyph says in 44). `.p-row .p-btn` also trims side padding to 12px on touch. Any
+  new control here has ~8px of slack — put it in the menu instead.
+- **Ask Diego? randomizes** (it does *not* use the model — that is Kalphishi's Prediction,
   one press away in Actions) and stays on the row so it can be pressed repeatedly. Locked
   bingo squares survive a re-roll, which is what makes repeat-pressing useful.
 - **Part-filled bingo cards save.** No minimum: nothing server-side enforced one, and
@@ -235,8 +241,8 @@ and members must already be friends.
      **viewable signed out** on the everyone scope, which the route always allowed — a
      visitor deciding whether to register is now shown the reason to. My History keeps only
      the prediction list.
-   - Minor, unresolved: an empty bingo card offers only **Pick for me** and **Actions ▾** —
-     no Save until something is picked, so day one shows a 5×5 of `＋` with no stated goal.
+   - Minor, unresolved: an empty bingo card offers only **Ask Diego?** and the **⋮** — no
+     Save until something is picked, so day one shows a 5×5 of `＋` with no stated goal.
      Defensible (nothing to save yet), but nobody has decided it.
 
 4. **Partly answered.** Both games carry a prominent live countdown — `🔓 Locks in 26d 1h ·

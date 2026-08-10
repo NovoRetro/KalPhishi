@@ -716,15 +716,16 @@ function initPredictor(mount, A, opts = {}) {
       render();
     };
 
-    // Row order, left to right: Save, Pick for me, Reload, then Actions pinned to the far
-    // right. The three that change the draft sit together where the eye lands first;
-    // Actions holds everything else and is deliberately the furthest thing from Save, so
-    // the destructive items inside it are never adjacent to the button people press most.
+    // Row order, left to right: Save, Ask Diego?, then Actions pinned to the far right.
+    // Two buttons and a menu — Reload last save moved inside Actions, which is where the
+    // occasional things live and which is what lets this hold one line on a phone. Actions
+    // stays deliberately the furthest thing from Save, so the destructive items inside it
+    // are never adjacent to the button people press most.
     const controls = el('div', 'p-row');
     const songCount = build.set1.length + build.set2.length + build.encore.length;
 
     // Save only appears once there is something to save. Saving three empty lists is not a
-    // thing anyone means to do, and Pick for me is the better answer to "how do I start".
+    // thing anyone means to do, and Ask Diego? is the better answer to "how do I start".
     if (songCount > 0) {
       const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
       save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
@@ -739,32 +740,29 @@ function initPredictor(mount, A, opts = {}) {
       controls.appendChild(save);
     }
 
-    // Pick for me rolls a random setlist, and stays on the row afterwards — a first roll is
+    // Ask Diego? rolls a random setlist, and stays on the row afterwards — a first roll is
     // rarely the one you want, and hiding it meant reopening Actions to roll again. It
     // deliberately does NOT use the model: Kalphishi's Prediction is one press away in the
     // menu and is a different offer, "show me the answer" rather than "give me a board".
     // Drops to secondary styling once Save is present, so the row never carries two primary
     // actions at once.
-    const pick = el('button', 'p-btn' + (songCount ? ' p-btn-alt' : ''), '✨ Pick for me');
+    const pick = el('button', 'p-btn' + (songCount ? ' p-btn-alt' : ''), '✨ Ask Diego?');
     pick.title = 'Roll a random setlist — press again for a different one';
     pick.addEventListener('click', randomizeSetlist);
     controls.appendChild(pick);
 
     // The way back from a mis-press, matching the board's. Only offered when there is a
-    // save to return to AND the draft has actually moved away from it — otherwise it is a
-    // button that does nothing, sitting next to ones that do.
-    if (savedSetlist && setlistDiffersFromSaved()) {
-      const restore = el('button', 'p-btn p-btn-alt', '↩ Reload last save');
-      restore.title = 'Put all three lists back to the setlist you last saved';
-      restore.addEventListener('click', () => {
+    // save to return to AND the draft has actually moved away from it — otherwise it is an
+    // entry that does nothing, sitting among ones that do.
+    const reloadItem = savedSetlist && setlistDiffersFromSaved()
+      ? [['↩ Reload last save', () => {
         // Deep copy on the way out, so editing the restored draft cannot reach back into
         // the saved payload and rewrite what "last saved" means.
         build = JSON.parse(JSON.stringify(savedSetlist.payload));
         render();
         flash('Reloaded your last saved setlist.');
-      });
-      controls.appendChild(restore);
-    }
+      }]]
+      : [];
 
     controls.appendChild(actionsMenu([
       ['🎲 Randomize', randomizeSetlist],
@@ -773,6 +771,8 @@ function initPredictor(mount, A, opts = {}) {
       // time — but that is the argument FOR it: emptying three lists by hand is twenty-odd
       // presses, where the board version was always one.
       ['🧹 Clear', () => { build = { set1: [], set2: [], encore: [] }; render(); }],
+      // Directly under Clear: the two are a destroy/undo pair and read as one.
+      ...reloadItem,
       boardMenuItem(),
       [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
         () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
@@ -1121,11 +1121,9 @@ function initPredictor(mount, A, opts = {}) {
         render();
       };
 
-      // Row order, left to right: Save, Pick for me, Reload, then Actions pinned to the far
-      // right — matching the setlist builder exactly. The three that change the card sit
-      // together where the eye lands first; Actions holds everything else and is
-      // deliberately the furthest thing from Save, so the destructive items inside it are
-      // never adjacent to the button people press most.
+      // Row order, left to right: Save, Ask Diego?, then Actions pinned to the far right —
+      // matching the setlist builder exactly, Reload last save included, which now lives
+      // inside Actions on both.
       const filledNow = grid.filter((c, i) => c && i !== FREE).length;
 
       // A part-filled card saves. There is no minimum: nothing on the server enforces one,
@@ -1155,7 +1153,7 @@ function initPredictor(mount, A, opts = {}) {
         controls.appendChild(save);
       }
 
-      // Pick for me randomizes the card, and stays on the row afterwards so it can be
+      // Ask Diego? randomizes the card, and stays on the row afterwards so it can be
       // pressed repeatedly — a first roll is rarely the one you want, and hiding it meant
       // reopening Actions to roll again. It deliberately does NOT use the model:
       // Kalphishi's Prediction is one press away in the menu and is a different offer,
@@ -1164,7 +1162,7 @@ function initPredictor(mount, A, opts = {}) {
       // Because it routes through randomize, locked squares survive a re-roll — which is
       // what makes repeated pressing useful rather than destructive: lock the ones you
       // like, roll the rest.
-      const pick = el('button', 'p-btn' + (filledNow ? ' p-btn-alt' : ''), '✨ Pick for me');
+      const pick = el('button', 'p-btn' + (filledNow ? ' p-btn-alt' : ''), '✨ Ask Diego?');
       pick.title = 'Fill the unlocked squares at random — press again for a different card';
       pick.addEventListener('click', randomize);
       controls.appendChild(pick);
@@ -1173,13 +1171,11 @@ function initPredictor(mount, A, opts = {}) {
       // press, and until the show locks the saved card is the only copy that is not in
       // this tab — without this, one stray press means rebuilding it by hand.
       //
-      // Only shown once the board actually differs from the save. Offering it against an
-      // unchanged card is offering to do nothing, and a button that is always there stops
+      // Only offered once the board actually differs from the save. Offering it against an
+      // unchanged card is offering to do nothing, and an entry that is always there stops
       // being read as "you have unsaved changes" — which is the whole signal it carries.
-      if (livePrediction && gridDiffersFromSaved()) {
-        const restore = el('button', 'p-btn p-btn-alt', '↩ Reload last save');
-        restore.title = 'Put every square back to the card you last saved';
-        restore.addEventListener('click', () => {
+      const reloadItem = livePrediction && gridDiffersFromSaved()
+        ? [['↩ Reload last save', () => {
           // slice() so later edits mutate the copy, not the stored prediction — reloading
           // twice has to give the same card both times.
           grid = livePrediction.payload.grid.slice();
@@ -1187,14 +1183,15 @@ function initPredictor(mount, A, opts = {}) {
           swapFrom = null;
           render();
           flash('Reloaded your last saved card.');
-        });
-        controls.appendChild(restore);
-      }
+        }]]
+        : [];
 
       controls.appendChild(actionsMenu([
         ['🎲 Randomize', randomize],
         ["🛟 Kalphishi's Prediction", fillFromModel],
         ['🧹 Clear', clearCard],
+        // Directly under Clear: the two are a destroy/undo pair and read as one.
+        ...reloadItem,
         boardMenuItem(),
         [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
           () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
