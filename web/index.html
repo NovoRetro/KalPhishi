@@ -397,10 +397,19 @@
   .p-cell.p-swapfrom { border-color: var(--series-2); box-shadow: inset 0 0 0 2px var(--series-2); }
   .p-cell.p-swaptarget { background: var(--accent-wash); border-style: dashed; border-color: var(--series-2); }
   .p-cell .p-x { position: absolute; top: 0; right: 2px; }
-  .p-cell .p-lock { position: absolute; top: 1px; left: 3px; background: none; border: none; cursor: pointer; font-size: 11px; opacity: 0.35; padding: 1px; }
-  .p-cell .p-lock:hover { opacity: 1; }
+  /* Always a span now, never a button — Lock mode owns the toggling, so this reports state
+     and must not offer a cursor suggesting otherwise. It was 0.35 when it was a control
+     sitting on all 24 squares and needed to stay out of the way; it now appears only where
+     it means something, so it reads at full strength. */
+  .p-cell .p-lock { position: absolute; top: 1px; left: 3px; background: none; border: none; cursor: inherit; font-size: 11px; opacity: 0.85; padding: 1px; }
   .p-cell.locked .p-lock { opacity: 1; }
   .p-cell.locked { border-color: var(--series-2); box-shadow: inset 0 0 0 1px var(--series-2); }
+  /* Lock mode shows the mark on every filled square, unlocked ones included — there it is
+     the thing you are looking at, not an annotation on a card you are building. */
+  .p-cell.p-lockpick .p-lock { opacity: 0.85; }
+  .p-cell.p-lockpick:hover { background: var(--accent-wash); border-color: var(--series-2); }
+  .p-lockhint { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--series-2);
+    border-radius: 8px; background: var(--accent-wash); font-size: 13px; line-height: 1.45; }
   /* Scoring rules panel. Width-bounded so the tables stay scannable on a wide screen —
      a full-bleed two-column table reads as two unrelated lists. */
   .p-help { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); max-width: 620px; }

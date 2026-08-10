@@ -23,6 +23,10 @@ function initPredictor(mount, A, opts = {}) {
   let build = { set1: [], set2: [], encore: [] };
   let grid = Array(25).fill(null);
   let locks = Array(25).fill(false); // build-mode only: locked squares survive Randomize
+  // Lock mode turns the whole card into a lock picker: a tap on any filled square toggles
+  // its lock, instead of that being an 11px icon in the corner of a 60px cell. Opened from
+  // Actions, left by the button that replaces Ask Diego? while it is on.
+  let lockMode = false;
   let livePrediction = null; // saved bingo prediction being played live
   let savedSetlist = null;   // saved setlist prediction, kept so it can be restored
   let bingoDeclared = false;
@@ -923,12 +927,27 @@ function initPredictor(mount, A, opts = {}) {
     }
     if (boardOpen) mount.appendChild(boardPanel('bingo'));
     if (helpOpen) mount.appendChild(scoringHelp('bingo'));
+    // A mode that silently changes what a tap does has to say so. Without this the card
+    // looks identical to build mode while × and drag-to-reorder have both quietly stopped
+    // working, which reads as the page being broken rather than as a mode being on.
+    if (lockMode) {
+      mount.appendChild(el('div', 'p-lockhint',
+        '🔒 <b>Lock mode</b> — tap squares to lock or unlock them. Locked squares survive '
+        + "Ask Diego?, Randomize and Kalphishi's Prediction. Press <b>Lock it in</b> when done."));
+    }
     const pickerHost = el('div', 'p-picker');
     mount.appendChild(pickerHost);
 
+    // Lock mode belongs to building a card. A live or scored card has nothing to protect
+    // from Randomize, so arriving in either state ends it rather than leaving a mode
+    // running that no longer has a way out — its exit button is the builder's.
+    if (live || scored) lockMode = false;
+
     // Reordering is a build-mode affordance. In live mode a tap checks a square off, and
-    // a scored card is history — neither should move anything.
-    const editable = !live && !scored;
+    // a scored card is history — neither should move anything. Lock mode joins them: while
+    // it is on, a tap means "lock this", and drag-to-reorder competing for the same gesture
+    // is how a lock press becomes an accidental swap.
+    const editable = !live && !scored && !lockMode;
     if (!editable) swapFrom = null;
 
     // Songs trade places, and their locks travel with them: a lock reads as belonging to
@@ -1047,11 +1066,26 @@ function initPredictor(mount, A, opts = {}) {
             });
           } else if (!scored) {
             if (locks[i]) cell.classList.add('locked');
-            const lock = el('button', 'p-lock', locks[i] ? '🔒' : '🔓');
-            lock.title = locks[i] ? 'locked — Randomize will keep this square' : 'unlocked — Randomize may replace this square';
-            lock.addEventListener('click', ev => { ev.stopPropagation(); locks[i] = !locks[i]; render(); });
-            cell.appendChild(lock);
-            if (!locks[i]) {
+            if (lockMode) {
+              // The whole square is the target, and it is the ONLY thing a tap can do here.
+              // The × is deliberately withheld: in a mode where every tap toggles a lock, a
+              // delete button one thumb-width away turns a mis-tap into a lost song.
+              cell.classList.add('p-lockpick');
+              cell.title = locks[i] ? 'locked — tap to unlock' : 'tap to lock this square';
+              cell.setAttribute('aria-pressed', String(!!locks[i]));
+              cell.addEventListener('click', () => { locks[i] = !locks[i]; render(); });
+              // A span, not a button: it reports state now, it does not take the tap.
+              cell.appendChild(el('span', 'p-lock', locks[i] ? '🔒' : '🔓'));
+            } else if (locks[i]) {
+              // No toggle here any more — Lock mode owns locking. What stays is the state,
+              // and only on the squares that have it: a locked square has to keep reading as
+              // locked while you build, or its missing × looks like a rendering fault rather
+              // than a consequence. An unlocked square shows nothing at all, which is the
+              // point — 24 padlocks were 24 controls nobody was aiming at.
+              const mark = el('span', 'p-lock', '🔒');
+              mark.title = 'locked — Randomize will keep this square. Use Lock mode to unlock it.';
+              cell.appendChild(mark);
+            } else {
               const x = el('button', 'p-x', '×');
               x.addEventListener('click', ev => { ev.stopPropagation(); grid[i] = null; render(); });
               cell.appendChild(x);
@@ -1061,7 +1095,11 @@ function initPredictor(mount, A, opts = {}) {
           cell = el('div', 'p-cell empty', '<span class="p-cellname">＋</span>');
           // While editing, the swap handler owns taps on empty cells too — an armed square
           // moves into one instead of opening the picker. Two listeners would race.
-          if (!scored && !editable) cell.addEventListener('click', () => openCellPicker(i));
+          //
+          // Lock mode makes `editable` false, which would otherwise hand these cells the
+          // picker — so it is excluded explicitly. There is nothing to lock on an empty
+          // square, and opening a song search from a mode about locks is a non sequitur.
+          if (!scored && !editable && !lockMode) cell.addEventListener('click', () => openCellPicker(i));
         }
         if (editable && i !== FREE) attachSwap(cell, i);
         table.appendChild(cell);
@@ -1164,9 +1202,24 @@ function initPredictor(mount, A, opts = {}) {
       // Because it routes through randomize, locked squares survive a re-roll — which is
       // what makes repeated pressing useful rather than destructive: lock the ones you
       // like, roll the rest.
-      const pick = el('button', 'p-btn' + (filledNow ? ' p-btn-alt' : ''), '✨ Ask Diego?');
-      pick.title = 'Fill the unlocked squares at random — press again for a different card';
-      pick.addEventListener('click', randomize);
+      //
+      // While lock mode is on this slot is the way out of it instead. Ask Diego? is the
+      // one control lock mode has to displace: re-rolling is what locks exist to survive,
+      // so offering the roll mid-lock invites pressing it before the locks are set. Taking
+      // its place also means the exit is where the thumb already is, rather than back
+      // inside the menu the mode was opened from.
+      // Same secondary-once-Save-exists treatment either way. Lock it in is the way out of
+      // a mode, not a second thing to do to the card, and a row carrying two primary
+      // buttons at once is the exact thing that styling rule exists to prevent. The hint
+      // above the grid names the button in bold, so the exit is not hard to find for it.
+      const pick = el('button', 'p-btn' + (filledNow ? ' p-btn-alt' : ''),
+        lockMode ? '🔒 Lock it in' : '✨ Ask Diego?');
+      pick.title = lockMode
+        ? 'Done locking — back to building the card'
+        : 'Fill the unlocked squares at random — press again for a different card';
+      pick.addEventListener('click', lockMode
+        ? () => { lockMode = false; render(); }
+        : randomize);
       controls.appendChild(pick);
 
       // The way out of a mis-click. Clear and Randomize both overwrite the board in one
@@ -1191,6 +1244,10 @@ function initPredictor(mount, A, opts = {}) {
       controls.appendChild(actionsMenu([
         ['🎲 Randomize', randomize],
         ["🛟 Kalphishi's Prediction", fillFromModel],
+        // Directly under the two that overwrite the card, because it is the thing that
+        // decides what they are allowed to touch. Bingo only — the setlist has no locks.
+        [lockMode ? '✕ Leave lock mode' : '🔒 Lock mode',
+          () => { lockMode = !lockMode; render(); }],
         // Above Clear, matching the setlist builder — see the note there.
         ...reloadItem,
         ['🧹 Clear', clearCard],
