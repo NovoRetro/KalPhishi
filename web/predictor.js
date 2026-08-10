@@ -693,7 +693,7 @@ function initPredictor(mount, A, opts = {}) {
   function renderSetlistBuilder() {
     const usedSlugs = () => new Set([...build.set1, ...build.set2, ...build.encore].map(s => s.slug));
 
-    // Both named, because the Actions menu and the Pick for me button each run one.
+    // Both named, because the Actions menu and the Ask Diego? button each run one.
     const randomizeSetlist = () => {
       const used = new Set();
       const s1n = 8 + Math.floor(Math.random() * 3);              // 8–10
