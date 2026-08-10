@@ -192,6 +192,7 @@ function initPredictor(mount, A, opts = {}) {
       setlist: 'Setlist Bets',
       history: 'My history',
       profile: 'Profile',
+      leaderboard: 'Leaderboard',
     };
     // The countdown rides the heading row, pushed right and only as wide as its text.
     // As a full-width banner under the top bar it read as an alert; up here it is a
@@ -237,6 +238,7 @@ function initPredictor(mount, A, opts = {}) {
     if (mode === 'setlist') renderSetlistBuilder();
     else if (mode === 'bingo') renderBingo();
     else if (mode === 'profile') renderProfile();
+    else if (mode === 'leaderboard') renderLeaderboard();
     else renderHistory();
 
     // Once the show starts, everything that edits or re-saves a prediction goes dead.
@@ -547,7 +549,9 @@ function initPredictor(mount, A, opts = {}) {
     // between the heading and the board.
     // Nothing for a signed-out visitor either way: the "Sign in to save" button says what
     // happens, at the moment they go to do it.
-    if (user && (mode === 'history' || mode === 'profile')) {
+    // Leaderboard keeps it for a different reason than the other two: your own totals are
+    // the reference the other rows are read against.
+    if (user && (mode === 'history' || mode === 'profile' || mode === 'leaderboard')) {
       const s = user.stats || {};
       const summary = statSummary(s);
       const statText = ` · ${s.predictions ?? 0} predictions, ${s.scored ?? 0} scored${summary ? ' · ' + summary : ''}`;
@@ -1342,14 +1346,7 @@ function initPredictor(mount, A, opts = {}) {
   async function renderHistory() {
     const wrap = el('div');
     mount.appendChild(wrap);
-    // The friend count comes along because an empty Friends board has two completely
-    // different causes — nobody to compare against, or nobody graded yet — and only one of
-    // them is something the reader can act on.
-    const [preds, groups, friends] = await Promise.all([
-      api(`/api/predictions?user=${user.handle}`),
-      api('/api/groups').then(j => j.groups).catch(() => []),
-      api('/api/friends').then(j => j.friends).catch(() => []),
-    ]);
+    const preds = await api(`/api/predictions?user=${user.handle}`);
     preds.sort((a, b) => b.showdate.localeCompare(a.showdate));
     const st = user.stats || {};
     if (st.showsAttended) {
@@ -1403,17 +1400,44 @@ function initPredictor(mount, A, opts = {}) {
       // carrying rows — anything graded before this shipped keeps the summary line alone.
       if (p.type === 'setlist' && b?.rows) wrap.appendChild(scoredSetlist(b));
     }
-    const profilePanel = el('div');
+  }
 
-    // Leaderboard with a scope selector: Everyone / Friends / each group you're in.
-    wrap.appendChild(el('div', 'setlabel', 'Leaderboard — click a name for their profile'));
+  // ---------- leaderboard ----------
+  //
+  // Its own view, reached from its own tab. It used to render at the foot of My History,
+  // which meant the entire payoff of friends, groups and invites sat below a prediction
+  // list behind a menu item named after something else — a tester invited to compare
+  // against their crew had no path to the thing they were invited to.
+  //
+  // Signed out is a first-class state here, not a bounce: the everyone scope is open by
+  // design (see the route in worker.mjs), and a visitor who can see the standings before
+  // registering is being shown the reason to.
+  async function renderLeaderboard() {
+    const wrap = el('div');
+    mount.appendChild(wrap);
+    // The friend count comes along because an empty Friends board has two completely
+    // different causes — nobody to compare against, or nobody graded yet — and only one of
+    // them is something the reader can act on.
+    const [groups, friends] = user
+      ? await Promise.all([
+        api('/api/groups').then(j => j.groups).catch(() => []),
+        api('/api/friends').then(j => j.friends).catch(() => []),
+      ])
+      : [[], []];
+    // A scope that needs a session cannot be offered without one, and the stored scope may
+    // be left over from before a sign-out — falling back keeps the view from opening on a
+    // 401 it cannot explain.
+    if (!user) leaderboardScope = 'everyone';
+
+    const profilePanel = el('div');
+    // Just the instruction: the heading above already says Leaderboard, and it did not when
+    // this label was written to introduce the board at the foot of My History.
+    wrap.appendChild(el('div', 'setlabel', 'Click a name for their profile'));
     const scopeRow = el('div', 'p-modes');
     const boardHost = el('div');
-    const scopes = [
-      ['everyone', 'Everyone'],
-      ['friends', 'Friends'],
-      ...groups.map(g => [`group:${g.id}`, g.name]),
-    ];
+    const scopes = user
+      ? [['everyone', 'Everyone'], ['friends', 'Friends'], ...groups.map(g => [`group:${g.id}`, g.name])]
+      : [['everyone', 'Everyone']];
     wrap.appendChild(scopeRow);
     wrap.appendChild(boardHost);
 
@@ -1609,6 +1633,12 @@ function initPredictor(mount, A, opts = {}) {
       actionsOpen = false;
       render();
     },
+    // The Leaderboard tab performs the same view switch the account menu does, so it needs
+    // the same entry point. goTo lives on menuActions, which the page never receives —
+    // reaching for predictor.goTo without this returns undefined and the tab does nothing.
+    // Unlike setMode it re-renders even when the mode is unchanged, which is what makes
+    // pressing the tab you are already on reload the board rather than sit there.
+    goTo: m => menuActions.goTo(m),
     getMode: () => mode,
   };
 }

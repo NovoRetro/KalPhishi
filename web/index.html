@@ -1957,6 +1957,18 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   let activeTab = GAME_TABS[0].name;
   let activeDataTab = DATA_TABS[0];
 
+  // Leaderboard earns the fourth slot rather than a menu item because comparing against
+  // your crew is the reason a tester accepts an invite, and it used to be reachable only by
+  // opening the account menu and scrolling past someone's prediction history.
+  //
+  // A fourth full-length label wraps this row to two lines at 375px — measured: the bar is
+  // 327px and the four would need 378px. Two rows of tabs push the games down on exactly
+  // the viewport the landing view was cut to ~2,700px for, so the labels shorten instead.
+  // The short forms only ever appear where the long ones do not fit.
+  const SHORT_LABELS = { 'Phish Bingo': 'Bingo', 'Setlist Bets': 'Setlist', Leaderboard: 'Board' };
+  const narrowTabs = window.matchMedia('(max-width: 460px)');
+  const tabLabel = name => (narrowTabs.matches && SHORT_LABELS[name]) || name;
+
   // ---- banner actions
   //
   // Built once and left alone, unlike the tab bar, which is emptied and rebuilt on every
@@ -1981,18 +1993,30 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   function renderTabs() {
     const game = GAME_TABS.find(g => g.name === activeTab);
     // History and profile come from the account menu and belong to no tab, so while one is
-    // open the card shows and no game reads as selected.
-    const showingGames = !!game || !!menuMode;
+    // open the card shows and no game reads as selected. Leaderboard is the same card but
+    // does own a tab, so it keeps the card visible on its own account.
+    const onBoard = activeTab === 'Leaderboard' && !menuMode;
+    const showingGames = !!game || !!menuMode || onBoard;
 
     tabBar.innerHTML = '';
     for (const { name } of GAME_TABS) {
-      const b = el('button', 'tab' + (name === activeTab && !menuMode ? ' active' : ''), esc(name));
+      const b = el('button', 'tab' + (name === activeTab && !menuMode ? ' active' : ''), esc(tabLabel(name)));
       b.addEventListener('click', () => { activeTab = name; menuMode = null; renderTabs(); });
       tabBar.appendChild(b);
     }
     const dataBtn = el('button', 'tab' + (activeTab === 'Data' ? ' active' : ''), 'Data');
     dataBtn.addEventListener('click', () => { activeTab = 'Data'; menuMode = null; renderTabs(); });
     tabBar.appendChild(dataBtn);
+
+    const boardBtn = el('button', 'tab' + (onBoard ? ' active' : ''), esc(tabLabel('Leaderboard')));
+    boardBtn.addEventListener('click', () => {
+      activeTab = 'Leaderboard'; menuMode = null;
+      // goTo re-renders the predictor and scrolls the card into view, the same path the
+      // account menu takes — renderTabs alone would leave the previous view mounted.
+      if (predictor) predictor.goTo('leaderboard');
+      renderTabs();
+    });
+    tabBar.appendChild(boardBtn);
 
     // Play a Show and the freshness stamp live on the banner, not in this row — see the
     // stage-actions block above. Only the active state is driven from here.
@@ -2020,6 +2044,9 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     if (game && !menuMode && predictor) predictor.setMode(game.mode);
   }
   renderTabs();
+  // Rotating a phone crosses the breakpoint without a reload, and the labels are baked in
+  // at render time rather than by CSS, so the row has to be rebuilt when it changes.
+  narrowTabs.addEventListener('change', renderTabs);
 
   // Clicking a card's own <h2> collapses it. Delegated rather than bound directly,
   // because the predictor card rebuilds its heading on every render — a listener

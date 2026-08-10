@@ -56,9 +56,14 @@ everything else. The app is shipped and good enough; what it needs is players, n
 
 ### The app surface
 - Landing view opens on the games: **45,175px → ~2,700px on a phone**.
-- Tabs are **Phish Bingo | Setlist Bets | Data** (five sub-tabs). **Play a Show** and the
-  "Last updated" stamp sit on the banner, right-aligned — neither is a view of the model, so
-  neither belongs in a row of peers with the three that are.
+- Tabs are **Phish Bingo | Setlist Bets | Data | Leaderboard** (Data has five sub-tabs).
+  **Play a Show** and the "Last updated" stamp sit on the banner, right-aligned — neither is
+  a place you go, so neither belongs in a row of peers with the four that are.
+- **The tab labels shorten below 460px** — `Bingo | Setlist | Data | Board`, via
+  `SHORT_LABELS` in `index.html`. Measured: the bar is 327px at 375px wide and four
+  full-length labels need 378px, so without this the row wraps to two lines and pushes the
+  games down on the one viewport the landing view was cut to ~2,700px for. Chosen in JS at
+  render time, not by CSS, so a `matchMedia` listener rebuilds the row on rotate.
 - **Rotating tagline** — `TAGLINES` in `web/index.html`, currently 26. The list is meant to
   grow; new lines go there and nowhere else. The picker draws uniformly and only excludes
   the immediately previous line, so it needs no change as the list grows.
@@ -203,12 +208,11 @@ and members must already be friends.
      friends at all** — wrong about the cause, and it prescribed waiting at the exact moment
      the reader should be sharing a link. Now distinguishes no-one-here from nobody-graded,
      and does the same for a group that is still just its owner.
-   - **Still open, deliberately not fixed here: the leaderboard is buried inside My
-     History**, below the prediction list, behind a menu item named after something else.
-     Friends, groups and invites all exist to feed it and nothing in the UI says
-     "leaderboard". A tester invited to compare against their crew has no path to the thing
-     they were invited to. This is a navigation change, not copy, and it is now the most
-     valuable unmade decision in this section.
+   - ~~The leaderboard is buried inside My History~~ — **fixed 2026-08-09: it is now the
+     fourth tab.** Its own view (`renderLeaderboard`), reachable without opening a menu, and
+     **viewable signed out** on the everyone scope, which the route always allowed — a
+     visitor deciding whether to register is now shown the reason to. My History keeps only
+     the prediction list.
    - Minor, unresolved: an empty bingo card offers only **Pick for me** and **Actions ▾** —
      no Save until something is picked, so day one shows a 5×5 of `＋` with no stated goal.
      Defensible (nothing to save yet), but nobody has decided it.
@@ -365,6 +369,17 @@ had drifted 80 lines by the time anyone read it.
 - **Browser tests drift between tool calls.** Holding a DOM reference across a repaint, or a
   tab selection across calls, has produced two false results. Do a whole browser check in
   ONE evaluation.
+- **The Browser pane serves a stale `index.html` even after a reload.** Cost an hour on the
+  leaderboard tab: the bundle on disk had the fix, a `fetch()` of the script URL returned the
+  fix, and the *running* page did not have it — because the pane was still on the previous
+  `index.html`, holding the previous `?v=` stamp. `wrangler dev` does not appear to apply
+  `_headers`, so the `no-cache` on the HTML that prevents exactly this in production is not
+  in play locally. **Diagnose by comparing the stamp in the DOM against a fresh fetch:**
+  ```js
+  (await (await fetch('/', {cache:'reload'})).text()).match(/predictor\.js\?v=(\w+)/)[1]
+  ```
+  Navigate to `/?cb=<something-new>` to force it. Reaching for the source is the wrong first
+  move here — the code was right the whole time.
 - **The Browser pane can stop compositing mid-session** — screenshots fail with *"the Browser
   pane is not displayed"* while DOM reads keep working. Geometry, copy and computed styles
   are still verifiable; only the visual check is lost. Ask for the pane.
