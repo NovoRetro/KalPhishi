@@ -656,8 +656,14 @@
   .invite-copy { flex: 1; background: var(--surface); border: 1px solid var(--baseline); border-radius: 8px;
     color: var(--ink); font: inherit; font-size: 12px; padding: 6px 10px; min-height: 32px; cursor: pointer; }
   .invite-copy:hover { background: var(--accent-wash); }
+  /* Invite limits. Narrow on purpose — they take a small number, and at full width they
+     would read as the primary control rather than a qualifier on the button below. */
+  .invite-limit { background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--ink); font: inherit; font-size: 12px; padding: 5px 6px; min-height: 32px;
+    width: 4.5em; }
+  select.invite-limit { width: auto; max-width: 11em; }
   @media (max-width: 560px) {
-    .friend-remove, .invite-copy { min-height: 44px; font-size: 13px; }
+    .friend-remove, .invite-copy, .invite-limit { min-height: 44px; font-size: 13px; }
   }
   /* Phones: right-hand drawer instead of a dropdown. Must follow the base .menu-panel
      rule — same specificity, so source order decides which wins. */
@@ -1071,23 +1077,68 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
 
       async function drawInvites() {
         inviteHost.innerHTML = '';
+
+        // Both fetches up front: the group selector is part of the creation form, so
+        // rendering the form before the groups are known would flash a friends-only-looking
+        // control that silently gains options a moment later.
+        let invites = [], groups = [];
+        try {
+          [invites, groups] = await Promise.all([
+            mfetch('/api/invites', 'GET').then(j => j.invites),
+            mfetch('/api/groups', 'GET').then(j => j.groups),
+          ]);
+        } catch (e) { inviteHost.appendChild(el('div', 'menu-note', e.message)); return; }
+
+        const form = el('div', 'invite-row');
+        // Owned groups only — redeeming a group link is the add-a-member act, and that is
+        // owner-only. The server refuses anything else; this just doesn't offer it.
+        const owned = groups.filter(g => g.isOwner);
+        const scope = el('select', 'invite-limit');
+        // textContent, not el()'s innerHTML: a group name is free text its owner typed.
+        const plain = el('option');
+        plain.value = ''; plain.textContent = 'Friend only';
+        scope.appendChild(plain);
+        for (const g of owned) {
+          const opt = el('option');
+          opt.value = g.id; opt.textContent = `+ ${g.name}`;
+          scope.appendChild(opt);
+        }
+        const uses = el('input', 'invite-limit');
+        uses.type = 'number'; uses.min = '0'; uses.value = '10'; uses.title = 'Uses — 0 for unlimited';
+        const days = el('input', 'invite-limit');
+        days.type = 'number'; days.min = '0'; days.value = '30'; days.title = 'Days until it expires — 0 for never';
         const make = el('button', 'p-btn', 'Create invite link');
         make.addEventListener('click', async () => {
           make.disabled = true;
-          try { await mfetch('/api/invites', 'POST', {}); await drawInvites(); }
-          catch (e) { make.disabled = false; msg.textContent = e.message; }
+          try {
+            await mfetch('/api/invites', 'POST', {
+              maxUses: Number(uses.value), expiresInDays: Number(days.value),
+              groupId: scope.value || undefined,
+            });
+            await drawInvites();
+          } catch (e) { make.disabled = false; msg.textContent = e.message; }
         });
+        if (owned.length) form.appendChild(scope);
+        form.appendChild(el('span', 'menu-stats', 'uses'));
+        form.appendChild(uses);
+        form.appendChild(el('span', 'menu-stats', 'days'));
+        form.appendChild(days);
+        inviteHost.appendChild(form);
         inviteHost.appendChild(make);
+        // One note, not two: the old "whoever opens it becomes your friend" line said half
+        // of this and sat directly beneath it.
+        inviteHost.appendChild(el('div', 'menu-note',
+          `Whoever opens a link becomes your friend. Limited by default — 0 means no limit.${owned.length
+            ? ' Pick a group and they join it too.' : ''}`));
 
-        let invites = [];
-        try { invites = (await mfetch('/api/invites', 'GET')).invites; } catch { /* shown below */ }
         const live = invites.filter(i => !i.spent && !i.expired);
         if (!live.length) return;
-        inviteHost.appendChild(el('div', 'menu-note', 'Share a link — whoever opens it becomes your friend.'));
         for (const i of live) {
           const url = `${location.origin}/?invite=${i.code}`;
           const row = el('div', 'invite-row');
-          const copy = el('button', 'invite-copy', '📋 Copy link');
+          const label = i.group ? `📋 Copy ${i.group.name} link` : '📋 Copy link';
+          const copy = el('button', 'invite-copy');
+          copy.textContent = label;
           copy.addEventListener('click', async () => {
             try {
               await navigator.clipboard.writeText(url);
@@ -1099,10 +1150,16 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
               box.value = url; box.readOnly = true;
               row.appendChild(box); box.select();
             }
-            setTimeout(() => { copy.textContent = '📋 Copy link'; }, 1800);
+            setTimeout(() => { copy.textContent = label; }, 1800);
           });
           row.appendChild(copy);
-          row.appendChild(el('span', 'menu-stats', ` used ${i.uses}${i.maxUses ? '/' + i.maxUses : ''}`));
+          // Limits are shown because they are now real: a link that says nothing about its
+          // reach is the state this was fixing.
+          const left = i.maxUses == null ? '∞' : i.maxUses - i.uses;
+          const dleft = i.expires == null ? null : Math.ceil((i.expires - Date.now()) / 86_400_000);
+          row.appendChild(el('span', 'menu-stats',
+            ` used ${i.uses}${i.maxUses ? '/' + i.maxUses : ''} · ${left} left` +
+            (dleft == null ? ' · no expiry' : dleft <= 1 ? ' · expires today' : ` · ${dleft}d left`)));
           const rev = el('button', 'friend-remove', 'Revoke');
           rev.addEventListener('click', async () => {
             rev.disabled = true;
@@ -1141,8 +1198,12 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
             const del = el('button', 'friend-remove', 'Delete');
             del.addEventListener('click', async () => {
               del.disabled = true;
-              try { await mfetch('/api/groups/' + encodeURIComponent(g.id), 'DELETE'); await drawGroups(); }
-              catch (e) { del.disabled = false; msg.textContent = e.message; }
+              try {
+                await mfetch('/api/groups/' + encodeURIComponent(g.id), 'DELETE');
+                // Invites too: any link into this group has just become a plain friend
+                // invite, and the selector must lose the option.
+                await Promise.all([drawGroups(), drawInvites()]);
+              } catch (e) { del.disabled = false; msg.textContent = e.message; }
             });
             row.appendChild(del);
           } else {
@@ -1166,8 +1227,13 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
           const name = nameInput.value.trim();
           if (!name) return;
           create.disabled = true;
-          try { await mfetch('/api/groups', 'POST', { name }); nameInput.value = ''; await drawGroups(); }
-          catch (e) { msg.textContent = e.message; }
+          try {
+            await mfetch('/api/groups', 'POST', { name });
+            nameInput.value = '';
+            // A brand-new group has to appear in the invite selector, or the first thing
+            // an owner wants to do with it — share it — isn't offered.
+            await Promise.all([drawGroups(), drawInvites()]);
+          } catch (e) { msg.textContent = e.message; }
           create.disabled = false;
         };
         create.addEventListener('click', go);

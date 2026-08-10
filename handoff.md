@@ -5,9 +5,10 @@
 **Written:** 2026-08-09 (replaces the 2026-08-07 version, which predates Play a Show,
 password reset and the cache policy)
 
-> **Production is current.** `main` is at `1bdf3e3`, everything below is deployed, and the
-> last deploy went green. 197 tests passing, working tree clean, **no pending migrations**
-> (`0007_password_resets.sql` is applied to remote).
+> **Production is current, but the branch is ahead of it.** `main` is at `1bdf3e3` and
+> everything deployed is green. Group invites (`group-invites`) are code-complete and
+> unmerged, and **`0008_invite_groups.sql` is pending on remote** — see In progress.
+> 206 tests passing, working tree clean.
 
 Still **closed beta** (~30 testers). The URL is public and registration is open, but this is
 not a public launch — say "in beta," never "launched."
@@ -111,6 +112,22 @@ issued on redeem, so the new password must be proved by signing in with it; bann
 are refused at issue *and* re-checked at redemption. `newToken()` lives in `auth.mjs` and
 `newSession` uses it too, so session and reset tokens are the same strength by construction.
 
+### Group invites (2026-08-09, on `group-invites` — not yet deployed)
+```
+POST /api/invites            { groupId?, maxUses?, expiresInDays? }   owner-only for groupId
+POST /api/invites/:code/redeem   befriends the owner AND joins the group, one batch
+```
+`invites.group_id` is a nullable FK with **ON DELETE SET NULL**, not CASCADE: deleting a
+group must not revoke links people are already holding — it degrades to the plain friend
+invite the link always also was. Redemption re-resolves the group anyway, so a dangling id
+fails safe even with foreign keys off.
+
+Verified end-to-end against a real local D1, not by reading the code: an existing friend
+redeeming a group link still joins; re-opening a spent-on-you link is a no-op that doesn't
+burn a use; a non-owner minting into someone else's group gets 404; deleting the group
+leaves the link working as a friend invite. The unit tests are source-property assertions in
+`test/group-invites.test.mjs` — same pattern and same reason as the password-reset ones.
+
 ### Cache policy (2026-08-09)
 `web/_headers`, published to `public/_headers` by the build:
 ```
@@ -126,7 +143,18 @@ change in place, so they keep revalidating.
 
 ## In progress
 
-Nothing half-done. Working tree clean, 197 tests passing, production current.
+**Branch `group-invites` — code complete, NOT deployed.** 206 tests passing, working tree
+clean. Two things stand between it and production:
+
+1. **`0008_invite_groups.sql` must be applied to remote BEFORE this merges.** It is applied
+   locally only. CI deliberately does not run migrations, and the deploy fires on push to
+   `main`, so merging first means a Worker selecting `group_id` from a column that isn't
+   there — every invite route 500s, including plain friend invites.
+   ```
+   npx wrangler d1 migrations apply kalphishi --remote
+   ```
+2. The branch was cut from `handoff-refresh`, so it carries this document too. That branch
+   is still unmerged on its own.
 
 ## Next steps
 
@@ -136,18 +164,34 @@ Verified against the code 2026-08-08. Friendships form **only** by redeeming an 
 they are instant, mutual, and have no approval step. Groups are owner-created, owner-managed,
 and members must already be friends.
 
-1. **Onboarding thirty people is about sixty manual steps.** A group owner must first be
-   friends with each person — one invite redemption each — then add them one at a time by
-   handle, because `POST /api/groups/:id/members` is owner-only *and* friends-only. There is
-   no join-by-link for a group. For a cohort this is the difference between sharing one link
-   and an afternoon of admin. Options: a group invite code that joins on redeem, or letting
-   one invite redemption carry an optional group id. **This is now the top blocker.**
+1. ~~Onboarding thirty people is about sixty manual steps~~ — **done on `group-invites`,
+   2026-08-09.** An invite can now carry a group (`invites.group_id`), so one link both
+   befriends the owner and joins the redeemer to the group. Thirty people is one link.
 
-2. **Decide the invite link's default reach.** Redeeming wires two accounts together
-   instantly with no confirmation. `max_uses` and `expires` exist in the schema and are
-   honoured on redeem — confirm they are surfaced when a link is created, and pick sane
-   defaults. Phans share things; a link posted publicly currently means strangers in a
-   tester's friends list and on the leaderboard they were meant to compare against.
+   The alternative — a standalone join-by-group code — was **rejected, don't revisit it
+   without a reason**: group membership is drawn from the owner's friends, and carrying the
+   group on the existing invite preserves that exactly, because by the time the membership
+   insert runs the redeemer is already the owner's friend, established in the same batch. A
+   standalone code would put non-friends on a group leaderboard and would break the
+   friend-removal cascade, which assumes friendship implies the membership.
+
+   Two decisions inside it worth keeping. Minting a group link is **owner-only** and
+   **re-checked at redemption** against the invite's owner, the same way the reset flow
+   re-checks bans — the mint-time check can be weeks stale by the time anyone opens the
+   link. And the "already friends" early return now requires membership **as well as**
+   friendship: on friendship alone, a group link handed to an existing friend would report
+   success and join nobody. That is the one bug this feature is shaped to avoid, and there
+   is a test named for it.
+
+2. ~~Decide the invite link's default reach~~ — **done on `group-invites`, 2026-08-09.**
+   The answer to "confirm they are surfaced" was **no**: the client posted `{}` and every
+   link ever created was unlimited-use and never-expiring. New links now default to
+   **10 uses / 30 days**, both editable at creation, with **0 meaning no limit**.
+
+   `pickLimit` in `worker.mjs` keeps "field omitted" distinct from "explicitly 0" —
+   collapsing those is exactly how every link ended up unlimited, since the old code fell
+   through to NULL for both. Existing unlimited links are untouched; the ~30 testers holding
+   them keep what they have.
 
 3. **Look at day one for a brand-new tester.** They register into an empty Friends
    leaderboard, no groups, and a Track Record with one graded show. Worth walking through as
@@ -280,7 +324,8 @@ had drifted 80 lines by the time anyone read it.
 
 - **Migrations are manual and must be applied to remote BEFORE merging dependent code.**
   `npx wrangler d1 migrations apply kalphishi --remote`. CI deliberately does not do this.
-  Latest applied: `0007_password_resets.sql`. Currently nothing pending.
+  Latest applied to remote: `0007_password_resets.sql`. **`0008_invite_groups.sql` is
+  pending** — local only, and `group-invites` must not merge before it lands.
 - **`wrangler dev` does not pick up brand-new files.** It hot-reloads edits to existing ones
   but 404s a file added since startup — restart after adding one. Cost a wrong diagnosis
   twice.
@@ -329,7 +374,9 @@ had drifted 80 lines by the time anyone read it.
 ## Branches
 
 ```
-main  1bdf3e3   ← production, current
+main            1bdf3e3   ← production, current
+handoff-refresh           ← this document, unmerged
+group-invites             ← branched from handoff-refresh; needs 0008 on remote first
 ```
 
 Everything is merged. Nine branches are fully merged and safe to delete: `explain-soft-cap`,

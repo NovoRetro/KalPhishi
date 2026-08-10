@@ -1557,7 +1557,11 @@ function initPredictor(mount, A, opts = {}) {
     clearPendingInvite();
     try {
       const j = await api(`/api/invites/${encodeURIComponent(code)}/redeem`, 'POST', {});
-      flash(j.already ? `You're already friends with ${j.friend.name}.` : `You and ${j.friend.name} are now friends.`);
+      // The group is named when there is one: someone who opened a link expecting to join
+      // their crew needs to see that it happened, and "you are now friends" alone reads as
+      // though the group part silently failed.
+      const who = j.already ? `You're already friends with ${j.friend.name}` : `You and ${j.friend.name} are now friends`;
+      flash(j.group ? `${who}, and you're in ${j.group.name}.` : `${who}.`);
     } catch (e) {
       flash(e.message, true);
     }

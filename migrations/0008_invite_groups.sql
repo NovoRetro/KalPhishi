@@ -1,0 +1,18 @@
+-- An invite link can carry a group: redeeming it befriends the owner AND joins that group.
+--
+-- Onboarding a cohort was two manual steps per person — one invite redemption to become
+-- friends, then the owner adding them to the group by handle, because group membership is
+-- owner-only and friends-only (0005_groups.sql). Thirty testers was sixty steps and no
+-- shareable link. Carrying a group on the existing invite collapses that to one link.
+--
+-- Deliberately NOT a separate join-by-group code. Membership is drawn from the owner's
+-- friends, and this preserves that exactly: by the time the group insert runs, the redeemer
+-- IS the owner's friend, established in the same batch. A standalone group link would put
+-- strangers on a group leaderboard and would break the friend-removal cascade, which
+-- currently assumes friendship implies the membership.
+--
+-- ON DELETE SET NULL, not CASCADE: deleting a group must not silently revoke a link people
+-- are already holding. It degrades to a plain friend invite, which is what the link was
+-- before the group was attached to it. The redeem path re-resolves the group anyway, so a
+-- dangling id fails safe even with foreign keys off.
+ALTER TABLE invites ADD COLUMN group_id TEXT REFERENCES friend_groups(id) ON DELETE SET NULL;
