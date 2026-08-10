@@ -526,14 +526,8 @@
        fingertip does not care why. */
     .btn-play { min-height: 44px; padding: 10px 14px; }
   }
-  /* Same breakpoint as SHORT_LABELS, so the button and the tab labels shorten together —
-     the row is sized by the pair of them and staggering the two leaves a band of widths
-     where the full set wraps. Square at the tap minimum once the label is gone. */
-  @media (max-width: 560px) {
-    .btn-play { min-width: 44px; padding: 10px; justify-content: center; }
-  }
-  /* At 320px — the narrowest phone still worth supporting — even the short row overflows by
-     15px. The horizontal padding gives it back without touching the 44px height, so the tap
+  /* At 320px — the narrowest phone still worth supporting — the row is tightest. The
+     horizontal padding gives space back without touching the 44px height, so the tap
      targets stay legal and only the dead space between labels shrinks. */
   @media (max-width: 360px) {
     .tab { padding: 12px 10px; }
@@ -2061,13 +2055,12 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     // Pinned to the far right of the row by margin-left:auto in the CSS, so it reads as
     // separated from the four that are views rather than a fifth one. Re-appended rather
     // than rebuilt — the row is emptied every render and the handler lives on the element.
-    // Measured at 375px: the bar is 327px, the four short tabs and the gaps take 267, and
-    // "▶ Play a Show" needs 71 — 11px too many, so the row wrapped. Text-only "Play" fits
-    // with 4px to spare, which is not enough margin to trust across devices and fonts, so
-    // the narrow form is the glyph alone at a 44px minimum. It keeps its name for anything
-    // that reads the button rather than looks at it.
+    // The narrow form was the glyph alone, from when a Leaderboard tab shared this row and
+    // there was no room for a word. That tab is gone, so re-measured: three short tabs and
+    // the gaps take 199 of the 327px bar at 375px, and "▶ Play" needs 71 — 57px to spare,
+    // and 50 at 320px. A bare glyph asks the reader to guess; the word does not.
     playBtn.innerHTML = narrowTabs.matches
-      ? '<span class="btn-play-ico">&#9654;</span>'
+      ? '<span class="btn-play-ico">&#9654;</span> Play'
       : '<span class="btn-play-ico">&#9654;</span> Play a Show';
     playBtn.setAttribute('aria-label', 'Play a Show');
     playBtn.title = 'Play a Show';

@@ -767,12 +767,14 @@ function initPredictor(mount, A, opts = {}) {
     controls.appendChild(actionsMenu([
       ['🎲 Randomize', randomizeSetlist],
       ["🛟 Kalphishi's Prediction", fillSetlistFromModel],
+      // Reload sits directly ABOVE Clear. They are a destroy/undo pair either way, but in
+      // this order the way back is read before the way to need it, and Clear stays the
+      // last thing in the group — nearest the bottom, furthest from a stray press.
+      ...reloadItem,
       // Clear used to be omitted on the grounds that setlist rows are removed one at a
       // time — but that is the argument FOR it: emptying three lists by hand is twenty-odd
       // presses, where the board version was always one.
       ['🧹 Clear', () => { build = { set1: [], set2: [], encore: [] }; render(); }],
-      // Directly under Clear: the two are a destroy/undo pair and read as one.
-      ...reloadItem,
       boardMenuItem(),
       [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
         () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
@@ -1189,9 +1191,9 @@ function initPredictor(mount, A, opts = {}) {
       controls.appendChild(actionsMenu([
         ['🎲 Randomize', randomize],
         ["🛟 Kalphishi's Prediction", fillFromModel],
-        ['🧹 Clear', clearCard],
-        // Directly under Clear: the two are a destroy/undo pair and read as one.
+        // Above Clear, matching the setlist builder — see the note there.
         ...reloadItem,
+        ['🧹 Clear', clearCard],
         boardMenuItem(),
         [helpOpen ? '✕ Hide scoring rules' : '❓ How scoring works',
           () => { helpOpen = !helpOpen; render(); }, { keepLive: true }],
