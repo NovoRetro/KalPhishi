@@ -12,6 +12,10 @@
     --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
     --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a;
     --miss: #c9384a; /* results only — the palette had no red, and orange reads as a warning */
+    /* Lock mode's border. Same value as --miss today, deliberately a separate name: --miss
+       is fenced to results, and a locked square is not a wrong answer. Naming them apart
+       means either can be retuned without dragging the other with it. */
+    --lock: #c9384a;
     --accent-wash: rgba(42,120,214,0.10);
     /* Beam palette for the light rig — see the .stage block. Deliberately outside the
        chart series above: those encode data and must stay stable and readable, these are
@@ -28,6 +32,7 @@
       --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
       --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
       --miss: #e2596b;
+      --lock: #e2596b;
       --accent-wash: rgba(57,135,229,0.15);
     }
   }
@@ -404,10 +409,12 @@
   .p-cell .p-lock { position: absolute; top: 1px; left: 3px; background: none; border: none; cursor: inherit; font-size: 11px; opacity: 0.85; padding: 1px; }
   .p-cell.locked .p-lock { opacity: 1; }
   .p-cell.locked { border-color: var(--series-2); box-shadow: inset 0 0 0 1px var(--series-2); }
-  /* Lock mode shows the mark on every filled square, unlocked ones included — there it is
-     the thing you are looking at, not an annotation on a card you are building. */
-  .p-cell.p-lockpick .p-lock { opacity: 0.85; }
-  .p-cell.p-lockpick:hover { background: var(--accent-wash); border-color: var(--series-2); }
+  /* Lock mode carries no icons at all. Twenty-four padlocks on a 5x5 grid competed with the
+     song titles for the same few pixels — the border says locked on its own, and it says it
+     from across the card rather than one cell at a time. Red, and its own token: --miss is
+     fenced to results, and a locked square is not a wrong answer. */
+  .p-cell.p-lockpick.locked { border-color: var(--lock); box-shadow: inset 0 0 0 2px var(--lock); }
+  .p-cell.p-lockpick:hover { background: var(--accent-wash); border-color: var(--lock); }
   .p-lockhint { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--series-2);
     border-radius: 8px; background: var(--accent-wash); font-size: 13px; line-height: 1.45; }
   /* Scoring rules panel. Width-bounded so the tables stay scannable on a wide screen —

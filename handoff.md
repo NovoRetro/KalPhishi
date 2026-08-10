@@ -114,8 +114,12 @@ everything else. The app is shipped and good enough; what it needs is players, n
   three affordances silently stopping reads as the page being broken.
 - **There is no per-square lock button any more.** Building a card, an unlocked square shows
   nothing in that corner and a locked one shows a non-interactive 🔒 — state, not a control.
-  The padlock is only a toggle inside Lock mode. Don't put the button back: 24 controls
-  nobody was aiming at is what Lock mode replaced.
+  Don't put the button back: 24 controls nobody was aiming at is what Lock mode replaced.
+- **Inside Lock mode there are no icons on the grid at all** — a locked square is a **red
+  border** (`--lock`, its own token because `--miss` is fenced to results and a locked square
+  is not a wrong answer). 24 padlocks on a 5×5 fought the song titles for the same pixels,
+  and a border reads across the whole card at once rather than one cell at a time.
+  `aria-pressed` on each cell is what keeps the state readable without the glyph.
 - **Part-filled bingo cards save.** No minimum: nothing server-side enforced one, and
   `scoreBingoPrediction` already skips empty cells and still divides by 24, so an unfinished
   card just scores fewer hits. `bingoLine` treats the donut as always-counting.

@@ -1072,10 +1072,12 @@ function initPredictor(mount, A, opts = {}) {
               // delete button one thumb-width away turns a mis-tap into a lost song.
               cell.classList.add('p-lockpick');
               cell.title = locks[i] ? 'locked — tap to unlock' : 'tap to lock this square';
+              // No padlock is drawn here. On a 5×5 grid, 24 of them fought the song titles
+              // for the same few pixels; the red border carries it instead, and carries it
+              // across the whole card at a glance rather than one cell at a time.
+              // aria-pressed is what keeps the state readable without the glyph.
               cell.setAttribute('aria-pressed', String(!!locks[i]));
               cell.addEventListener('click', () => { locks[i] = !locks[i]; render(); });
-              // A span, not a button: it reports state now, it does not take the tap.
-              cell.appendChild(el('span', 'p-lock', locks[i] ? '🔒' : '🔓'));
             } else if (locks[i]) {
               // No toggle here any more — Lock mode owns locking. What stays is the state,
               // and only on the squares that have it: a locked square has to keep reading as
