@@ -402,7 +402,14 @@ function initPredictor(mount, A, opts = {}) {
   // would put the scoring rules out of reach, which is exactly when they get read.
   function actionsMenu(items) {
     const wrap = el('div', 'p-actions');
-    const btn = el('button', 'p-btn p-btn-alt p-keep-live', 'Actions ▾');
+    // Both labels are rendered and CSS picks one, rather than a matchMedia read at render
+    // time. The tab row does it the other way because its labels have to be measured; here
+    // it is pure presentation, and doing it in CSS means there is no breakpoint in JS to
+    // drift out of step and nothing to rebuild on rotate. aria-label carries the name in
+    // both states, so the glyph form is never an unnamed button.
+    const btn = el('button', 'p-btn p-btn-alt p-keep-live p-actions-btn',
+      '<span class="p-actions-word">Actions ▾</span><span class="p-actions-dots" aria-hidden="true">⋮</span>');
+    btn.setAttribute('aria-label', 'Actions');
     btn.setAttribute('aria-haspopup', 'menu');
     btn.setAttribute('aria-expanded', String(actionsOpen));
     // stopPropagation so the close-on-outside-click handler does not immediately undo
