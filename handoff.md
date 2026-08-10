@@ -112,6 +112,10 @@ everything else. The app is shipped and good enough; what it needs is players, n
   one of them competes for the same tap, and a delete button beside a lock target turns a
   mis-tap into a lost song. A banner above the grid says the mode is on, because otherwise
   three affordances silently stopping reads as the page being broken.
+- **There is no per-square lock button any more.** Building a card, an unlocked square shows
+  nothing in that corner and a locked one shows a non-interactive 🔒 — state, not a control.
+  The padlock is only a toggle inside Lock mode. Don't put the button back: 24 controls
+  nobody was aiming at is what Lock mode replaced.
 - **Part-filled bingo cards save.** No minimum: nothing server-side enforced one, and
   `scoreBingoPrediction` already skips empty cells and still divides by 24, so an unfinished
   card just scores fewer hits. `bingoLine` treats the donut as always-counting.

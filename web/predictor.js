@@ -1076,16 +1076,19 @@ function initPredictor(mount, A, opts = {}) {
               cell.addEventListener('click', () => { locks[i] = !locks[i]; render(); });
               // A span, not a button: it reports state now, it does not take the tap.
               cell.appendChild(el('span', 'p-lock', locks[i] ? '🔒' : '🔓'));
+            } else if (locks[i]) {
+              // No toggle here any more — Lock mode owns locking. What stays is the state,
+              // and only on the squares that have it: a locked square has to keep reading as
+              // locked while you build, or its missing × looks like a rendering fault rather
+              // than a consequence. An unlocked square shows nothing at all, which is the
+              // point — 24 padlocks were 24 controls nobody was aiming at.
+              const mark = el('span', 'p-lock', '🔒');
+              mark.title = 'locked — Randomize will keep this square. Use Lock mode to unlock it.';
+              cell.appendChild(mark);
             } else {
-              const lock = el('button', 'p-lock', locks[i] ? '🔒' : '🔓');
-              lock.title = locks[i] ? 'locked — Randomize will keep this square' : 'unlocked — Randomize may replace this square';
-              lock.addEventListener('click', ev => { ev.stopPropagation(); locks[i] = !locks[i]; render(); });
-              cell.appendChild(lock);
-              if (!locks[i]) {
-                const x = el('button', 'p-x', '×');
-                x.addEventListener('click', ev => { ev.stopPropagation(); grid[i] = null; render(); });
-                cell.appendChild(x);
-              }
+              const x = el('button', 'p-x', '×');
+              x.addEventListener('click', ev => { ev.stopPropagation(); grid[i] = null; render(); });
+              cell.appendChild(x);
             }
           }
         } else {
