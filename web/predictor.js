@@ -1342,9 +1342,13 @@ function initPredictor(mount, A, opts = {}) {
   async function renderHistory() {
     const wrap = el('div');
     mount.appendChild(wrap);
-    const [preds, groups] = await Promise.all([
+    // The friend count comes along because an empty Friends board has two completely
+    // different causes — nobody to compare against, or nobody graded yet — and only one of
+    // them is something the reader can act on.
+    const [preds, groups, friends] = await Promise.all([
       api(`/api/predictions?user=${user.handle}`),
       api('/api/groups').then(j => j.groups).catch(() => []),
+      api('/api/friends').then(j => j.friends).catch(() => []),
     ]);
     preds.sort((a, b) => b.showdate.localeCompare(a.showdate));
     const st = user.stats || {};
@@ -1357,7 +1361,13 @@ function initPredictor(mount, A, opts = {}) {
       wrap.appendChild(el('div', 'p-attsummary',
         `🎟 <b>${st.showsAttended}</b> show${st.showsAttended === 1 ? '' : 's'} attended${split}`));
     }
-    if (!preds.length) wrap.appendChild(el('div', 'hint', 'No predictions yet.'));
+    // "No predictions yet" is true and useless — it describes the state to someone who is
+    // already looking at it. What a first-timer needs is which show is open and that it
+    // closes, since a prediction made after the downbeat is refused server-side.
+    if (!preds.length) {
+      wrap.appendChild(el('div', 'hint',
+        `No predictions yet — ${esc(fmtDate(showdate))} is open now, and both games close at the downbeat.`));
+    }
     for (const p of preds) {
       const r = p.result;
       // Defensive: a result row missing its expected fields used to throw mid-loop and
@@ -1425,9 +1435,26 @@ function initPredictor(mount, A, opts = {}) {
         return;
       }
       if (!board.length) {
-        boardHost.appendChild(el('div', 'hint', leaderboardScope === 'everyone'
-          ? 'Nobody has a scored prediction yet.'
-          : 'Nobody here has a scored prediction yet — scores appear once a show is graded.'));
+        // Day one is the moment somebody decides whether this is worth a month of their
+        // attention, and it used to read "scores appear once a show is graded" — a wait
+        // instruction — to a person whose actual problem is that they have no friends here
+        // yet. Empty because there is nobody, and empty because nobody has been graded, are
+        // different states and only the first one has something to do about it.
+        const grp = leaderboardScope.startsWith('group:')
+          ? groups.find(g => `group:${g.id}` === leaderboardScope) : null;
+        let msg;
+        if (leaderboardScope === 'everyone') {
+          msg = 'Nobody has a scored prediction yet.';
+        } else if (leaderboardScope === 'friends' && !friends.length) {
+          msg = 'No friends here yet — open the menu and share an invite link, '
+            + 'then this becomes you against them.';
+        } else if (grp && grp.memberCount <= 1) {
+          msg = `${grp.name} is just you so far — share a link for it from the Friends menu `
+            + 'and whoever opens it joins the group.';
+        } else {
+          msg = 'Nobody here has a scored prediction yet — scores appear once a show is graded.';
+        }
+        boardHost.appendChild(el('div', 'hint', msg));
         return;
       }
       // Attendance across this scope, for the show most of them predicted.
