@@ -193,14 +193,31 @@ and members must already be friends.
    through to NULL for both. Existing unlimited links are untouched; the ~30 testers holding
    them keep what they have.
 
-3. **Look at day one for a brand-new tester.** They register into an empty Friends
-   leaderboard, no groups, and a Track Record with one graded show. Worth walking through as
-   a first-timer and deciding what those empty states should say — this is the moment the
-   cohort decides whether the app is worth a month of their attention.
+3. ~~Look at day one for a brand-new tester~~ — **walked 2026-08-09, empty states fixed on
+   `group-invites`.** Findings worth keeping:
 
-4. **Not yet checked:** whether anything nudges a tester to predict *before* a show locks.
-   With no email there is no notification channel, so whatever exists has to be in-app. A
-   cohort that forgets to predict produces no graded predictions.
+   - **The Data tab is fully populated on day one** — it is model output, not user data. All
+     five sub-tabs are rich for someone who registered a minute ago. The empty surfaces are
+     only the social ones, which is a much smaller problem than it looked.
+   - The Friends board said *"scores appear once a show is graded"* to someone with **no
+     friends at all** — wrong about the cause, and it prescribed waiting at the exact moment
+     the reader should be sharing a link. Now distinguishes no-one-here from nobody-graded,
+     and does the same for a group that is still just its owner.
+   - **Still open, deliberately not fixed here: the leaderboard is buried inside My
+     History**, below the prediction list, behind a menu item named after something else.
+     Friends, groups and invites all exist to feed it and nothing in the UI says
+     "leaderboard". A tester invited to compare against their crew has no path to the thing
+     they were invited to. This is a navigation change, not copy, and it is now the most
+     valuable unmade decision in this section.
+   - Minor, unresolved: an empty bingo card offers only **Pick for me** and **Actions ▾** —
+     no Save until something is picked, so day one shows a 5×5 of `＋` with no stated goal.
+     Defensible (nothing to save yet), but nobody has decided it.
+
+4. **Partly answered.** Both games carry a prominent live countdown — `🔓 Locks in 26d 1h ·
+   19:30 local` — so a signed-in tester *looking at the app* cannot miss the deadline, and
+   `No predictions yet` now names the open show too. What does not exist is anything that
+   reaches somebody who **isn't** looking. With no email there is no channel, so this stays
+   an in-app problem: a cohort that forgets to open the app produces no graded predictions.
 
 5. ~~Password recovery~~ — **done 2026-08-09**, see above.
 
