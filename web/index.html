@@ -456,6 +456,16 @@
   /* Pinned to the far right of the control row, away from Save. margin-left:auto rather
      than order/float so it also lands last when the row wraps on a narrow screen. */
   .p-actions { position: relative; margin-left: auto; }
+  /* One label or the other, never both. The word is the desktop form; on a phone the
+     control row is the tightest horizontal space in the app, and "Actions ▾" spends 100px
+     of it restating what a menu glyph says in 44. */
+  .p-actions-dots { display: none; }
+  @media (max-width: 560px) {
+    .p-actions-word { display: none; }
+    .p-actions-dots { display: inline; font-size: 20px; line-height: 1; }
+    /* Square at the tap minimum once the label is gone, same as the Play a Show glyph. */
+    .p-actions-btn { min-width: 44px; padding: 10px; justify-content: center; }
+  }
   /* Anchored to the button's RIGHT edge, not its left: opening leftward from a right-pinned
      button keeps the panel on screen, where left:0 would push a 220px menu off it. */
   .p-actions-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 20;
@@ -505,6 +515,12 @@
     .p-mode { padding: 12px 14px; }
     .p-btn { padding: 12px 18px; }
     .subtab { padding: 12px 14px; }
+    /* The game control row only. Measured at 375px: Save + Pick for me + the ⋮ come to
+       307px in a 290px row, so the menu orphaned onto a line of its own — 17px short, which
+       is exactly the 18px of side padding these two buttons did not need. Scoped to .p-row
+       so the roomier padding survives everywhere it is not fighting for width. Height is
+       untouched, so the 44px targets stand. */
+    .p-row .p-btn { padding: 12px 12px; }
     /* Same rule, same reason. It is shorter than 44px in the tab row on desktop on purpose
        — a 44px pill next to 36px text tabs reads as a banner that fell into the row — but a
        fingertip does not care why. */
