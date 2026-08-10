@@ -103,6 +103,15 @@ everything else. The app is shipped and good enough; what it needs is players, n
 - **Ask Diego? randomizes** (it does *not* use the model — that is Kalphishi's Prediction,
   one press away in Actions) and stays on the row so it can be pressed repeatedly. Locked
   bingo squares survive a re-roll, which is what makes repeat-pressing useful.
+- **Lock mode** (bingo only, from Actions) turns the whole card into a lock picker: a tap on
+  any filled square toggles its lock, instead of aiming at an 11px icon in the corner of a
+  60px cell. While it is on, **Ask Diego? is replaced by "Lock it in"**, which is the way
+  out — it displaces that button specifically because re-rolling is the thing locks exist to
+  survive, so offering the roll mid-lock invites pressing it before the locks are set.
+  Drag-to-reorder, the × and the empty-cell picker are all suppressed while it runs: every
+  one of them competes for the same tap, and a delete button beside a lock target turns a
+  mis-tap into a lost song. A banner above the grid says the mode is on, because otherwise
+  three affordances silently stopping reads as the page being broken.
 - **Part-filled bingo cards save.** No minimum: nothing server-side enforced one, and
   `scoreBingoPrediction` already skips empty cells and still divides by 24, so an unfinished
   card just scores fewer hits. `bingoLine` treats the donut as always-counting.

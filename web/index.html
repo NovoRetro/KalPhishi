@@ -401,6 +401,13 @@
   .p-cell .p-lock:hover { opacity: 1; }
   .p-cell.locked .p-lock { opacity: 1; }
   .p-cell.locked { border-color: var(--series-2); box-shadow: inset 0 0 0 1px var(--series-2); }
+  /* Lock mode. Every filled square is a target, so the indicator stops being a faint corner
+     mark and reads at full strength — in this mode it is the thing you are looking at, and
+     it is a span rather than a button, so it must not offer its own cursor. */
+  .p-cell.p-lockpick .p-lock { opacity: 0.85; cursor: inherit; }
+  .p-cell.p-lockpick:hover { background: var(--accent-wash); border-color: var(--series-2); }
+  .p-lockhint { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--series-2);
+    border-radius: 8px; background: var(--accent-wash); font-size: 13px; line-height: 1.45; }
   /* Scoring rules panel. Width-bounded so the tables stay scannable on a wide screen —
      a full-bleed two-column table reads as two unrelated lists. */
   .p-help { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); max-width: 620px; }
