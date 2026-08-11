@@ -563,6 +563,21 @@
   @media (max-width: 360px) {
     .tab { padding: 12px 10px; }
   }
+  /* The pre-lock nudge. Deliberately a quiet strip and not a modal: the landing view opens
+     on the games on purpose, and a dialog in front of that undoes the very thing it is
+     trying to get somebody to do. Sits above the control row so it is read before the
+     board, and disappears the moment a prediction is saved. */
+  .p-nudge { display: flex; align-items: center; gap: 8px; margin: 8px 0 0;
+    padding: 8px 10px; border-radius: 8px; font-size: 13px; line-height: 1.35;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); }
+  .p-nudge b { color: var(--ink); }
+  /* Inside 48 hours it earns colour. --lock rather than --miss for the same reason the lock
+     borders use it: --miss is fenced to results, and an unsaved card is not a wrong answer. */
+  .p-nudge-urgent { border-color: var(--lock); color: var(--ink); }
+  .p-nudge-x { margin-left: auto; flex: none; background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 18px; line-height: 1; padding: 4px 6px; min-height: 32px; }
+  .p-nudge-x:hover { color: var(--ink); }
+  @media (max-width: 560px) { .p-nudge-x { min-width: 44px; min-height: 44px; } }
   .p-bingo-banner { margin: 12px 0; padding: 12px; border: 2px solid var(--series-2); border-radius: 10px; text-align: center; font-size: 16px; }
   .p-histrow { padding: 5px 0; border-bottom: 1px solid var(--grid); }
   .p-flash { margin-top: 8px; color: var(--series-3); font-weight: 600; }
