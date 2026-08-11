@@ -563,6 +563,32 @@
   @media (max-width: 360px) {
     .tab { padding: 12px 10px; }
   }
+  /* The first-run intro. Sits in the flow above the game rather than over it — see the block
+     comment in predictor.js. Bordered in the beam colour so it reads as the app talking,
+     distinct from the quieter --border panels around it. */
+  .p-wiz { margin: 8px 0 0; padding: 12px 14px; border: 1px solid var(--beam-2);
+    border-radius: 10px; background: var(--surface); max-width: 620px; }
+  .p-wiz-head { display: flex; align-items: baseline; gap: 8px; }
+  .p-wiz-head h3 { margin: 0; font-size: 16px; }
+  .p-wiz-skip { margin-left: auto; flex: none; background: none; border: none; cursor: pointer;
+    color: var(--muted); font: inherit; font-size: 13px; padding: 6px 4px; min-height: 32px; }
+  .p-wiz-skip:hover:not(:disabled) { color: var(--ink); text-decoration: underline; }
+  .p-wiz-count { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .p-wiz-body { margin-top: 8px; }
+  .p-wiz-copy { margin: 0 0 8px; font-size: 14px; line-height: 1.5; }
+  .p-wiz-note { font-size: 12px; color: var(--muted); line-height: 1.45; margin-top: 8px; }
+  .p-wiz-body .p-field { display: block; margin-top: 8px; font-size: 13px; color: var(--ink-2); }
+  .p-wiz-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  /* .p-btn carries its own margin-top: 10px for the rows it usually sits in. Here the row
+     already spaces itself, and the two stacked to 22px of dead space above the buttons. */
+  .p-wiz-actions .p-btn { margin-top: 0; }
+  /* Next/Finish pinned right, so the way forward is always in the same place whether or not
+     the step has a Back beside it. */
+  .p-wiz-actions .p-btn:last-child { margin-left: auto; }
+  /* Skip is the escape hatch, so it has to be as hittable as the thing it escapes — it was
+     36px wide on touch, under the 44px this file holds everything else to. */
+  @media (max-width: 560px) { .p-wiz-skip { min-width: 44px; min-height: 44px; padding: 10px 8px; } }
+
   /* The pre-lock nudge. Deliberately a quiet strip and not a modal: the landing view opens
      on the games on purpose, and a dialog in front of that undoes the very thing it is
      trying to get somebody to do. Sits above the control row so it is read before the

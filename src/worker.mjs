@@ -27,6 +27,10 @@ const json = (body, status = 200, headers = {}) =>
 const err = (status, error, extra = {}) => json({ error, ...extra }, status);
 
 const PROFILE_FIELDS = ['displayName', 'avatar', 'hometown', 'favoriteSong', 'bio'];
+// Booleans that ride in the same JSON blob. Kept apart from PROFILE_FIELDS because the text
+// sanitisers do not apply to them, and in `profile` rather than a column because it needs no
+// migration and nothing queries on it — see the first-run wizard in predictor.js.
+const PROFILE_FLAGS = ['wizardSeen'];
 
 // Defaults for a new invite link. Enough for a household or a small crew without thinking
 // about it; a cohort organizer raises them deliberately. The schema has always honoured
@@ -262,6 +266,12 @@ async function api(request, env, ctx, { p, m, q, url }) {
       if (f === 'avatar') profile[f] = sanitizeAvatar(b[f]);
       else if (f === 'bio') profile[f] = sanitizeBlock(b[f], BIO_MAX);
       else profile[f] = sanitizeLine(b[f], NAME_MAX);
+    }
+    // Flags are stored beside the text but never sanitized as text. Running sanitizeLine
+    // over a boolean would persist the string "true", which is truthy on the way back out
+    // and would look like it worked right up until something compared it to `true`.
+    for (const f of PROFILE_FLAGS) {
+      if (f in b) profile[f] = !!b[f];
     }
     await env.DB.prepare('UPDATE users SET profile = ?1 WHERE id = ?2').bind(JSON.stringify(profile), user.id).run();
     return json({ user: await ownUser(env, { ...user, profile: JSON.stringify(profile) }) });
