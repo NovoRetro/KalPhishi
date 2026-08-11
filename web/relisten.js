@@ -145,9 +145,31 @@
     return songCache.get(slug);
   }
 
-  // One element for the whole page: starting a track anywhere has to stop whatever was
-  // already playing, and two <audio> tags racing is the usual way that goes wrong.
-  let audio = null;
+  // Two elements, ping-ponging. One plays while the other holds the NEXT track buffered;
+  // on `ended` they swap roles and the one that just finished becomes the next preloader.
+  //
+  // Measured before this existed: a 255ms silence between tracks, and the whole of it was
+  // one network round-trip. `preload="none"` means the fetch for track N+1 cannot even
+  // start until track N has ended, so the gap is the request, not our code — `advance()`
+  // fires in about a millisecond. A single element cannot fix it, because assigning `.src`
+  // tears down the buffer it is currently playing from.
+  //
+  // `active` is the authoritative answer to "which one is playing", and `currentMp3` to
+  // "what is playing". Both used to be read off `audio.src`, which was fine with one
+  // element and ambiguous with two — and the ambiguity would have landed exactly at the
+  // swap, where it is hardest to see. Nothing below derives the current track from a
+  // `.src` any more.
+  const decks = [];
+  let active = 0;
+  let currentMp3 = '';
+  // What the idle deck has been told to buffer, so the same track is never fetched twice.
+  let bufferedMp3 = '';
+
+  // Preload LATE, not at track start. Most listening sessions stop somewhere mid-track, so
+  // buffering the next one up front would pull files nobody ever hears — and phish.in pays
+  // for those bytes. Being this close to the end is a strong signal somebody is actually
+  // listening, which is the same reasoning that put `preload="none"` on the first element.
+  const PRELOAD_LEAD_S = 25;
 
   // Every live panel repaints on every transport event, NOT just the most recent one.
   // Each Data sub-tab keeps its own panel in the DOM once opened, so several are alive at
@@ -170,32 +192,106 @@
   // not loop: leaving a browser tab quietly pulling audience recordings all night is
   // exactly the sort of draw the "one press" rule exists to keep off phish.in's privately
   // funded bandwidth.
+  const nextInQueue = () => {
+    const i = queue.findIndex(t => t.mp3 === currentMp3);
+    return i >= 0 && i < queue.length - 1 ? queue[i + 1] : null;
+  };
+
+  function repaint() {
+    for (const p of [...painters]) {
+      if (p.node.isConnected) p.paint();
+      else painters.delete(p);
+    }
+  }
+
+  // Emptying a deck aborts any fetch still in flight for it. Worth doing rather than
+  // leaving it: a skipped-past preload is bandwidth already half-spent, and there is no
+  // reason to keep pulling the rest of a file that is now certainly not going to be played.
+  function emptyDeck(d) {
+    if (!d || !d.getAttribute('src')) return;
+    d.removeAttribute('src');
+    d.load();
+  }
+
+  function cancelBuffer() {
+    bufferedMp3 = '';
+    if (decks.length > 1) emptyDeck(decks[1 - active]);
+  }
+
   function advance() {
-    const i = queue.findIndex(t => t.mp3 === audio.src);
-    if (i < 0 || i >= queue.length - 1) return;
-    audio.src = queue[i + 1].mp3;
-    // No status target: whichever panels are live repaint from the transport events, and a
-    // failure here leaves the row showing as stopped, which is the truth.
-    startPlay(audio, () => {});
+    const next = nextInQueue();
+    if (!next) return;
+    const idle = decks.length > 1 ? decks[1 - active] : null;
+    // The whole point: if the idle deck is already holding this track, the swap is
+    // instant and no request happens here at all.
+    if (idle && bufferedMp3 === next.mp3 && idle.getAttribute('src')) {
+      const finished = decks[active];
+      active = 1 - active;
+      bufferedMp3 = '';
+      currentMp3 = next.mp3;
+      // No status target: whichever panels are live repaint from the transport events, and
+      // a failure here leaves the row showing as stopped, which is the truth.
+      startPlay(decks[active], () => {});
+      // Release the file that just finished. It is the next preloader now, and holding a
+      // whole decoded show in memory one track at a time is the slow way to a dead tab.
+      emptyDeck(finished);
+      return;
+    }
+    // Nothing buffered — either the track was too short to reach the lead time, or a second
+    // element was refused. Same behaviour as before this existed, gap included.
+    const a = decks[active];
+    a.src = next.mp3;
+    currentMp3 = next.mp3;
+    startPlay(a, () => {});
+  }
+
+  function maybePreload() {
+    const a = decks[active];
+    // Paused counts as not listening: somebody who stopped mid-track has not asked for the
+    // next one, and may never come back to it.
+    if (!a || a.paused || !isFinite(a.duration) || a.duration <= 0) return;
+    if (a.duration - a.currentTime > PRELOAD_LEAD_S) return;
+    const next = nextInQueue();
+    if (!next || bufferedMp3 === next.mp3) return;
+    const idle = idleDeck();
+    if (!idle) return;
+    bufferedMp3 = next.mp3;
+    idle.preload = 'auto';
+    idle.src = next.mp3;
+    idle.load();
+  }
+
+  function makeDeck() {
+    const a = new Audio();
+    a.preload = 'none';
+    for (const ev of ['play', 'pause', 'ended', 'error']) {
+      // Only the deck that is actually playing gets to repaint. The idle one fires `error`
+      // routinely — emptying it is how a preload is cancelled — and that must never be
+      // drawn as the current track failing.
+      a.addEventListener(ev, () => { if (a === decks[active]) repaint(); });
+    }
+    a.addEventListener('timeupdate', () => { if (a === decks[active]) maybePreload(); });
+    // Registered after the repainters, so the row that just finished is drawn as stopped
+    // before the next one is drawn as playing.
+    a.addEventListener('ended', () => { if (a === decks[active]) advance(); });
+    return a;
   }
 
   function player() {
-    if (!audio) {
-      audio = new Audio();
-      audio.preload = 'none';
-      for (const ev of ['play', 'pause', 'ended', 'error']) {
-        audio.addEventListener(ev, () => {
-          for (const p of [...painters]) {
-            if (p.node.isConnected) p.paint();
-            else painters.delete(p);
-          }
-        });
-      }
-      // Registered after the repainters, so the row that just finished is drawn as stopped
-      // before the next one is drawn as playing.
-      audio.addEventListener('ended', advance);
+    if (!decks.length) { decks.push(makeDeck()); active = 0; }
+    return decks[active];
+  }
+
+  // The second deck is built on first use, not at startup. iOS Safari restricts how many
+  // media elements a page may have and largely ignores `preload` on cellular, so this is a
+  // desktop-and-Android improvement that must degrade to the old single-element behaviour
+  // rather than break where it cannot help.
+  function idleDeck() {
+    if (!decks.length) player();
+    if (decks.length < 2) {
+      try { decks.push(makeDeck()); } catch { return null; }
     }
-    return audio;
+    return decks.length > 1 ? decks[1 - active] : null;
   }
 
   // The one way playback is allowed to start. Routing every start through here is what
@@ -205,6 +301,9 @@
     const a = player();
     queue = list;
     a.src = track.mp3;
+    currentMp3 = track.mp3;
+    // Whatever was buffered was the continuation of a queue nobody is following any more.
+    cancelBuffer();
     startPlay(a, onFail);
   }
 
@@ -234,11 +333,15 @@
   // pause/ended/error, for a list that is at most a few dozen rows.
   function trackList(tracks, statusEl, describe) {
     const list = el('div', 'rl-tracks');
-    const a = player();
+    player();
     function paint() {
       list.innerHTML = '';
+      // Read the deck fresh on every paint. Capturing it once was safe with a single
+      // element and is a bug with two: after a swap the closure would be describing, and
+      // pausing, whichever deck had just finished.
+      const a = decks[active];
       tracks.forEach(t => {
-        const current = a.src === t.mp3;
+        const current = currentMp3 === t.mp3;
         const playing = current && !a.paused && !a.ended;
         const row = el('button', 'rl-track' + (current ? ' current' : ''),
           `<span class="rl-ico">${playing ? '&#9646;&#9646;' : '&#9654;'}</span>` +
@@ -248,15 +351,16 @@
           // Resuming needs the same guard: bare, its rejection on a quick re-pause has
           // nowhere to go and surfaces as an unhandled promise rejection.
           if (current) {
-            if (playing) a.pause();
-            else startPlay(a, () => { statusEl.textContent = 'That track would not play.'; });
+            const live = decks[active];
+            if (playing) live.pause();
+            else startPlay(live, () => { statusEl.textContent = 'That track would not play.'; });
             return;
           }
           playFrom(tracks, t, () => { statusEl.textContent = 'That track would not play.'; });
         });
         list.appendChild(row);
       });
-      const cur = tracks.find(t => a.src === t.mp3);
+      const cur = tracks.find(t => currentMp3 === t.mp3);
       statusEl.textContent = cur
         ? (a.paused ? `Paused — ${cur.title}` : `Playing — ${cur.title}`)
         : describe;
