@@ -104,7 +104,7 @@ everything else. The app is shipped and good enough; what it needs is players, n
   translucent so it reads through them. Peaks on save and on BINGO. Parked by
   `IntersectionObserver` when scrolled away.
 - **Control row, both games, left to right:** Save · Ask Diego? · ⟶ Actions pinned right.
-  Two buttons and a menu, nothing else — Actions holds Randomize, Bathtub Bets' Prediction,
+  Two buttons and a menu, nothing else — Actions holds Randomize, Our Prediction,
   Reload last save, Clear, Standings and the scoring rules, and is deliberately the furthest
   thing from Save. **Reload sits above Clear**: the way back is read before the way to need
   it, and Clear stays the last of the pair, furthest from a stray press.
@@ -113,7 +113,7 @@ everything else. The app is shipped and good enough; what it needs is players, n
   rather than on the row, and why **Actions is a ⋮ below 560px** (the word costs 100px to say
   what the glyph says in 44). `.p-row .p-btn` also trims side padding to 12px on touch. Any
   new control here has ~8px of slack — put it in the menu instead.
-- **Ask Diego? randomizes** (it does *not* use the model — that is Bathtub Bets' Prediction,
+- **Ask Diego? randomizes** (it does *not* use the model — that is Our Prediction,
   one press away in Actions) and stays on the row so it can be pressed repeatedly. Locked
   bingo squares survive a re-roll, which is what makes repeat-pressing useful.
 - **Lock mode** (bingo only, from Actions) turns the whole card into a lock picker: a tap on
@@ -338,7 +338,7 @@ and members must already be friends.
 
    **What it should cover** — smallest set that makes someone self-sufficient, in order:
    pick a display name and avatar; the two games are separate and separately scored; how to
-   fill a card (Ask Diego? / Bathtub Bets' Prediction / by hand) and that a part-filled card
+   fill a card (Ask Diego? / Our Prediction / by hand) and that a part-filled card
    saves; predictions close at the downbeat and cannot be edited after; where Standings live
    and that Friends/Groups need an invite link; and — for anyone who arrived by invite —
    that they are already connected to whoever sent it.
