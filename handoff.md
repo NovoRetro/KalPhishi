@@ -422,6 +422,35 @@ and members must already be friends.
    - iOS Safari restricts multiple media elements and largely ignores `preload` on cellular.
      Expect a desktop-and-Android improvement only.
 
+   ### ~~Done 2026-08-10~~ — **the gap is 0ms, measured the same way**
+
+   ```
+   ended     0 ms   deck 0   Sample in a Jar
+   playing   0 ms   deck 1   Sparkle
+   ```
+
+   Same show and same track pair as the 255ms capture above, so the two are directly
+   comparable. The `waiting → loadstart → canplay` sequence that *was* the entire gap does
+   not appear at all — there is no request at the boundary, because the bytes are already
+   there.
+
+   Both warnings above were real and both were paid. `decks[]`, `active` and `currentMp3`
+   replaced every read of `audio.src`: `currentMp3` is now the only answer to "what is
+   playing", and `trackList` re-reads `decks[active]` on every paint instead of capturing
+   the element once — captured, it would have described and paused the deck that had just
+   finished. The second deck is built lazily inside a `try`, so a browser that refuses it
+   falls back to the old single-element behaviour, gap included.
+
+   Housekeeping that is easy to miss: the finished deck is emptied on swap (a whole decoded
+   show held one track at a time is the slow way to a dead tab), a manual pick cancels any
+   buffered preload rather than leaving it fetching, and only the active deck may repaint —
+   the idle one fires `error` routinely, because emptying it is how a preload is cancelled.
+
+   `assets.test.mjs` gained `preloading stays proportional to actual listening`, which
+   guards the bandwidth rule specifically: gated on `!paused`, gated on the lead time, the
+   lead kept ≤60s, no `play()` anywhere in the preloader, and no double-fetch. None of that
+   shows up as a broken feature when it regresses — it shows up as somebody else's bill.
+
 2. **Calibration** — a model change with no UI. Turn scores into probabilities via Platt
    scaling fitted *inside* the walk-forward loop. Highest value-to-cost item on the model
    side, and a prerequisite for anything probabilistic later. **See the caveat in step 5.**

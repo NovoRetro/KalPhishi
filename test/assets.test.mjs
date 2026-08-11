@@ -221,18 +221,49 @@ test('a show advances to the end and then stops', () => {
   // stops at the last track, so a forgotten tab cannot sit pulling recordings all night.
   // Neither `autoplay=` nor `preload` changes when this breaks, so the test above would
   // stay green through a regression here.
+  // The bound lives in nextInQueue now, which both advance() and the preloader ask. That is
+  // the point of it being one function: the thing that decides there IS a next track is
+  // also the thing that decides there is not.
+  const nx = relisten.match(/const nextInQueue = [\s\S]*?\n  \};/);
+  assert.ok(nx, 'nextInQueue() not found');
+  assert.match(nx[0], /i < queue\.length - 1/,
+    'advancing must stop at the last track rather than wrapping');
   const adv = relisten.match(/function advance\(\)\s*\{[\s\S]*?\n  \}/);
   assert.ok(adv, 'advance() not found');
-  assert.match(adv[0], /i >= queue\.length - 1/,
-    'advancing must stop at the last track rather than wrapping');
+  assert.match(adv[0], /nextInQueue\(\)/,
+    'advance must go through nextInQueue rather than indexing the queue itself');
   assert.ok(!/loop\s*=\s*true/.test(relisten), 'the player must never loop');
 
   // Every start routes through playFrom, which sets the queue and the source together.
   // A direct `audio.src = …; play()` elsewhere would leave the two disagreeing, and the
   // show would advance out of one panel into whatever another panel had listed.
+  // Three now: playFrom, advance's un-buffered fallback, and the preloader arming the idle
+  // deck. Any fourth is a new way for the queue and the source to drift apart.
   const starts = relisten.match(/\.src = /g) || [];
-  assert.equal(starts.length, 2,
-    'only playFrom and advance may assign .src — found ' + starts.length + ' assignments');
+  assert.equal(starts.length, 3,
+    'only playFrom, advance and maybePreload may assign .src — found ' + starts.length);
+});
+
+test('preloading stays proportional to actual listening', () => {
+  // phish.in pays for these bytes and funds it privately. Buffering the next track at the
+  // START of the current one would fetch a file for every session that stops midway — which
+  // is most of them — so the preload is deliberately late and deliberately conditional.
+  // None of this shows up as a broken feature when it regresses; it shows up as somebody
+  // else's bandwidth bill.
+  const pre = relisten.match(/function maybePreload\(\)\s*\{[\s\S]*?\n  \}/);
+  assert.ok(pre, 'maybePreload() not found');
+  assert.match(pre[0], /a\.paused/, 'a paused listener must not trigger a preload');
+  assert.match(pre[0], /duration - a\.currentTime > PRELOAD_LEAD_S/,
+    'the preload must be gated on being near the end of the current track');
+  assert.match(relisten, /const PRELOAD_LEAD_S = (\d+)/, 'the lead time must be a named constant');
+  const lead = Number(relisten.match(/const PRELOAD_LEAD_S = (\d+)/)[1]);
+  assert.ok(lead > 0 && lead <= 60,
+    `the lead time must stay short enough to mean "still listening" — got ${lead}s`);
+  // Preloading must never become playing. The idle deck is armed with load(), never play().
+  assert.ok(!/startPlay|\.play\(\)/.test(pre[0]),
+    'the preloader must buffer only — starting playback here would be an autoplay');
+  assert.match(pre[0], /bufferedMp3 === next\.mp3/,
+    'the same track must never be fetched onto the idle deck twice');
 });
 
 test('the build stamps its scripts with a content hash', () => {
