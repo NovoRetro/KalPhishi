@@ -533,7 +533,19 @@
     .tab { padding: 12px 14px; }
     .p-mode { padding: 12px 14px; }
     .p-btn { padding: 12px 18px; }
-    .subtab { padding: 12px 14px; }
+    /* Five sub-tabs, laid out 3 over 2 and pinned there.
+       As a wrapping flex row the split moved as you browsed: `.subtab.active` adds
+       font-weight 600, bold is wider than regular, so activating a pill grew it ~4px and
+       that was enough to push a neighbour onto the next line — the row you were looking at
+       re-flowed underneath the tap that selected it. Measured: 3/2 became 2/3 on a ~414px
+       phone, and at 375px the natural layout was 2/2/1 across three rows.
+       A 3-column grid makes column width independent of the label inside it, so the active
+       weight can stay and nothing moves. Five items fill it 3 then 2 by definition, at every
+       width, with nothing to keep in step. Labels wrap to two lines rather than being
+       abbreviated or truncated; the grid equalises row height, so a wrapped row still reads
+       as one row. */
+    .subtabs { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .subtab { padding: 10px 8px; min-height: 44px; text-align: center; line-height: 1.25; }
     /* The game control row only. Measured at 375px: Save + the pick button + the ⋮ came to
        307px in a 290px row, so the menu orphaned onto a line of its own — 17px short, which
        is exactly the 18px of side padding these two buttons did not need. Scoped to .p-row

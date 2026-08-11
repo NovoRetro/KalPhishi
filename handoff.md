@@ -270,11 +270,14 @@ and members must already be friends.
      friends at all** — wrong about the cause, and it prescribed waiting at the exact moment
      the reader should be sharing a link. Now distinguishes no-one-here from nobody-graded,
      and does the same for a group that is still just its owner.
-   - ~~The leaderboard is buried inside My History~~ — **fixed 2026-08-09: it is now the
-     fourth tab.** Its own view (`renderLeaderboard`), reachable without opening a menu, and
-     **viewable signed out** on the everyone scope, which the route always allowed — a
-     visitor deciding whether to register is now shown the reason to. My History keeps only
-     the prediction list.
+   - ~~The leaderboard is buried inside My History~~ — **fixed 2026-08-09, then moved
+     again 2026-08-10: it is now `🏆 Standings` in each game's Actions menu, scoped to that
+     game.** It was briefly a fourth tab; that cost a permanent slot in the one row a phone
+     can least afford, for something read occasionally. Per game rather than combined
+     because the two scales are never merged — one board had to rank by setlist points and
+     print the bingo number beside it, which reads as a single ranking with a stray number
+     attached. Still **viewable signed out** on the everyone scope, which the route always
+     allowed. My History keeps only the prediction list.
    - Minor, unresolved: an empty bingo card offers only **Ask Diego?** and the **⋮** — no
      Save until something is picked, so day one shows a 5×5 of `＋` with no stated goal.
      Defensible (nothing to save yet), but nobody has decided it.
@@ -286,6 +289,43 @@ and members must already be friends.
    an in-app problem: a cohort that forgets to open the app produces no graded predictions.
 
 5. ~~Password recovery~~ — **done 2026-08-09**, see above.
+
+6. **First-run setup wizard — NOT STARTED, added 2026-08-10.** A brief guided introduction
+   the first time somebody signs in, so a new tester is acquainted with the app instead of
+   left to find it.
+
+   Why it belongs here rather than under "Then": the day-one walk found the app is *legible*
+   but not *self-explaining*. A first-timer lands on an empty 5×5 of `＋` with no Save button
+   and no stated goal (see the unresolved note in item 3), two games whose scoring differs and
+   is never merged, a Standings panel now folded inside an Actions menu, and an invite system
+   that is the entire point of the social side and is mentioned nowhere on the way in. Each
+   was a defensible call on its own; together they assume a visitor who explores. A cohort
+   that has to be told how the app works, one Discord message at a time, is the same
+   onboarding cost group invites just removed.
+
+   **What it should cover** — smallest set that makes someone self-sufficient, in order:
+   pick a display name and avatar; the two games are separate and separately scored; how to
+   fill a card (Ask Diego? / Bathtub Bets' Prediction / by hand) and that a part-filled card
+   saves; predictions close at the downbeat and cannot be edited after; where Standings live
+   and that Friends/Groups need an invite link; and — for anyone who arrived by invite —
+   that they are already connected to whoever sent it.
+
+   **Constraints, from decisions already made elsewhere in this doc:**
+   - **Skippable, and never blocking.** The landing view opens on the games deliberately;
+     a modal wall in front of that undoes it.
+   - **Resumable, and dismissible for good.** Needs a per-user "seen" flag. `users.profile`
+     is already a JSON blob with a merge-not-replace PUT, so this needs no migration.
+   - **Must not fight the invite flow.** `/?invite=CODE` already stashes the code through
+     registration and redeems on first session (`redeemPendingInvite`). The wizard fires at
+     the same moment; whichever runs second must not talk over the other's flash message.
+   - **Signed-out visitors get nothing.** The everyone-scope Standings and the whole Data
+     tab are open by design as the reason to register — the wizard is for after that.
+
+   **Open questions:** whether it is a modal, a dismissible strip above the card, or a
+   coach-marked pass over the real UI; whether it ends by *making* a prediction for the open
+   show (strongest finish — it produces the graded prediction the project needs, and Ask
+   Diego? fills a card in one press) or just points at it; and whether returning testers who
+   predate it ever see it.
 
 ### Then
 
