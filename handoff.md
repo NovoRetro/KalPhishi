@@ -282,11 +282,44 @@ and members must already be friends.
      Save until something is picked, so day one shows a 5×5 of `＋` with no stated goal.
      Defensible (nothing to save yet), but nobody has decided it.
 
-4. **Partly answered.** Both games carry a prominent live countdown — `🔓 Locks in 26d 1h ·
-   19:30 local` — so a signed-in tester *looking at the app* cannot miss the deadline, and
-   `No predictions yet` now names the open show too. What does not exist is anything that
-   reaches somebody who **isn't** looking. With no email there is no channel, so this stays
-   an in-app problem: a cohort that forgets to open the app produces no graded predictions.
+4. ~~Whether anything nudges a tester to predict before a show locks~~ — **closed
+   2026-08-10, in-app half built, outbound half deliberately not.**
+
+   **Built:** a pre-lock strip above the control row (`predictNudge` in `predictor.js`,
+   `.p-nudge`). Shows only to a signed-in user with **no saved prediction for the open show
+   in the game they are looking at**, and disappears the instant one is saved, so it cannot
+   nag somebody who already did the thing it asks for. Dismissible per show *and* per game
+   — plenty of people only ever play one — via a `bb-nudge-<mode>-<showdate>` localStorage
+   key. Two tiers only: calm, and inside 48h it gains an ⏳, the countdown inline, and the
+   `--lock` red border. The heading-row countdown already carries the exact figure, so this
+   only has to say "soon" or "now or never". A strip, **not a modal**: the landing view opens
+   on the games on purpose, and a dialog in front of that undoes what it is asking for.
+
+   **Not built, and this is the honest part: none of it solves reach.** It can only ever
+   speak to somebody who already opened the app, which is not the population at risk.
+   Verified there is no outbound channel of any kind today — no mail capability anywhere
+   (no MailChannels/SendGrid/Resend/SMTP/`send_email` in `src/`, `scripts/`, `wrangler.jsonc`
+   or the dependency tree), no service worker, no web manifest, no `Notification` /
+   `PushManager` / VAPID code.
+
+   **The decision: for a ~30-person closed beta you already have in a group chat, a human
+   message is the channel.** Zero code, and it works today. Do not build a push pipeline
+   before Dick's.
+
+   What a later build would need, so it does not have to be rediscovered:
+   - **The trigger already exists and is proven.** `wrangler.jsonc` runs
+     `["0 13,17,21 * * *"]`, and `scheduled()` in `worker.mjs` already wakes three times a
+     day, queries D1 and reasons about showdates — it grades finished shows and sweeps
+     sessions. A "who has no prediction for the next show" query drops into running
+     machinery.
+   - **Repeat-suppression is the missing table.** Three-times-daily reminders for 25 days is
+     how a cohort mutes you. Needs a per-user, per-show "notified" record; nothing today.
+   - **Email is not the cheap option it looks like.** `users.email` has **never been
+     verified**, and mail delivery is the one thing this project deliberately avoided —
+     password reset is hand-delivered out of band precisely because of it. It would also be
+     the app's first external service dependency.
+   - **Web push** needs a service worker, manifest, VAPID keys and a subscriptions table,
+     and on iOS only works if the tester adds the app to their Home Screen.
 
 5. ~~Password recovery~~ — **done 2026-08-09**, see above.
 

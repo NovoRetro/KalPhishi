@@ -237,6 +237,7 @@ function initPredictor(mount, A, opts = {}) {
     // about it or its tab bar would still be showing neither game selected.
     if (!user && (mode === 'history' || mode === 'profile')) { mode = 'setlist'; notifyMode(); }
     renderTopBar();
+    predictNudge();
     const builderStart = mount.childElementCount;
     if (mode === 'setlist') renderSetlistBuilder();
     else if (mode === 'bingo') renderBingo();
@@ -556,6 +557,47 @@ function initPredictor(mount, A, opts = {}) {
     if (s.bingoScore != null) out.push(`bingo ${s.bingoScore} over ${s.bingoScored ?? 0}`);
     if (s.bingos) out.push(`${s.bingos} BINGO${s.bingos > 1 ? 's' : ''} 🍩`);
     return out.join(' · ');
+  }
+
+  // The only part of the "nudge them before the lock" problem that can be solved from
+  // inside the app: somebody who IS here, has not saved for the open show, and has not
+  // registered that it closes. It is explicitly NOT a fix for reach — nothing here touches
+  // a tester who never opens the page, and the roadmap entry says so in as many words.
+  //
+  // Two rules keep it from becoming noise. It disappears the moment a prediction exists, so
+  // it cannot nag somebody who already did the thing it asks for; and it is dismissible per
+  // show AND per game, because plenty of people will only ever play one of the two.
+  const nudgeKey = () => `bb-nudge-${mode}-${showdate}`;
+  const nudgeDismissed = () => {
+    try { return localStorage.getItem(nudgeKey()) === '1'; } catch { return false; }
+  };
+
+  function predictNudge() {
+    if (!user || (mode !== 'setlist' && mode !== 'bingo')) return;
+    // Saved already, or the show has started, or we do not know when it starts.
+    if (mode === 'bingo' ? livePrediction : savedSetlist) return;
+    const L = lockInfo();
+    if (!L.known || L.locked || nudgeDismissed()) return;
+
+    const left = L.at - Date.now();
+    // Two tiers, not five. The countdown on the heading row already carries the exact
+    // figure, so this only has to distinguish "soon" from "now or never".
+    const urgent = left <= 48 * 3600 * 1000;
+    const row = el('div', 'p-nudge' + (urgent ? ' p-nudge-urgent' : ''));
+    const what = mode === 'bingo' ? 'card' : 'setlist';
+    row.appendChild(el('span', null,
+      `${urgent ? '⏳ ' : ''}No ${what} saved for <b>${esc(fmtDate(showdate))}</b> yet`
+      + (urgent ? ` — locks in <b>${esc(untilText(left))}</b>` : '')
+      + '. Ask Diego? fills one in a press.'));
+    const x = el('button', 'p-nudge-x', '×');
+    x.setAttribute('aria-label', 'Dismiss');
+    x.title = 'Dismiss for this show';
+    x.addEventListener('click', () => {
+      try { localStorage.setItem(nudgeKey(), '1'); } catch { /* private mode */ }
+      render();
+    });
+    row.appendChild(x);
+    mount.appendChild(row);
   }
 
   function renderTopBar() {
