@@ -1,7 +1,17 @@
-# Kalphishi — state of the project
+# Bathtub Bets — state of the project
 
 **Live:** https://kalphishi.kalphishi.workers.dev
 **Repo:** https://github.com/NovoRetro/KalPhishi
+
+> **Renamed from Kalphishi.** The rename is the *product name* — everything a person reads.
+> Deliberately **not** renamed, because each would break something live:
+> the Worker name and D1 `database_name` in `wrangler.jsonc` (a new name deploys a second
+> Worker at a new URL and unbinds the database), `SESSION_COOKIE = 'kalphishi_session'` and
+> the `kalphish-user` / `kalphishi-pending-invite` browser keys (renaming signs every tester
+> out and drops invites mid-redemption), the `window.Kalphishi*` globals, the repo, and the
+> `0001_schema.sql` comment. `wrangler` commands in this doc are literal for that reason.
+> `'kalphishi'` also stays in the reserved-handle list — a retired brand is exactly what
+> somebody would register to look official.
 **Written:** 2026-08-09 (replaces the 2026-08-07 version, which predates Play a Show,
 password reset and the cache policy)
 
@@ -82,16 +92,19 @@ everything else. The app is shipped and good enough; what it needs is players, n
     Leaderboard tab competing for the same row; with three tabs the word fits everywhere,
     and an unlabelled triangle asked the reader to guess. Don't reintroduce it without
     re-measuring — the room exists now.
-- **Rotating tagline** — `TAGLINES` in `web/index.html`, currently 27. The list is meant to
+- **Rotating tagline** — `TAGLINES` in `web/index.html`, currently 25. The list is meant to
   grow; new lines go there and nowhere else. The picker draws uniformly and only excludes
-  the immediately previous line, so it needs no change as the list grows.
+  the immediately previous line, so it needs no change as the list grows *or shrinks*.
+  **No tagline names the app any more.** Two that did were cut in the rename rather than
+  translated, and the Meatstick line renders it as `basu tabu de no kake` — so a future
+  rename does not have to hunt through the jokes.
 - **The light rig** (the `CK5` comment block in `index.html`). A dark hall behind the top of
   the page carries angled beams from mirrored fixture positions, blended additively so
   crossings brighten, masked so light falls off rather than ending on an edge. Cards are
   translucent so it reads through them. Peaks on save and on BINGO. Parked by
   `IntersectionObserver` when scrolled away.
 - **Control row, both games, left to right:** Save · Ask Diego? · ⟶ Actions pinned right.
-  Two buttons and a menu, nothing else — Actions holds Randomize, Kalphishi's Prediction,
+  Two buttons and a menu, nothing else — Actions holds Randomize, Bathtub Bets' Prediction,
   Reload last save, Clear, Standings and the scoring rules, and is deliberately the furthest
   thing from Save. **Reload sits above Clear**: the way back is read before the way to need
   it, and Clear stays the last of the pair, furthest from a stray press.
@@ -100,7 +113,7 @@ everything else. The app is shipped and good enough; what it needs is players, n
   rather than on the row, and why **Actions is a ⋮ below 560px** (the word costs 100px to say
   what the glyph says in 44). `.p-row .p-btn` also trims side padding to 12px on touch. Any
   new control here has ~8px of slack — put it in the menu instead.
-- **Ask Diego? randomizes** (it does *not* use the model — that is Kalphishi's Prediction,
+- **Ask Diego? randomizes** (it does *not* use the model — that is Bathtub Bets' Prediction,
   one press away in Actions) and stays on the row so it can be pressed repeatedly. Locked
   bingo squares survive a re-roll, which is what makes repeat-pressing useful.
 - **Lock mode** (bingo only, from Actions) turns the whole card into a lock picker: a tap on

@@ -1,8 +1,13 @@
-# Kalphishi
+# Bathtub Bets
 
-A Phish setlist prediction tool. Phish have played 40+ years without ever repeating a setlist — Kalphishi slices that history two ways to guess what's coming next, then lets you make your own call and keeps score.
+A Phish setlist prediction tool. Phish have played 40+ years without ever repeating a setlist — Bathtub Bets slices that history two ways to guess what's coming next, then lets you make your own call and keeps score.
 
 **▶ [Play it here](https://kalphishi.kalphishi.workers.dev)** — no install, create an account to make predictions.
+
+> Formerly **Kalphishi**. This rename covers the product name only — the Worker, the D1
+> database, the session cookie and the live URL all still read `kalphishi`, which is why the
+> `wrangler` commands below and the link above are literal rather than stale. Renaming those
+> is a separate and breaking job; see the handoff.
 
 Powered by [NovoRetro](https://github.com/NovoRetro). Data from the [Phish.net API](https://docs.phish.net).
 

@@ -109,7 +109,7 @@ async function main() {
     console.log(`Merged scorecard into data/archive/${showdate}.json`);
   }
 
-  console.log(`\n=== KALPHISH SCORECARD — ${showdate} ===`);
+  console.log(`\n=== BATHTUB BETS SCORECARD — ${showdate} ===`);
   console.log(`Predicted ${predAll.length} songs; actual show had ${actualSlugs.size} unique songs.`);
   console.log(`HITS (${hits.length}): ${hits.map(h => h.name).join(', ') || 'none'}`);
   console.log(`Precision ${(precision * 100).toFixed(0)}% · Recall ${(recall * 100).toFixed(0)}%`);

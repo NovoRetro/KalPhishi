@@ -1,5 +1,5 @@
 {
-  "name": "kalphishi",
+  "name": "bathtub-bets",
   "version": "0.1.0",
   "description": "Phish setlist prediction tool — rotation analysis, venue history, and a PHISH bingo game",
   "main": "src/worker.mjs",

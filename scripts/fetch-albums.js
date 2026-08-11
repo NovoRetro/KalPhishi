@@ -8,7 +8,9 @@ const envFile = path.join(__dirname, '..', '.env');
 const contact = (fs.existsSync(envFile)
   ? (fs.readFileSync(envFile, 'utf8').match(/MUSICBRAINZ_CONTACT=(\S+)/) || [])[1]
   : null) || 'https://github.com/NovoRetro/KalPhishi';
-const UA = `Kalphishi/1.0 (${contact})`;
+// The repo URL below stays NovoRetro/KalPhishi — it is a real address MusicBrainz can
+// follow, and renaming the product token does not rename the repository.
+const UA = `BathtubBets/1.0 (${contact})`;
 const MB = 'https://musicbrainz.org/ws/2';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
