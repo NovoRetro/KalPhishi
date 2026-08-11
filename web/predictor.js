@@ -1,4 +1,4 @@
-// Kalphishi user predictor: setlist builder + PHISH bingo + history.
+// Bathtub Bets user predictor: setlist builder + PHISH bingo + history.
 // Called from index.html: initPredictor(containerEl, analysis)
 function initPredictor(mount, A, opts = {}) {
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
@@ -746,7 +746,7 @@ function initPredictor(mount, A, opts = {}) {
 
     // Ask Diego? rolls a random setlist, and stays on the row afterwards — a first roll is
     // rarely the one you want, and hiding it meant reopening Actions to roll again. It
-    // deliberately does NOT use the model: Kalphishi's Prediction is one press away in the
+    // deliberately does NOT use the model: Bathtub Bets' Prediction is one press away in the
     // menu and is a different offer, "show me the answer" rather than "give me a board".
     // Drops to secondary styling once Save is present, so the row never carries two primary
     // actions at once.
@@ -770,7 +770,7 @@ function initPredictor(mount, A, opts = {}) {
 
     controls.appendChild(actionsMenu([
       ['🎲 Randomize', randomizeSetlist],
-      ["🛟 Kalphishi's Prediction", fillSetlistFromModel],
+      ["🛟 Bathtub Bets' Prediction", fillSetlistFromModel],
       // Reload sits directly ABOVE Clear. They are a destroy/undo pair either way, but in
       // this order the way back is read before the way to need it, and Clear stays the
       // last thing in the group — nearest the bottom, furthest from a stray press.
@@ -933,7 +933,7 @@ function initPredictor(mount, A, opts = {}) {
     if (lockMode) {
       mount.appendChild(el('div', 'p-lockhint',
         '🔒 <b>Lock mode</b> — tap squares to lock or unlock them. Locked squares survive '
-        + "Ask Diego?, Randomize and Kalphishi's Prediction. Press <b>Lock it in</b> when done."));
+        + "Ask Diego?, Randomize and Bathtub Bets' Prediction. Press <b>Lock it in</b> when done."));
     }
     const pickerHost = el('div', 'p-picker');
     mount.appendChild(pickerHost);
@@ -1198,7 +1198,7 @@ function initPredictor(mount, A, opts = {}) {
       // Ask Diego? randomizes the card, and stays on the row afterwards so it can be
       // pressed repeatedly — a first roll is rarely the one you want, and hiding it meant
       // reopening Actions to roll again. It deliberately does NOT use the model:
-      // Kalphishi's Prediction is one press away in the menu and is a different offer,
+      // Bathtub Bets' Prediction is one press away in the menu and is a different offer,
       // "show me the answer" rather than "give me a card".
       //
       // Because it routes through randomize, locked squares survive a re-roll — which is
@@ -1245,7 +1245,7 @@ function initPredictor(mount, A, opts = {}) {
 
       controls.appendChild(actionsMenu([
         ['🎲 Randomize', randomize],
-        ["🛟 Kalphishi's Prediction", fillFromModel],
+        ["🛟 Bathtub Bets' Prediction", fillFromModel],
         // Directly under the two that overwrite the card, because it is the thing that
         // decides what they are allowed to touch. Bingo only — the setlist has no locks.
         [lockMode ? '✕ Leave lock mode' : '🔒 Lock mode',

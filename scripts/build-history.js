@@ -11,7 +11,8 @@ const dataDir = path.join(__dirname, '..', 'data');
 const archiveDir = path.join(dataDir, 'archive');
 
 // The track record is a claim about what THIS app predicted in advance, so it must only
-// ever contain shows it actually ran on. Kalphishi's first live prediction was the
+// ever contain shows it actually ran on. The app's first live prediction — under its old
+// name, Kalphishi — was the
 // 2026-07-31 Fenway show; anything dated earlier could only be a backfill scored against
 // a setlist that already existed, which would flatter the numbers and misrepresent the
 // model as having called shows it never saw.

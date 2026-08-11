@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kalphishi — Phish Setlist Predictor</title>
+<title>Bathtub Bets — Phish Setlist Predictor</title>
 <style>
   :root {
     color-scheme: light;
@@ -48,7 +48,10 @@
   /* Centred: the name and the rotating tagline are the marquee, and the rig below them
      reads as a rig only if it is symmetrical about something. The menu button is
      position:fixed at the right, so it does not participate in this and cannot collide —
-     "Kalphishi" is far too short to reach it even on a 360px phone. */
+     "Bathtub Bets" measures 148px of ink at 26px semibold, leaving 30px of clearance at
+     320px — the narrowest width supported — and it does not wrap there either. Measured off
+     a Range over the text node, not the h1 box: the h1 is a full-width centred block, so its
+     box overlaps the button at every width and says nothing. Re-measure if the name grows. */
   header { text-align: center; }
 
   /* ——— CK5 ———
@@ -748,7 +751,7 @@
   <div class="hall" id="hall" aria-hidden="true"><div class="rig" id="rig"></div></div>
   <div class="stage" id="stage">
     <header>
-      <h1>Kalphishi</h1>
+      <h1>Bathtub Bets</h1>
       <!-- What this is, before any of the data. A first-time visitor previously met a
            freshness note ("data through August 1") and six analytics tabs, which says what
            the page contains but never what it is for. -->
@@ -773,7 +776,6 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 // tab is visible, and on sign-in (see the initPredictor call's onSignedIn below).
 const TAGLINES = [
   "Place your bets, and lets take a ride",
-  "Boy man - Play Kalphishi drive me to Firenze",
   "Its 10pm, do you know where your shoes are?",
   "If you've ever gambled on lot oysters then you'll LOVE this game",
   "Have you taken care of your shoes today?",
@@ -784,7 +786,7 @@ const TAGLINES = [
   "Your bets are like mangoes, you're gonna be a genius if you play!",
   "Toss away the songs you don't need in the end. But keep what's important and remember to hit save",
   "Set the gear shift to the high gear of your Bingo!",
-  "Meatosticku jiuando, meatosticku Kalphishi, meatosticku toridashta, jiuan, do do atamaga shock, do do atamaga shock",
+  "Meatosticku jiuando, meatosticku basu tabu de no kake, meatosticku toridashta, jiuan, do do atamaga shock, do do atamaga shock",
   "Come waste your setlist with me",
   "Grind, Grind, Grind, Grind, Grind, Grind, Grind, Griiiiiiiiiiiiiind",
   "Melt the guns!",
@@ -798,7 +800,6 @@ const TAGLINES = [
   "WE LOVE TO TAKE A BATH!",
   "I think Wendy might still be on the windowsill",
   "Your time is near, the setlist is clear",
-  "SU-ZAY! SU-ZAY! Suzy, Suzy! Suzy plays Kalphishi",
 ];
 const TAGLINE_INTERVAL_MS = 60_000;
 let taglineIdx = -1;
