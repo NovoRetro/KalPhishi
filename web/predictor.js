@@ -237,7 +237,11 @@ function initPredictor(mount, A, opts = {}) {
     // about it or its tab bar would still be showing neither game selected.
     if (!user && (mode === 'history' || mode === 'profile')) { mode = 'setlist'; notifyMode(); }
     renderTopBar();
-    predictNudge();
+    // One or the other, never both: while the intro is up it is already saying what the
+    // nudge would say, and stacking two strips above the board is two rows between arriving
+    // and playing.
+    if (wizardActive()) renderWizard();
+    else predictNudge();
     const builderStart = mount.childElementCount;
     if (mode === 'setlist') renderSetlistBuilder();
     else if (mode === 'bingo') renderBingo();
@@ -598,6 +602,163 @@ function initPredictor(mount, A, opts = {}) {
     });
     row.appendChild(x);
     mount.appendChild(row);
+  }
+
+  // ---------- first-run wizard ----------
+  //
+  // Inline above the game, never over it. The landing view opens on the games deliberately,
+  // and a dialog in front of that undoes the very thing it is trying to get somebody to do —
+  // so this is a card in the flow that skips in one press, not a wall.
+  //
+  // "Seen" lives in `users.profile`, already a JSON blob with a merge-not-replace PUT, so
+  // this needed no migration. Existing testers see it once; it is five steps and a Skip, and
+  // they have not seen half of what it describes either.
+  //
+  // It does NOT fill a card for you at the end, though that was the plan. The fill and save
+  // routines are closures inside the builders over `grid`/`build`, and reaching them from
+  // here meant either hoisting them or clicking my own buttons by label — coupling the
+  // intro to the internals of both games to save one tap. The last step hands off to the
+  // pre-lock nudge instead, which renders the moment the wizard clears and says exactly
+  // this, with the real button beside it.
+  let wizardStep = 0;
+  let wizardBusy = false;
+  const wizardActive = () =>
+    !!user && !user.profile?.wizardSeen && (mode === 'setlist' || mode === 'bingo');
+
+  async function wizardSave(patch, after) {
+    if (wizardBusy) return;
+    wizardBusy = true;
+    render();
+    try {
+      const j = await api('/api/profile', 'PUT', patch);
+      user = j.user;
+      try { localStorage.setItem('kalphish-user', JSON.stringify(user)); } catch { /* private mode */ }
+      if (after) after();
+    } catch (e) {
+      flash(e.message, true);
+    }
+    wizardBusy = false;
+    render();
+  }
+
+  const WIZARD_STEPS = [
+    {
+      title: 'Welcome to Bathtub Bets',
+      // The only step that asks for anything. The rest is telling, and telling is cheap to
+      // skip; a name is what every board will show, so it earns one screen.
+      build: (body, state) => {
+        body.appendChild(el('p', 'p-wiz-copy',
+          'Phish have never repeated a setlist. We guess what is coming next, you make your own '
+          + 'call, and both get scored against the real show.'));
+        const nameLab = el('label', 'p-field', 'display name<br>');
+        state.name = el('input', 'ta-input');
+        state.name.value = (user.profile && user.profile.displayName) || user.name || '';
+        nameLab.appendChild(state.name);
+        const avaLab = el('label', 'p-field', 'avatar (an emoji or two)<br>');
+        state.avatar = el('input', 'ta-input');
+        state.avatar.maxLength = 24;
+        state.avatar.value = (user.profile && user.profile.avatar) || '';
+        avaLab.appendChild(state.avatar);
+        body.appendChild(nameLab);
+        body.appendChild(avaLab);
+        body.appendChild(el('div', 'p-wiz-note',
+          'This is what the standings show. Change it any time from the ☰ menu.'));
+      },
+    },
+    {
+      title: 'Two games, scored separately',
+      build: body => {
+        body.appendChild(el('p', 'p-wiz-copy',
+          '<b>Setlist Bets</b> — call the songs you think they will play, in order. Points per '
+          + 'call, more for openers, closers and the encore.'));
+        body.appendChild(el('p', 'p-wiz-copy',
+          '<b>Phish Bingo</b> — a 5×5 card, one song per square, ticked off as they are played.'));
+        body.appendChild(el('div', 'p-wiz-note',
+          'The two scales are never mixed. Each has its own standings, and neither is ever '
+          + 'folded into the other.'));
+      },
+    },
+    {
+      title: 'Filling one in',
+      build: body => {
+        body.appendChild(el('p', 'p-wiz-copy',
+          '<b>✨ Ask Diego?</b> rolls a random one. Press it as often as you like — on a bingo '
+          + 'card, locked squares survive a re-roll.'));
+        body.appendChild(el('p', 'p-wiz-copy',
+          '<b>🛟 Our Prediction</b>, in the ⋮ menu, fills it with the model’s own answer.'));
+        body.appendChild(el('p', 'p-wiz-copy', 'Or pick by hand. All three are fine.'));
+        body.appendChild(el('div', 'p-wiz-note',
+          'A part-filled card saves. There is no minimum — an unfinished one just scores fewer hits.'));
+      },
+    },
+    {
+      title: 'It closes at the downbeat',
+      build: body => {
+        const L = lockInfo();
+        body.appendChild(el('p', 'p-wiz-copy',
+          `Predictions for <b>${esc(fmtDate(showdate))}</b> lock when the show starts`
+          + (L.known && L.local ? ` — ${esc(L.local)} local` : '')
+          + (L.known && !L.locked ? `, <b>${esc(untilText(L.at - Date.now()))}</b> from now` : '')
+          + '. After that they cannot be changed.'));
+        body.appendChild(el('div', 'p-wiz-note',
+          'A countdown sits beside the game’s name, so you always know how long is left. Save '
+          + 'early — you can keep editing right up until it locks.'));
+      },
+    },
+    {
+      title: 'Playing against people',
+      build: body => {
+        body.appendChild(el('p', 'p-wiz-copy',
+          '<b>🏆 Standings</b>, in the ⋮ menu, ranks everyone for the game you are in — and '
+          + 'narrows to just your friends, or a group.'));
+        body.appendChild(el('p', 'p-wiz-copy',
+          'Friends and groups form by <b>invite link</b>, under Friends in the ☰ menu. If you '
+          + 'arrived on someone’s link, you are already connected to them.'));
+        body.appendChild(el('div', 'p-wiz-note',
+          'That is everything. Ask Diego? fills a card in one press — the open show is waiting.'));
+      },
+    },
+  ];
+
+  function renderWizard() {
+    const card = el('div', 'p-wiz');
+    const head = el('div', 'p-wiz-head');
+    head.appendChild(el('h3', null, esc(WIZARD_STEPS[wizardStep].title)));
+    const skip = el('button', 'p-wiz-skip', 'Skip');
+    skip.title = 'Skip the intro — all of it lives in the menus';
+    skip.disabled = wizardBusy;
+    skip.addEventListener('click', () => wizardSave({ wizardSeen: true }));
+    head.appendChild(skip);
+    card.appendChild(head);
+    card.appendChild(el('div', 'p-wiz-count', `Step ${wizardStep + 1} of ${WIZARD_STEPS.length}`));
+
+    const body = el('div', 'p-wiz-body');
+    const state = {};
+    WIZARD_STEPS[wizardStep].build(body, state);
+    card.appendChild(body);
+
+    const actions = el('div', 'p-wiz-actions');
+    if (wizardStep > 0) {
+      const back = el('button', 'p-btn p-btn-alt', 'Back');
+      back.disabled = wizardBusy;
+      back.addEventListener('click', () => { wizardStep--; render(); });
+      actions.appendChild(back);
+    }
+    const last = wizardStep === WIZARD_STEPS.length - 1;
+    const next = el('button', 'p-btn', last ? 'Finish' : 'Next');
+    next.disabled = wizardBusy;
+    next.addEventListener('click', () => {
+      // Step 1 collects; the rest only tell, so it is the only one that writes.
+      const patch = {};
+      if (state.name) patch.displayName = state.name.value;
+      if (state.avatar) patch.avatar = state.avatar.value;
+      if (last) { wizardSave({ ...patch, wizardSeen: true }); return; }
+      if (Object.keys(patch).length) wizardSave(patch, () => { wizardStep++; });
+      else { wizardStep++; render(); }
+    });
+    actions.appendChild(next);
+    card.appendChild(actions);
+    mount.appendChild(card);
   }
 
   function renderTopBar() {

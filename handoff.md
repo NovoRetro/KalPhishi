@@ -323,9 +323,34 @@ and members must already be friends.
 
 5. ~~Password recovery~~ — **done 2026-08-09**, see above.
 
-6. **First-run setup wizard — NOT STARTED, added 2026-08-10.** A brief guided introduction
-   the first time somebody signs in, so a new tester is acquainted with the app instead of
-   left to find it.
+6. ~~First-run setup wizard~~ — **built 2026-08-10.** `WIZARD_STEPS` / `renderWizard` in
+   `predictor.js`, `.p-wiz` in `index.html`.
+
+   **Shape:** a five-step card **inline above the game, never over it** — the landing view
+   opens on the games deliberately, and a dialog in front of that undoes the thing it is
+   trying to get somebody to do. Skip in one press from any step. Steps: who you are (the
+   only one that asks for anything — display name and avatar) → two games, scored separately
+   → how to fill one in → it closes at the downbeat → playing against people.
+
+   **"Seen" is `profile.wizardSeen`.** `users.profile` is already a JSON blob with a
+   merge-not-replace PUT, so this needed **no migration**. It does need `PROFILE_FLAGS` in
+   `worker.mjs`, kept separate from `PROFILE_FIELDS`: the text sanitisers do not apply to a
+   boolean, and running `sanitizeLine` over one persists the string `"true"`, which is
+   truthy on the way back out and looks fine until something compares it to `true`.
+
+   **It does not fill a card for you at the end, though that was the plan.** The fill and
+   save routines are closures inside each builder over `grid`/`build`; reaching them from
+   the wizard meant hoisting them or clicking my own buttons by label — coupling the intro
+   to the internals of both games to save one tap. The last step hands off to the pre-lock
+   nudge (item 4), which renders the instant the wizard clears and says exactly that, with
+   the real button beside it. The wizard and the nudge are mutually exclusive by
+   construction, so they never stack.
+
+   **Existing testers see it once.** No backfill: it is five steps and a Skip, and they have
+   not seen most of what it describes either.
+
+   Still open, and deliberately not guessed at: whether the intro should ever be
+   *re-openable* from the ☰ menu once dismissed. Nothing currently offers a way back to it.
 
    Why it belongs here rather than under "Then": the day-one walk found the app is *legible*
    but not *self-explaining*. A first-timer lands on an empty 5×5 of `＋` with no Save button
