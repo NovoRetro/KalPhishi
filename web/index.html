@@ -317,9 +317,19 @@
   .chance-none { color: var(--muted); font-weight: 400; }
 
   /* ---- Nerd Zone ---- */
-  .nz-prose { max-width: 66ch; }
+  /* Reading measure. 66ch is a readability FLOOR, not a target, and treating it as a hard cap
+     stranded the prose at 498px inside a 1180px card while the tables beside it spanned 1143px
+     — a 42%-against-97% mismatch that reads as broken rather than as deliberate restraint.
+     The fix is COLUMNS, not longer lines: a 1100px line is unreadable however much room there
+     is, so the text keeps its measure and uses the width by splitting instead. */
   .nz-prose p { margin: 0 0 10px; font-size: 14px; line-height: 1.55; }
   .nz-prose p:last-child { margin-bottom: 0; }
+  @media (min-width: 920px) {
+    .nz-prose { columns: 2; column-gap: 38px; }
+    /* Without this a paragraph breaks across the fold and the reader loses the thread
+       mid-sentence, which is worse than the whitespace this is fixing. */
+    .nz-prose p { break-inside: avoid; }
+  }
   .nz-picker { margin: 6px 0 8px; }
   .nz-blurb { margin-bottom: 12px; }
   /* Marks the shipping arm in the comparison table without a colour, which would read as a
@@ -327,7 +337,7 @@
   .nz-ship { font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase;
     color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
   .nz-notes { margin-top: 12px; padding: 10px 12px; border-left: 3px solid var(--series-2);
-    background: var(--accent-wash); border-radius: 0 8px 8px 0; max-width: 66ch; }
+    background: var(--accent-wash); border-radius: 0 8px 8px 0; max-width: min(100%, 82ch); }
   .nz-notes p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; }
   .nz-notes p:last-child { margin-bottom: 0; }
   /* Diagnostics. Separated from the picker by a rule because they are measurements of the
@@ -335,9 +345,38 @@
      further options, which is the one thing they must not. */
   .nz-diag { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 14px; }
   .nz-diag h3 { margin: 0 0 6px; font-size: 15px; }
-  .nz-diag p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; max-width: 66ch; }
+  .nz-diag p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; max-width: min(100%, 82ch); }
   .nz-diag table { margin: 8px 0 6px; }
-  .nz-diag-sub { margin: 18px 0 6px; font-size: 14px; font-weight: 600; }
+  /* Collapsible sections. <details> rather than a hand-rolled accordion: it is keyboard
+     operable and screen-reader labelled for free, it works with no JS at all, and the
+     browser's own find-in-page opens a closed section to reveal a match. None of that comes
+     free with a div and a click handler, and all of it is the sort of thing that quietly
+     stops working. The card runs to ~2900px on a desktop with every section open, which is
+     the navigation problem these solve. */
+  .nz-sec { border-top: 1px solid var(--border); }
+  /* The explainer sits directly under the h2, where a rule would read as a stray divider
+     rather than as a section boundary. */
+  .nz-sec-first { border-top: none; }
+  .nz-sec > summary { cursor: pointer; padding: 11px 0; font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 9px; min-height: 44px; list-style: none; }
+  /* Both are needed: ::marker covers modern browsers, the -webkit- pseudo covers older
+     WebKit, and leaving either in place shows a second triangle beside our own. */
+  .nz-sec > summary::marker { content: ''; }
+  .nz-sec > summary::-webkit-details-marker { display: none; }
+  .nz-sec > summary::before { content: '▸'; color: var(--muted); font-size: 12px;
+    transition: transform 0.15s ease; }
+  .nz-sec[open] > summary::before { transform: rotate(90deg); }
+  .nz-sec > summary:hover { color: var(--series-1); }
+  .nz-secbody { padding-bottom: 16px; }
+  /* Prose beside its chart where there is room for both, stacked where there is not. This is
+     the other half of the width fix: the spread and reliability sections have a visual whose
+     natural width is far under the card's, so the explanation sits next to it rather than
+     above it leaving a gap the width of the page. */
+  .nz-split { display: grid; gap: 2px 34px; align-items: start; }
+  @media (min-width: 920px) {
+    .nz-split { grid-template-columns: minmax(0, 1fr) minmax(0, 480px); }
+    .nz-split > :first-child p:last-child { margin-bottom: 0; }
+  }
   /* Hits per show. A bar chart rather than a table because the SHAPE is the finding — the
      mean sits on a wide, flat hump, and no column of numbers says that at a glance. Widths
      are a share of the tallest bucket, so the count is printed too: a bar is not a quantity. */
@@ -2115,7 +2154,17 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   nerd.dataset.section = 'Nerd Zone';
   nerd.appendChild(el('h2', null, 'Nerd zone <span class="hint">— how the prediction is made, and what happens if you make it differently.</span>'));
 
-  nerd.appendChild(el('div', 'nz-prose',
+  // The explainer is collapsible and starts OPEN — it is what the tab is for, and somebody
+  // who has read it once should be able to fold it away to reach the picker without scrolling
+  // past four paragraphs they already know.
+  const intro = el('details', 'nz-sec nz-sec-first');
+  intro.open = true;
+  intro.appendChild(el('summary', null, 'How the prediction is made'));
+  const introBody = el('div', 'nz-secbody');
+  intro.appendChild(introBody);
+  nerd.appendChild(intro);
+
+  introBody.appendChild(el('div', 'nz-prose',
     '<p><b>Two slices.</b> Horizontally, what this tour has been playing and how long it has '
     + 'been since each song came round — every song has its own cadence, and being overdue '
     + 'against <i>its own</i> cadence matters more than being rare. Vertically, what this band '
@@ -2286,10 +2335,37 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
         '<tr>' + headers.map((h, i) => `<th${i ? ' class="num"' : ''}>${h}</th>`).join('') + '</tr>'
         + rows.map(r => '<tr>' + r.map((c, i) => `<td${i ? ' class="num"' : ''}>${c}</td>`).join('') + '</tr>').join(''));
 
+      // One collapsible section. Returns the body to append into, so a caller reads the same
+      // as it did when these were flat divs.
+      //
+      // The FIRST section is open and the rest are closed: all four open makes a ~2900px card
+      // nobody scrolls, and all four closed makes a page that looks like it failed to load.
+      // One open shows what the triangles do without burying the rest.
+      let sectionCount = 0;
+      const section = title => {
+        const d = el('details', 'nz-sec');
+        if (sectionCount++ === 0) d.open = true;
+        d.appendChild(el('summary', null, esc(title)));
+        const body = el('div', 'nz-secbody');
+        d.appendChild(body);
+        diag.appendChild(d);
+        return body;
+      };
+      // Prose beside a visual on a wide screen, stacked on a narrow one. Returns both halves.
+      const split = parent => {
+        const wrap = el('div', 'nz-split');
+        const left = el('div');
+        const right = el('div');
+        wrap.append(left, right);
+        parent.appendChild(wrap);
+        return { left, right };
+      };
+
       if (D.spread) {
         const s = D.spread;
-        diag.appendChild(el('div', 'nz-diag-sub', 'One show is mostly luck'));
-        diag.appendChild(el('p', null,
+        const body = section('One show is mostly luck');
+        const { left, right } = split(body);
+        left.appendChild(el('p', null,
           `Over ${A.lenses.measuredOver} shows the model averages <b>${s.mean.toFixed(1)} hits</b> from `
           + `${s.budget} picks. The average is the least useful number here: half of all shows land `
           + `between ${s.p25} and ${s.p75} hits, the middle 80% between <b>${s.p10} and ${s.p90}</b>, `
@@ -2311,14 +2387,14 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
           hist.appendChild(cell);
           hist.appendChild(el('div', 'hn', n ? `${n} show${n === 1 ? '' : 's'}` : ''));
         }
-        diag.appendChild(hist);
-        diag.appendChild(el('p', 'hint', 'Hits per show. Shaded bars are the middle 80% of shows.'));
+        right.appendChild(hist);
+        right.appendChild(el('p', 'hint', 'Hits per show. Shaded bars are the middle 80% of shows.'));
       }
 
       if (D.reachability) {
         const r = D.reachability;
-        diag.appendChild(el('div', 'nz-diag-sub', 'Some of the show was never reachable'));
-        diag.appendChild(el('p', null,
+        const body = section('Some of the show was never reachable');
+        body.appendChild(el('p', null,
           `An average show is ${r.meanSetSize.toFixed(1)} songs, and <b>${r.meanUnreachable.toFixed(1)} of them</b> `
           + `had not been played once in the previous ${r.trail} shows. Bustouts, debuts and one-offs cannot `
           + 'be produced by <i>any</i> approach on this page, because every one of them ranks songs by how '
@@ -2329,9 +2405,9 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       }
 
       if (D.drift && D.drift.length) {
-        diag.appendChild(el('div', 'nz-diag-sub', 'Is it holding up?'));
+        const body = section('Is it holding up?');
         const THIN = 10;
-        diag.appendChild(plainTable(
+        body.appendChild(plainTable(
           ['Year', 'Shows', 'Model', 'Baseline', 'Gap', 'Unreachable'],
           D.drift.map(r => [
             r.shows < THIN ? `<span class="nz-thin">${r.year}</span>` : r.year,
@@ -2345,7 +2421,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
         const thin = D.drift.filter(r => r.shows < THIN);
         if (solid.length >= 2) {
           const a = solid[0], b = solid[solid.length - 1];
-          diag.appendChild(el('p', null,
+          body.appendChild(el('p', null,
             `<b>The model is not getting better — the naive approach is getting worse.</b> Its own recall `
             + `is roughly flat (${(a.model * 100).toFixed(1)}% in ${a.year}, ${(b.model * 100).toFixed(1)}% in `
             + `${b.year}). What moved is the baseline, which fell from ${(a.baseline * 100).toFixed(1)}% to `
@@ -2355,7 +2431,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
             + 'it punishes a model that also weighs cadence and absence.'));
         }
         if (thin.length) {
-          diag.appendChild(el('p', 'hint',
+          body.appendChild(el('p', 'hint',
             `${thin.map(r => r.year).join(', ')} covers only ${thin.map(r => r.shows).join('/')} shows — `
             + 'too few to read a trend from. It stays in the table because dropping a row to tidy a trend '
             + 'is the thing this whole section argues against.'));
@@ -2364,12 +2440,13 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
 
       if (D.reliability) {
         const rel = D.reliability;
-        diag.appendChild(el('div', 'nz-diag-sub', 'Do the percentages mean anything?'));
-        diag.appendChild(el('p', null,
+        const body = section('Do the percentages mean anything?');
+        const { left, right } = split(body);
+        left.appendChild(el('p', null,
           'The <b>Chance</b> column on Ranked Songs is only worth printing if it is true. Across '
           + `${rel.shows} shows and ${rel.samples.toLocaleString()} song-outcomes — every one scored against `
           + 'a fit that had not seen it — of everything called X%, this is what actually played:'));
-        diag.appendChild(plainTable(
+        right.appendChild(plainTable(
           ['Called', 'Actually played', 'Songs'],
           rel.buckets.map(b => [
             (b.predicted * 100).toFixed(1) + '%',
@@ -2377,7 +2454,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
             b.n.toLocaleString(),
           ])));
         const top = rel.buckets[rel.buckets.length - 1];
-        diag.appendChild(el('p', null,
+        left.appendChild(el('p', null,
           `Average miss <b>${(rel.weightedError * 100).toFixed(2)}pp</b>, worst row `
           + `${(rel.worstBucket * 100).toFixed(1)}pp. The last row is the one worth sitting with: the songs `
           + `this thing is most confident about play about <b>${(top.observed * 100).toFixed(0)}% of the time</b>. `
