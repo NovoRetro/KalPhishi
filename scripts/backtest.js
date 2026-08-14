@@ -691,7 +691,15 @@ if (calEval.length) {
 // menu option whose numbers vanish depending on how the backtest was last invoked would be
 // worse than no menu option.
 {
-  const PUBLISHED_ARMS = ['model', 'modelTopN', 'modelShowGap', 'freq', 'freqNoRepeat'];
+  // modelDuenessTopN ships; modelDueness, modelShrunk and modelShrunkTopN do not. An arm is
+  // published only if the site offers it, because arms.json exists to put measured numbers
+  // beside a menu entry — figures for an option nobody can select are dead weight in a file
+  // that gets baked into every page load.
+  const PUBLISHED_ARMS = ['model', 'modelTopN', 'modelDuenessTopN', 'modelShowGap', 'freq', 'freqNoRepeat'];
+  // Arms that are one deliberate change away from another arm, so the honest comparison is
+  // that pairing and not the baseline. Fitted dueness differs from modelTopN in exactly one
+  // respect: where the dueness term comes from.
+  const NEAREST = { modelDuenessTopN: 'modelTopN' };
   const refArm = 'freqNoRepeat';
   const armsOut = {};
   for (const k of PUBLISHED_ARMS) {
@@ -711,6 +719,26 @@ if (calEval.length) {
       rec.z = p.z;
       rec.winRate = p.winRate;
     }
+
+    // Against the naive baseline EVERY model arm looks strong, because they all beat "play
+    // what they played last week" — a bar the shipping model cleared years ago. The number
+    // that can actually mislead a reader is the one against the arm they would otherwise
+    // have picked, so where an arm is a single change away from another, publish that too.
+    // Without it, an arm can top the table on +5.01pp while its real advantage over the
+    // next-best is +0.75pp and inside noise.
+    const near = NEAREST[k];
+    if (near && arms[near] && arms[near].length) {
+      const p = paired(arms[k].map(x => x.recall), arms[near].map(x => x.recall));
+      rec.vsNearest = { arm: near, delta: p.delta, se: p.se, z: p.z };
+    }
+
+    // Recall per calendar year. "It gains 5pp" and "it gains 5pp, all of it since 2025" are
+    // different claims, and the summary row cannot tell them apart.
+    rec.byYear = [...new Set(perShow.map(s => s.date.slice(0, 4)))].sort().map(y => {
+      const sub = perShow.filter(s => s.date.startsWith(y));
+      return { year: y, shows: sub.length, recall: mean(sub.map(s => s.arms[k].r)) };
+    });
+
     armsOut[k] = rec;
   }
   // ---- diagnostics ----

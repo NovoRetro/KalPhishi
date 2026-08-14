@@ -144,6 +144,17 @@ const showGapModel = buildModel({
   scheduleRows,
   recency: 'shows',
 });
+// Dueness scored from a fitted relative-time hazard rather than the hand-picked band. Not
+// cheap the way showGapModel is — this one fits a second curve over the whole history — but
+// it is still one extra pass at build time, not per request.
+const duenessModel = buildModel({
+  rows: priorRows,
+  target: NEXT_SHOW,
+  tourName: TOUR,
+  venueSongCounts,
+  scheduleRows,
+  dueness: 'fitted',
+});
 const priorDates = [...new Set(priorRows.map(r => r.showdate))].sort();
 const base = trailingFrequency(setsByDate(priorRows), priorDates, NEXT_SHOW.date, { trail: 30 });
 
@@ -268,6 +279,12 @@ if (!armStats) console.log('note: data/arms.json missing — run `npm run backte
 const LENS_ARMS = [
   { key: 'model', label: 'Day curve', blurb: 'The shipping model: rotation, recency by calendar day, venue history, then slot-aware assembly.', hasSlots: true, usesCalibration: true, isDefault: true },
   { key: 'modelTopN', label: 'No slot logic', blurb: 'The same scores, taken straight off the top of the list without assigning sets.', hasSlots: false, usesCalibration: true },
+  // usesCalibration is FALSE and must stay false. The isotonic bins were fitted on the
+  // shipping model's score distribution, and this arm replaces a scoring term outright, so
+  // its scores are a different quantity — running them through those bins would print a
+  // credible-looking percentage that means nothing. hasSlots is false because the measured
+  // arm is the top-N one; the slot-assembled variant scores materially worse.
+  { key: 'modelDuenessTopN', label: 'Fitted dueness', blurb: 'Overdue measured against each song\'s own cadence in days, from a curve fitted to what actually happened, replacing the hand-picked rule. No slot logic.', hasSlots: false, usesCalibration: false },
   { key: 'modelShowGap', label: 'Show-gap recency', blurb: 'The model as it was before the day curve — recency counted in shows rather than days.', hasSlots: true, usesCalibration: false },
   { key: 'freqNoRepeat', label: 'Recent, minus repeats', blurb: 'Naive baseline: most-played over the last 30 shows, minus anything played in the last 3 days.', hasSlots: false, usesCalibration: false },
   { key: 'freq', label: 'Most played lately', blurb: 'The simplest baseline there is: most-played over the last 30 shows, nothing else.', hasSlots: false, usesCalibration: false },
@@ -288,6 +305,7 @@ const lenses = armStats ? {
   // model/modelTopN reuse `candidates` as-is, so only the arms that differ ship a ranking.
   rankings: {
     modelShowGap: showGapModel.scored.slice(0, 120).map(c => ({ slug: c.slug, score: c.score })),
+    modelDuenessTopN: duenessModel.scored.slice(0, 120).map(c => ({ slug: c.slug, score: c.score })),
     freq: base.freq.slice(0, 120),
     freqNoRepeat: base.freqNoRepeat.slice(0, 120),
   },

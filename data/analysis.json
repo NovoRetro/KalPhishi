@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-14T19:58:15.300Z",
+ "generated": "2026-08-14T22:58:45.194Z",
  "asOf": "2026-08-01",
  "nextShow": {
   "date": "2026-09-04",
@@ -11117,7 +11117,34 @@
     "deltaRecallVsBaseline": 0.034508023160505746,
     "se": 0.01223181027701078,
     "z": 2.8211705691153712,
-    "winRate": 0.5114942528735632
+    "winRate": 0.5114942528735632,
+    "byYear": [
+     {
+      "year": "2022",
+      "shows": 6,
+      "recall": 0.2935170884992367
+     },
+     {
+      "year": "2023",
+      "shows": 49,
+      "recall": 0.2752844599641213
+     },
+     {
+      "year": "2024",
+      "shows": 41,
+      "recall": 0.29279803623322753
+     },
+     {
+      "year": "2025",
+      "shows": 47,
+      "recall": 0.27293627790795305
+     },
+     {
+      "year": "2026",
+      "shows": 31,
+      "recall": 0.2610367084450776
+     }
+    ]
    },
    {
     "key": "modelTopN",
@@ -11131,7 +11158,81 @@
     "deltaRecallVsBaseline": 0.042603979906988367,
     "se": 0.011758562229475512,
     "z": 3.623230381023268,
-    "winRate": 0.5459770114942529
+    "winRate": 0.5459770114942529,
+    "byYear": [
+     {
+      "year": "2022",
+      "shows": 6,
+      "recall": 0.29160959799879205
+     },
+     {
+      "year": "2023",
+      "shows": 49,
+      "recall": 0.2899009408344722
+     },
+     {
+      "year": "2024",
+      "shows": 41,
+      "recall": 0.3038031164852684
+     },
+     {
+      "year": "2025",
+      "shows": 47,
+      "recall": 0.2783843081838931
+     },
+     {
+      "year": "2026",
+      "shows": 31,
+      "recall": 0.26092922912058036
+     }
+    ]
+   },
+   {
+    "key": "modelDuenessTopN",
+    "label": "Fitted dueness",
+    "blurb": "Overdue measured against each song's own cadence in days, from a curve fitted to what actually happened, replacing the hand-picked rule. No slot logic.",
+    "hasSlots": false,
+    "usesCalibration": false,
+    "precision": 0.30865449628127123,
+    "recall": 0.29242998629113,
+    "hitsPerShow": 5.247126436781609,
+    "deltaRecallVsBaseline": 0.05007074750755022,
+    "se": 0.011212209438931071,
+    "z": 4.465734231978793,
+    "winRate": 0.5402298850574713,
+    "vsNearest": {
+     "arm": "modelTopN",
+     "delta": 0.007466767600561866,
+     "se": 0.006071579536635956,
+     "z": 1.229789967422371
+    },
+    "byYear": [
+     {
+      "year": "2022",
+      "shows": 6,
+      "recall": 0.31076133764201774
+     },
+     {
+      "year": "2023",
+      "shows": 49,
+      "recall": 0.2946026012802724
+     },
+     {
+      "year": "2024",
+      "shows": 41,
+      "recall": 0.28994076394414253
+     },
+     {
+      "year": "2025",
+      "shows": 47,
+      "recall": 0.2958163513010031
+     },
+     {
+      "year": "2026",
+      "shows": 31,
+      "recall": 0.28360588042626395
+     }
+    ]
    },
    {
     "key": "modelShowGap",
@@ -11145,7 +11246,34 @@
     "deltaRecallVsBaseline": 0.007384842946946289,
     "se": 0.011344758802155597,
     "z": 0.6509475499420144,
-    "winRate": 0.41379310344827586
+    "winRate": 0.41379310344827586,
+    "byYear": [
+     {
+      "year": "2022",
+      "shows": 6,
+      "recall": 0.2469807107902584
+     },
+     {
+      "year": "2023",
+      "shows": 49,
+      "recall": 0.2505158087912242
+     },
+     {
+      "year": "2024",
+      "shows": 41,
+      "recall": 0.25523668003104244
+     },
+     {
+      "year": "2025",
+      "shows": 47,
+      "recall": 0.25536137747372184
+     },
+     {
+      "year": "2026",
+      "shows": 31,
+      "recall": 0.2332781517116881
+     }
+    ]
    },
    {
     "key": "freqNoRepeat",
@@ -11155,7 +11283,34 @@
     "usesCalibration": false,
     "precision": 0.25693035835023664,
     "recall": 0.2423592387835798,
-    "hitsPerShow": 4.367816091954023
+    "hitsPerShow": 4.367816091954023,
+    "byYear": [
+     {
+      "year": "2022",
+      "shows": 6,
+      "recall": 0.36883361154308925
+     },
+     {
+      "year": "2023",
+      "shows": 49,
+      "recall": 0.23916181769691588
+     },
+     {
+      "year": "2024",
+      "shows": 41,
+      "recall": 0.29045743919317474
+     },
+     {
+      "year": "2025",
+      "shows": 47,
+      "recall": 0.23277545745186218
+     },
+     {
+      "year": "2026",
+      "shows": 31,
+      "recall": 0.17385081628315427
+     }
+    ]
    },
    {
     "key": "freq",
@@ -11169,7 +11324,34 @@
     "deltaRecallVsBaseline": -0.11311484302026138,
     "se": 0.009355041072835045,
     "z": -12.091325109060364,
-    "winRate": 0
+    "winRate": 0,
+    "byYear": [
+     {
+      "year": "2022",
+      "shows": 6,
+      "recall": 0.14698020549476154
+     },
+     {
+      "year": "2023",
+      "shows": 49,
+      "recall": 0.13235024025208525
+     },
+     {
+      "year": "2024",
+      "shows": 41,
+      "recall": 0.14711146384919524
+     },
+     {
+      "year": "2025",
+      "shows": 47,
+      "recall": 0.12113827364963653
+     },
+     {
+      "year": "2026",
+      "shows": 31,
+      "recall": 0.10956170897247496
+     }
+    ]
    }
   ],
   "rankings": {
@@ -11653,6 +11835,488 @@
     {
      "slug": "rock-and-roll",
      "score": 11.9
+    }
+   ],
+   "modelDuenessTopN": [
+    {
+     "slug": "the-moma-dance",
+     "score": 39.1
+    },
+    {
+     "slug": "ghost",
+     "score": 39
+    },
+    {
+     "slug": "chalk-dust-torture",
+     "score": 38.8
+    },
+    {
+     "slug": "bathtub-gin",
+     "score": 38.7
+    },
+    {
+     "slug": "slave-to-the-traffic-light",
+     "score": 38.6
+    },
+    {
+     "slug": "46-days",
+     "score": 36.8
+    },
+    {
+     "slug": "wolfmans-brother",
+     "score": 36.6
+    },
+    {
+     "slug": "harry-hood",
+     "score": 36.5
+    },
+    {
+     "slug": "down-with-disease",
+     "score": 36.4
+    },
+    {
+     "slug": "piper",
+     "score": 35.2
+    },
+    {
+     "slug": "sand",
+     "score": 34.5
+    },
+    {
+     "slug": "tube",
+     "score": 33.1
+    },
+    {
+     "slug": "blaze-on",
+     "score": 31.8
+    },
+    {
+     "slug": "light",
+     "score": 31.8
+    },
+    {
+     "slug": "character-zero",
+     "score": 30.6
+    },
+    {
+     "slug": "the-wedge",
+     "score": 30.5
+    },
+    {
+     "slug": "tweezer",
+     "score": 29.8
+    },
+    {
+     "slug": "tweezer-reprise",
+     "score": 29.7
+    },
+    {
+     "slug": "twist",
+     "score": 29.1
+    },
+    {
+     "slug": "also-sprach-zarathustra",
+     "score": 29
+    },
+    {
+     "slug": "steam",
+     "score": 28.5
+    },
+    {
+     "slug": "free",
+     "score": 28.4
+    },
+    {
+     "slug": "theme-from-the-bottom",
+     "score": 28.2
+    },
+    {
+     "slug": "carini",
+     "score": 28.1
+    },
+    {
+     "slug": "run-like-an-antelope",
+     "score": 27
+    },
+    {
+     "slug": "first-tube",
+     "score": 26.4
+    },
+    {
+     "slug": "cavern",
+     "score": 26.1
+    },
+    {
+     "slug": "back-on-the-train",
+     "score": 25.5
+    },
+    {
+     "slug": "undermind",
+     "score": 24.8
+    },
+    {
+     "slug": "fuego",
+     "score": 24.5
+    },
+    {
+     "slug": "simple",
+     "score": 24.2
+    },
+    {
+     "slug": "kill-devil-falls",
+     "score": 24
+    },
+    {
+     "slug": "halleys-comet",
+     "score": 23.6
+    },
+    {
+     "slug": "whats-the-use",
+     "score": 23.2
+    },
+    {
+     "slug": "ocelot",
+     "score": 22.5
+    },
+    {
+     "slug": "split-open-and-melt",
+     "score": 22.2
+    },
+    {
+     "slug": "no-men-in-no-mans-land",
+     "score": 22.2
+    },
+    {
+     "slug": "more",
+     "score": 21.7
+    },
+    {
+     "slug": "silent-in-the-morning",
+     "score": 21.7
+    },
+    {
+     "slug": "weekapaug-groove",
+     "score": 21.6
+    },
+    {
+     "slug": "possum",
+     "score": 21.1
+    },
+    {
+     "slug": "everythings-right",
+     "score": 20.9
+    },
+    {
+     "slug": "suzy-greenberg",
+     "score": 20.4
+    },
+    {
+     "slug": "stash",
+     "score": 20.1
+    },
+    {
+     "slug": "maze",
+     "score": 20.1
+    },
+    {
+     "slug": "walls-of-the-cave",
+     "score": 20.1
+    },
+    {
+     "slug": "mercury",
+     "score": 20.1
+    },
+    {
+     "slug": "funky-bitch",
+     "score": 20
+    },
+    {
+     "slug": "fluffhead",
+     "score": 20
+    },
+    {
+     "slug": "david-bowie",
+     "score": 19.2
+    },
+    {
+     "slug": "mikes-song",
+     "score": 19.1
+    },
+    {
+     "slug": "golden-age",
+     "score": 18.8
+    },
+    {
+     "slug": "rift",
+     "score": 18.5
+    },
+    {
+     "slug": "555",
+     "score": 17.8
+    },
+    {
+     "slug": "reba",
+     "score": 17.5
+    },
+    {
+     "slug": "a-song-i-heard-the-ocean-sing",
+     "score": 16.9
+    },
+    {
+     "slug": "set-your-soul-free",
+     "score": 16.8
+    },
+    {
+     "slug": "meatstick",
+     "score": 16.8
+    },
+    {
+     "slug": "bouncing-around-the-room",
+     "score": 16.7
+    },
+    {
+     "slug": "the-horse",
+     "score": 16.7
+    },
+    {
+     "slug": "divided-sky",
+     "score": 16
+    },
+    {
+     "slug": "roggae",
+     "score": 16
+    },
+    {
+     "slug": "birds-of-a-feather",
+     "score": 15.6
+    },
+    {
+     "slug": "crosseyed-and-painless",
+     "score": 15.5
+    },
+    {
+     "slug": "gumbo",
+     "score": 15.4
+    },
+    {
+     "slug": "bug",
+     "score": 15.4
+    },
+    {
+     "slug": "say-it-to-me-santos",
+     "score": 15.2
+    },
+    {
+     "slug": "llama",
+     "score": 15.1
+    },
+    {
+     "slug": "loving-cup",
+     "score": 15
+    },
+    {
+     "slug": "backwards-down-the-number-line",
+     "score": 14.9
+    },
+    {
+     "slug": "prince-caspian",
+     "score": 14.7
+    },
+    {
+     "slug": "limb-by-limb",
+     "score": 14.3
+    },
+    {
+     "slug": "stealing-time-from-the-faulty-plan",
+     "score": 14.2
+    },
+    {
+     "slug": "runaway-jim",
+     "score": 13.9
+    },
+    {
+     "slug": "acdc-bag",
+     "score": 13.8
+    },
+    {
+     "slug": "a-life-beyond-the-dream",
+     "score": 13.7
+    },
+    {
+     "slug": "drift-while-youre-sleeping",
+     "score": 13.5
+    },
+    {
+     "slug": "golgi-apparatus",
+     "score": 13.3
+    },
+    {
+     "slug": "the-lizards",
+     "score": 13.1
+    },
+    {
+     "slug": "waste",
+     "score": 13
+    },
+    {
+     "slug": "sample-in-a-jar",
+     "score": 13
+    },
+    {
+     "slug": "evolve",
+     "score": 12.9
+    },
+    {
+     "slug": "most-events-arent-planned",
+     "score": 12.9
+    },
+    {
+     "slug": "sigma-oasis",
+     "score": 12.6
+    },
+    {
+     "slug": "nicu",
+     "score": 12.6
+    },
+    {
+     "slug": "julius",
+     "score": 12.5
+    },
+    {
+     "slug": "oblivion",
+     "score": 12.3
+    },
+    {
+     "slug": "boogie-on-reggae-woman",
+     "score": 12.1
+    },
+    {
+     "slug": "you-enjoy-myself",
+     "score": 12.1
+    },
+    {
+     "slug": "sparkle",
+     "score": 11.8
+    },
+    {
+     "slug": "ruby-waves",
+     "score": 11.8
+    },
+    {
+     "slug": "farmhouse",
+     "score": 11.8
+    },
+    {
+     "slug": "halfway-to-the-moon",
+     "score": 11.7
+    },
+    {
+     "slug": "seven-below",
+     "score": 11.7
+    },
+    {
+     "slug": "rock-and-roll",
+     "score": 11.6
+    },
+    {
+     "slug": "axilla-part-ii",
+     "score": 11.4
+    },
+    {
+     "slug": "wilson",
+     "score": 11.3
+    },
+    {
+     "slug": "mountains-in-the-mist",
+     "score": 11
+    },
+    {
+     "slug": "taste",
+     "score": 10.8
+    },
+    {
+     "slug": "scent-of-a-mule",
+     "score": 10.7
+    },
+    {
+     "slug": "a-wave-of-hope",
+     "score": 10.6
+    },
+    {
+     "slug": "scents-and-subtle-sounds",
+     "score": 10.3
+    },
+    {
+     "slug": "esther",
+     "score": 10.1
+    },
+    {
+     "slug": "the-squirming-coil",
+     "score": 10.1
+    },
+    {
+     "slug": "ether-edge",
+     "score": 10.1
+    },
+    {
+     "slug": "shade",
+     "score": 10
+    },
+    {
+     "slug": "beneath-a-sea-of-stars-part-1",
+     "score": 10
+    },
+    {
+     "slug": "timber-jerry-the-mule",
+     "score": 10
+    },
+    {
+     "slug": "punch-you-in-the-eye",
+     "score": 9.8
+    },
+    {
+     "slug": "fee",
+     "score": 9.5
+    },
+    {
+     "slug": "wading-in-the-velvet-sea",
+     "score": 9.3
+    },
+    {
+     "slug": "pebbles-and-marbles",
+     "score": 9.3
+    },
+    {
+     "slug": "no-quarter",
+     "score": 9.2
+    },
+    {
+     "slug": "the-howling",
+     "score": 9.1
+    },
+    {
+     "slug": "wingsuit",
+     "score": 8.7
+    },
+    {
+     "slug": "about-to-run",
+     "score": 8.6
+    },
+    {
+     "slug": "life-saving-gun",
+     "score": 8.6
+    },
+    {
+     "slug": "my-friend-my-friend",
+     "score": 8.4
+    },
+    {
+     "slug": "pillow-jets",
+     "score": 8.3
+    },
+    {
+     "slug": "hey-stranger",
+     "score": 8.2
     }
    ],
    "freq": [

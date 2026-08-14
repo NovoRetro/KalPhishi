@@ -2183,6 +2183,45 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       notes.push('<b>The old show-gap recency was not beating the naive baseline</b> to within '
         + 'measurement error, which is what the day curve replaced.');
     }
+
+    // The arm at the TOP of the table is the one most able to mislead, because the column it
+    // tops is the comparison against a bar every model arm clears. Its two caveats are stated
+    // here, from published figures rather than prose, because a reader who takes the top row
+    // at face value has been misled by an accurate table.
+    const due = lensByKey.get('modelDuenessTopN');
+    if (due && due.vsNearest) {
+      const vn = due.vsNearest;
+      const near = lensByKey.get(vn.arm);
+      notes.push(`<b>Fitted dueness tops this table, and it tops it by less than it looks.</b> `
+        + `Against the naive baseline it gains ${(due.deltaRecallVsBaseline * 100).toFixed(1)}pp, the most here. `
+        + `But it differs from <i>${esc(near?.label || vn.arm)}</i> in exactly one respect — where the `
+        + `dueness rule comes from — and measured straight against it the gain is `
+        + `${(vn.delta * 100 >= 0 ? '+' : '') + (vn.delta * 100).toFixed(2)}pp with a standard error of `
+        + `${(vn.se * 100).toFixed(2)}, so z ${vn.z.toFixed(2)}. By the same test as the <b>Real?</b> column, `
+        + 'that is not distinguishable from chance. It is not demonstrably better than the hand-picked rule '
+        + 'it replaces — it is fitted rather than guessed, and not worse.');
+
+      // Per-year, so "it gains" and "it gains, all of it lately" cannot be confused. Thin
+      // years are dropped from the sentence but stay in the drift table below.
+      const mine = due.byYear || [];
+      const theirs = near?.byYear || [];
+      const deltas = mine
+        .map((y, i) => ({ year: y.year, shows: y.shows, d: y.recall - (theirs[i]?.recall ?? y.recall) }))
+        .filter(x => x.shows >= 10);
+      if (deltas.length >= 2) {
+        const worst = deltas.reduce((m, x) => (x.d < m.d ? x : m), deltas[0]);
+        const last = deltas[deltas.length - 1];
+        if (worst.d < 0 && last.d > 0) {
+          notes.push('<b>And what gain there is, is recent.</b> In '
+            + `${worst.year} it was ${Math.abs(worst.d * 100).toFixed(1)}pp <i>behind</i> `
+            + `${esc(near?.label || vn.arm)}; in ${last.year} it is ${(last.d * 100).toFixed(1)}pp ahead. `
+            + 'That fits what the drift measurement below shows — as the rotation churns faster, a curve '
+            + 'refitted at every show gains on constants fixed by hand years ago — but a pattern noticed '
+            + 'after the fact is a hypothesis, not a result. The next run of shows is the test of it, and '
+            + 'this one cannot be, because it is where the pattern was found.');
+        }
+      }
+    }
     if (notes.length) nerd.appendChild(el('div', 'nz-notes', notes.map(n => `<p>${n}</p>`).join('')));
 
     nerd.appendChild(el('div', 'hint',

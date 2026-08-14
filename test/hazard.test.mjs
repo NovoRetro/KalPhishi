@@ -19,7 +19,10 @@ import {
 } from '../lib/hazard.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const model = readFileSync(join(root, 'lib/model.mjs'), 'utf8').replace(/\r\n/g, '\n');
+const read = p => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n');
+const model = read('lib/model.mjs');
+const html = read('web/index.html');
+const analysis = JSON.parse(read('data/analysis.json'));
 
 // Dates n days apart, ascending.
 const days = (start, ...gaps) => {
@@ -123,6 +126,36 @@ test('fitted and tuned dueness are alternatives, never both', () => {
   assert.match(model, /if \(duenessFitted\) \{[\s\S]*?\} else if \(s\.medianInterval\) \{/,
     'the two branches must be exclusive, not two consecutive ifs');
   assert.match(model, /\/\/ dueness vs personal cadence/, 'the block must stay findable');
+});
+
+test('the published arm carries the comparison that qualifies it', () => {
+  // It tops the table on "vs baseline", a bar every model arm clears. Shipping that number
+  // without the one against its nearest neighbour would be an accurate table that misleads.
+  const arm = (analysis.lenses?.arms || []).find(a => a.key === 'modelDuenessTopN');
+  assert.ok(arm, 'the dueness arm is not in the published menu');
+  assert.ok(arm.vsNearest, 'an arm one change away from another must publish that comparison');
+  assert.equal(arm.vsNearest.arm, 'modelTopN');
+  assert.ok(Number.isFinite(arm.vsNearest.z), 'the comparison needs its z, or it says nothing');
+  assert.ok(arm.byYear && arm.byYear.length >= 2, 'per-year recall must travel with it');
+});
+
+test('the arm never shows a Chance, because the bins were not fitted for it', () => {
+  // It replaces a scoring term outright, so its scores are a different quantity from the
+  // ones the isotonic bins were fitted on. lenses.test.mjs asserts the flag; this asserts
+  // the shipped payload agrees with it.
+  const arm = analysis.lenses.arms.find(a => a.key === 'modelDuenessTopN');
+  assert.equal(arm.usesCalibration, false);
+  assert.equal(arm.hasSlots, false, 'the measured arm is the top-N one');
+  assert.ok(analysis.lenses.rankings.modelDuenessTopN?.length, 'a selectable arm needs a ranking');
+});
+
+test('the caveats are rendered from data, not typed into the copy', () => {
+  // A hardcoded "+0.75pp" silently becomes a lie the next time the backtest runs. The note
+  // has to read the published figure, the same rule the arm table already follows.
+  assert.match(html, /due\.vsNearest/, 'the note must read the published comparison');
+  assert.match(html, /tops it by less than it looks/, 'the caveat must actually be stated');
+  assert.doesNotMatch(html, /\+?0\.75pp/, 'the delta must not be hardcoded');
+  assert.doesNotMatch(html, /z 1\.23/, 'the z must not be hardcoded');
 });
 
 test('the shipping model still uses the tuned term', () => {
