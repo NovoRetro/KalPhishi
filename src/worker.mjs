@@ -797,6 +797,85 @@ async function api(request, env, ctx, { p, m, q, url }) {
     });
   }
 
+  // ---- reach ----
+  // Who has not predicted the next open show.
+  //
+  // The entire outbound channel for this beta is a person writing in the group chat: there
+  // is no mail, no service worker and no push, deliberately (roadmap item 4). That message
+  // is the only thing that reaches a tester who has not opened the app — but it can only be
+  // aimed and checked if something answers "who is missing", and nothing did. This is that
+  // something. It sends nothing itself, on purpose: the delivery stays human.
+  //
+  // Handle-only, exactly like the moderation listing above, and for the same reason — a
+  // handle is what you need to @ somebody in a chat and is public anyway, so this widens
+  // nothing. It must never grow an email column: addresses here have never been verified,
+  // and mail is the dependency this project has avoided from the start.
+  if (p === '/api/admin/reach' && m === 'GET') {
+    if (!isAdmin(request, env)) return err(403, 'forbidden');
+
+    // Default to the next show still open, since that is the only one anybody can act on.
+    // Resolved through lockState rather than by comparing dates, so this can never disagree
+    // with the lock the POST route actually enforces. An explicit ?showdate= is allowed and
+    // may be a locked one — "who missed night one" is a fair question the morning after.
+    const showdate = q.get('showdate')
+      || Object.keys(SHOWTIMES).sort().find(d => !lockState(d).locked)
+      || null;
+    // No upcoming show at all: the honest answer is nobody is missing anything, not an error.
+    if (!showdate) return json({ show: null, totals: null, missing: [] });
+    const lock = lockState(showdate);
+
+    const { results } = await env.DB.prepare(
+      // LEFT JOIN rather than NOT IN, because the useful answer is per game: the two are
+      // scored separately and plenty of people only ever play one, so somebody missing only
+      // bingo is a different message from somebody missing both.
+      //
+      // Banned accounts are excluded like everywhere else — a list of people to go and
+      // chase is the last place one should reappear.
+      `SELECT u.name, u.handle, u.profile, u.created,
+              MAX(CASE WHEN p.type = 'setlist' THEN 1 ELSE 0 END) AS has_setlist,
+              MAX(CASE WHEN p.type = 'bingo'   THEN 1 ELSE 0 END) AS has_bingo,
+              (SELECT COUNT(*) FROM predictions a WHERE a.user_id = u.id) AS lifetime
+         FROM users u
+         LEFT JOIN predictions p ON p.user_id = u.id AND p.showdate = ?1
+        WHERE u.${NOT_BANNED}
+        GROUP BY u.id
+        ORDER BY lifetime DESC, u.created ASC`
+    ).bind(showdate).all();
+
+    const rows = results.map(r => ({
+      handle: r.handle,
+      name: publicName(r),
+      created: r.created,
+      // 0 means they have never predicted anything, which needs a different message from
+      // "you always play and haven't yet" — hence the warmest-first ordering above: those
+      // are the ones a single nudge converts.
+      lifetime: r.lifetime,
+      needs: [!r.has_setlist && 'setlist', !r.has_bingo && 'bingo'].filter(Boolean),
+    }));
+
+    return json({
+      show: {
+        showdate,
+        known: lock.known,
+        locked: lock.locked,
+        lockAt: lock.lockAt,
+        local: lock.local ?? null,
+        timeZone: lock.timeZone ?? null,
+      },
+      // The point of the counts is to be re-read after a message goes out. Nothing else in
+      // the app can currently say whether one worked.
+      totals: {
+        users: rows.length,
+        setlist: rows.filter(r => !r.needs.includes('setlist')).length,
+        bingo: rows.filter(r => !r.needs.includes('bingo')).length,
+        both: rows.filter(r => !r.needs.length).length,
+        neither: rows.filter(r => r.needs.length === 2).length,
+        neverPlayed: rows.filter(r => !r.lifetime).length,
+      },
+      missing: rows.filter(r => r.needs.length),
+    });
+  }
+
   if (p.startsWith('/api/score/') && m === 'POST') {
     if (!isAdmin(request, env)) return err(403, 'forbidden');
     const showdate = p.split('/').pop();
