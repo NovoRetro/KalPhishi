@@ -453,7 +453,11 @@ and members must already be friends.
 
 2. ~~Calibration~~ — **done 2026-08-14, and it is isotonic, not Platt.** `lib/calibration.mjs`,
    fitted by `npm run backtest`, applied in `analyze.js`. Every candidate in `analysis.json`
-   now carries `p` alongside `score`. Still no UI.
+   carries `p` alongside `score`, and **Ranked Songs shows it as a `Chance` column**
+   (2026-08-14), ahead of Score because it is the number a reader can act on. Filter and sort
+   work on it numerically — note the `numCols` indices in that `tableOf` call shifted by one
+   when the column was inserted, and a stale index there silently turns a number column into
+   a substring match rather than erroring.
 
    **Platt was tried first, as this entry originally specified, and rejected on evidence.**
    Walk-forward over 145 shows, fitted only on shows before each target:
