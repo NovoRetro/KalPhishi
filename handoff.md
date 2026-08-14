@@ -451,9 +451,43 @@ and members must already be friends.
    lead kept ≤60s, no `play()` anywhere in the preloader, and no double-fetch. None of that
    shows up as a broken feature when it regresses — it shows up as somebody else's bill.
 
-2. **Calibration** — a model change with no UI. Turn scores into probabilities via Platt
-   scaling fitted *inside* the walk-forward loop. Highest value-to-cost item on the model
-   side, and a prerequisite for anything probabilistic later. **See the caveat in step 5.**
+2. ~~Calibration~~ — **done 2026-08-14, and it is isotonic, not Platt.** `lib/calibration.mjs`,
+   fitted by `npm run backtest`, applied in `analyze.js`. Every candidate in `analysis.json`
+   now carries `p` alongside `score`. Still no UI.
+
+   **Platt was tried first, as this entry originally specified, and rejected on evidence.**
+   Walk-forward over 145 shows, fitted only on shows before each target:
+
+   | | Brier | log loss | weighted cal. error | worst bucket |
+   |---|---|---|---|---|
+   | base rate | 0.0814 | 0.3011 | — | — |
+   | Platt | 0.0794 | 0.2830 | 1.82pp | **49.6pp** |
+   | isotonic | **0.0777** | **0.2760** | **0.41pp** | **4.9pp** |
+
+   Platt beat the base rate on both aggregate metrics **and was still unusable**: it said
+   74.6% where reality was 35.0%. The aggregates improved because 76% of all candidates sit
+   in the bottom bucket, where it was fine; every bucket above ~20% was badly overconfident.
+   **This is why the reliability table is printed and not just Brier** — Brier alone would
+   have shipped it. A logistic is simply the wrong shape here: real scores flatten at the
+   top, and Platt extrapolates confidence the tail does not support.
+
+   **The honest ceiling is ~29%.** Even the highest-scoring candidate plays about three times
+   in ten. The ranking never revealed that, and it is the single most useful thing
+   calibration produced.
+
+   **The step 5 caveat is resolved by construction, not by discipline.** `p` is attached in
+   `analyze.js` AFTER `buildModel` returns — `lib/model.mjs` is untouched and never sees a
+   probability, so the four `score > 0` pool gates cannot be affected by anything here.
+   Verified: with `p` attached, the published prediction, the candidate order and every score
+   are byte-identical to the previous `analysis.json`.
+
+   **Known limitation:** the output is coarse. `MIN_BIN = 250` keeps any bin from resting on a
+   handful of shows, so the top five candidates all read 29% and the next three all read 19%.
+   Accurate but blunt. Smoothing it means more data or a different model, not a smaller bin —
+   a smaller bin buys precision the sample cannot support.
+
+   `data/calibration.json` is committed (un-ignored in `.gitignore`) because reproducing it
+   needs a 145-show walk-forward over the raw setlists, which are gitignored.
 3. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
    rehoming the era window / tour totals, rehoming the attendance toggle.
 4. **"Nerd Zone" — low priority, revisit after fall tour 2026.** A user-selectable analysis
@@ -475,7 +509,10 @@ and members must already be friends.
    - It's safe to expose at all only because predictions are graded against the real setlist,
      never against the model — so a user's mode can't touch their points or the leaderboard.
      It **would** fragment Track Record, which grades the model.
-5. **Calibration caveat.** `lib/model.mjs` gates the opener, closer, set-2-opener and encore
+5. **Calibration caveat — still live, and still the trap.** Honoured by keeping `p` out of
+   the model entirely (see step 2), but the moment somebody moves it *in* to reuse it inside
+   `assembleSetlist`, all of this applies again. `lib/model.mjs` gates the opener, closer,
+   set-2-opener and encore
    pools on `c.score > 0` (four places, in the block building `openerPool`/`closerPool`/
    `s2openPool`/`encorePool`). Score accumulates penalties from zero (−15 just played, −10
    played at last tour show, −5 for 3+ tour plays) against a base of only `freq × 30`, so

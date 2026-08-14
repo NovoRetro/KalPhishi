@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-04T10:51:07.747Z",
+ "generated": "2026-08-14T12:58:14.898Z",
  "asOf": "2026-08-01",
  "nextShow": {
   "date": "2026-09-04",
@@ -7256,6 +7256,7 @@
     "set2": 3,
     "total": 41
    },
+   "p": 0.29,
    "catalog": {
     "timesPlayed": 215,
     "debut": "1998-06-30",
@@ -7285,6 +7286,7 @@
     "set2": 1,
     "total": 39
    },
+   "p": 0.29,
    "catalog": {
     "timesPlayed": 158,
     "debut": "2003-01-02",
@@ -7314,6 +7316,7 @@
     "set2": 28,
     "total": 31
    },
+   "p": 0.29,
    "catalog": {
     "timesPlayed": 211,
     "debut": "1997-06-14",
@@ -7343,6 +7346,7 @@
     "set2": 2,
     "total": 38
    },
+   "p": 0.29,
    "catalog": {
     "timesPlayed": 321,
     "debut": "1989-05-26",
@@ -7372,6 +7376,7 @@
     "set2": 11,
     "total": 37
    },
+   "p": 0.29,
    "catalog": {
     "timesPlayed": 299,
     "debut": "1984-12-01",
@@ -7401,6 +7406,7 @@
     "set2": 4,
     "total": 41
    },
+   "p": 0.19,
    "catalog": {
     "timesPlayed": 253,
     "debut": "1994-04-04",
@@ -7430,6 +7436,7 @@
     "set2": 36,
     "total": 45
    },
+   "p": 0.19,
    "catalog": {
     "timesPlayed": 326,
     "debut": "1993-12-31",
@@ -7459,6 +7466,7 @@
     "set2": 20,
     "total": 44
    },
+   "p": 0.19,
    "catalog": {
     "timesPlayed": 99,
     "debut": "2015-07-21",
@@ -7488,6 +7496,7 @@
     "set2": 22,
     "total": 49
    },
+   "p": 0.19,
    "catalog": {
     "timesPlayed": 236,
     "debut": "1997-06-13",
@@ -7517,6 +7526,7 @@
     "set2": 35,
     "total": 48
    },
+   "p": 0.19,
    "catalog": {
     "timesPlayed": 527,
     "debut": "1991-02-01",
@@ -7546,6 +7556,7 @@
     "set2": 4,
     "total": 38
    },
+   "p": 0.19,
    "catalog": {
     "timesPlayed": 205,
     "debut": "1990-09-13",
@@ -7575,6 +7586,7 @@
     "set2": 0,
     "total": 22
    },
+   "p": 0.19,
    "catalog": {
     "timesPlayed": 69,
     "debut": "2011-06-04",
@@ -7604,6 +7616,7 @@
     "set2": 24,
     "total": 48
    },
+   "p": 0.19,
    "catalog": {
     "timesPlayed": 443,
     "debut": "1985-10-30",
@@ -7633,6 +7646,7 @@
     "set2": 10,
     "total": 39
    },
+   "p": 0.19,
    "catalog": {
     "timesPlayed": 147,
     "debut": "1999-09-09",
@@ -7663,6 +7677,7 @@
     "set2": 31,
     "total": 41
    },
+   "p": 0.19,
    "catalog": {
     "timesPlayed": 279,
     "debut": "1993-07-16",
@@ -7692,6 +7707,7 @@
     "set2": 24,
     "total": 48
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 166,
     "debut": "1999-09-11",
@@ -7721,6 +7737,7 @@
     "set2": 34,
     "total": 34
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 138,
     "debut": "2009-05-31",
@@ -7749,6 +7766,7 @@
     "set2": 8,
     "total": 20
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 136,
     "debut": "1993-02-03",
@@ -7778,6 +7796,7 @@
     "set2": 13,
     "total": 42
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 267,
     "debut": "1996-06-06",
@@ -7807,6 +7826,7 @@
     "set2": 51,
     "total": 61
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 418,
     "debut": "1990-03-28",
@@ -7836,6 +7856,7 @@
     "set2": 4,
     "total": 42
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 332,
     "debut": "1991-02-01",
@@ -7865,6 +7886,7 @@
     "set2": 0,
     "total": 16
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 72,
     "debut": "2013-10-31",
@@ -7893,6 +7915,7 @@
     "set2": 28,
     "total": 37
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 189,
     "debut": "1997-06-14",
@@ -7922,6 +7945,7 @@
     "set2": 10,
     "total": 43
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 242,
     "debut": "1995-05-16",
@@ -7950,6 +7974,7 @@
     "set2": 1,
     "total": 34
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 201,
     "debut": "1995-05-16",
@@ -7979,6 +8004,7 @@
     "set2": 23,
     "total": 43
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 160,
     "debut": "1997-02-17",
@@ -8008,6 +8034,7 @@
     "set2": 2,
     "total": 17
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 82,
     "debut": "2002-12-31",
@@ -8037,6 +8064,7 @@
     "set2": 11,
     "total": 30
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 355,
     "debut": "1989-02-17",
@@ -8066,6 +8094,7 @@
     "set2": 10,
     "total": 26
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 56,
     "debut": "2016-10-14",
@@ -8095,6 +8124,7 @@
     "set2": 7,
     "total": 33
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 495,
     "debut": "1985-04-06",
@@ -8124,6 +8154,7 @@
     "set2": 1,
     "total": 21
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 118,
     "debut": "1998-06-30",
@@ -8152,6 +8183,7 @@
     "set2": 9,
     "total": 24
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 485,
     "debut": "1990-03-28",
@@ -8181,6 +8213,7 @@
     "set2": 12,
     "total": 17
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 47,
     "debut": "2015-07-22",
@@ -8210,6 +8243,7 @@
     "set2": 5,
     "total": 40
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 171,
     "debut": "1999-06-30",
@@ -8238,6 +8272,7 @@
     "set2": 1,
     "total": 15
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 63,
     "debut": "2009-03-08",
@@ -8266,6 +8301,7 @@
     "set2": 23,
     "total": 31
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 212,
     "debut": "1994-05-27",
@@ -8295,6 +8331,7 @@
     "set2": 8,
     "total": 27
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 481,
     "debut": "1986-10-31",
@@ -8324,6 +8361,7 @@
     "set2": 3,
     "total": 29
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 31,
     "debut": "2021-08-04",
@@ -8353,6 +8391,7 @@
     "set2": 30,
     "total": 35
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 102,
     "debut": "2013-10-31",
@@ -8381,6 +8420,7 @@
     "set2": 12,
     "total": 32
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 126,
     "debut": "2009-06-02",
@@ -8409,6 +8449,7 @@
     "set2": 2,
     "total": 24
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 161,
     "debut": "1986-05-17",
@@ -8438,6 +8479,7 @@
     "set2": 11,
     "total": 12
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 53,
     "debut": "2004-06-17",
@@ -8466,6 +8508,7 @@
     "set2": 1,
     "total": 5
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 189,
     "debut": "1992-03-07",
@@ -8495,6 +8538,7 @@
     "set2": 2,
     "total": 18
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 143,
     "debut": "1998-04-02",
@@ -8523,6 +8567,7 @@
     "set2": 19,
     "total": 21
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 74,
     "debut": "1999-07-04",
@@ -8551,6 +8596,7 @@
     "set2": 0,
     "total": 14
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 104,
     "debut": "2009-05-31",
@@ -8580,6 +8626,7 @@
     "set2": 3,
     "total": 11
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 161,
     "debut": "1997-06-13",
@@ -8609,6 +8656,7 @@
     "set2": 27,
     "total": 38
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 90,
     "debut": "2015-07-21",
@@ -8638,6 +8686,7 @@
     "set2": 3,
     "total": 29
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 420,
     "debut": "1989-10-01",
@@ -8667,6 +8716,7 @@
     "set2": 4,
     "total": 26
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 499,
     "debut": "1990-01-20",
@@ -8696,6 +8746,7 @@
     "set2": 15,
     "total": 34
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 522,
     "debut": "1988-07-23",
@@ -8725,6 +8776,7 @@
     "set2": 20,
     "total": 28
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 28,
     "debut": "2023-07-11",
@@ -8754,6 +8806,7 @@
     "set2": 6,
     "total": 17
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 24,
     "debut": "2017-08-06",
@@ -8782,6 +8835,7 @@
     "set2": 9,
     "total": 19
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 456,
     "debut": "1987-02-13",
@@ -8811,6 +8865,7 @@
     "set2": 7,
     "total": 21
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 48,
     "debut": "1999-07-03",
@@ -8840,6 +8895,7 @@
     "set2": 28,
     "total": 43
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 76,
     "debut": "2017-07-14",
@@ -8869,6 +8925,7 @@
     "set2": 5,
     "total": 21
    },
+   "p": 0.18,
    "catalog": {
     "timesPlayed": 36,
     "debut": "2019-06-11",
@@ -8897,6 +8954,7 @@
     "set2": 0,
     "total": 16
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 237,
     "debut": "1986-12-06",
@@ -8926,6 +8984,7 @@
     "set2": 14,
     "total": 41
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 582,
     "debut": "1985-09-27",
@@ -8955,6 +9014,7 @@
     "set2": 1,
     "total": 19
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 19,
     "debut": "2022-12-29",
@@ -8984,6 +9044,7 @@
     "set2": 0,
     "total": 40
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 463,
     "debut": "1990-09-13",
@@ -9012,6 +9073,7 @@
     "set2": 5,
     "total": 30
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 349,
     "debut": "1992-03-06",
@@ -9041,6 +9103,7 @@
     "set2": 7,
     "total": 20
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 38,
     "debut": "2014-10-17",
@@ -9069,6 +9132,7 @@
     "set2": 8,
     "total": 29
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 293,
     "debut": "1984-12-01",
@@ -9098,6 +9162,7 @@
     "set2": 16,
     "total": 34
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 548,
     "debut": "1985-03-16",
@@ -9126,6 +9191,7 @@
     "set2": 30,
     "total": 33
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 91,
     "debut": "2009-11-27",
@@ -9155,6 +9221,7 @@
     "set2": 0,
     "total": 11
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 56,
     "debut": "2010-06-19",
@@ -9185,6 +9252,7 @@
     "set2": 3,
     "total": 24
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 412,
     "debut": "1990-03-28",
@@ -9214,6 +9282,7 @@
     "set2": 3,
     "total": 16
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 51,
     "debut": "2014-10-31",
@@ -9242,6 +9311,7 @@
     "set2": 3,
     "total": 23
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 320,
     "debut": "1990-02-25",
@@ -9270,6 +9340,7 @@
     "set2": 1,
     "total": 5
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 174,
     "debut": "1992-03-07",
@@ -9299,6 +9370,7 @@
     "set2": 4,
     "total": 15
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 20,
     "debut": "2017-07-14",
@@ -9328,6 +9400,7 @@
     "set2": 0,
     "total": 4
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 96,
     "debut": "1992-03-06",
@@ -9357,6 +9430,7 @@
     "set2": 13,
     "total": 17
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 17,
     "debut": "2023-07-21",
@@ -9386,6 +9460,7 @@
     "set2": 11,
     "total": 22
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 22,
     "debut": "2023-07-30",
@@ -9415,6 +9490,7 @@
     "set2": 7,
     "total": 13
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 98,
     "debut": "1987-02-21",
@@ -9443,6 +9519,7 @@
     "set2": 4,
     "total": 11
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 79,
     "debut": "1997-06-25",
@@ -9472,6 +9549,7 @@
     "set2": 4,
     "total": 16
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 112,
     "debut": "1984-12-01",
@@ -9500,6 +9578,7 @@
     "set2": 1,
     "total": 23
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 447,
     "debut": "1987-05-11",
@@ -9529,6 +9608,7 @@
     "set2": 14,
     "total": 16
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 50,
     "debut": "2003-07-07",
@@ -9558,6 +9638,7 @@
     "set2": 7,
     "total": 19
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 30,
     "debut": "2019-06-12",
@@ -9587,6 +9668,7 @@
     "set2": 7,
     "total": 15
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 15,
     "debut": "2023-07-12",
@@ -9615,6 +9697,7 @@
     "set2": 15,
     "total": 24
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 48,
     "debut": "2018-07-20",
@@ -9643,6 +9726,7 @@
     "set2": 20,
     "total": 21
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 73,
     "debut": "1996-10-31",
@@ -9671,6 +9755,7 @@
     "set2": 0,
     "total": 19
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 129,
     "debut": "1990-09-28",
@@ -9699,6 +9784,7 @@
     "set2": 5,
     "total": 19
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 102,
     "debut": "1999-06-30",
@@ -9728,6 +9814,7 @@
     "set2": 4,
     "total": 16
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 34,
     "debut": "2015-07-21",
@@ -9757,6 +9844,7 @@
     "set2": 0,
     "total": 6
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 221,
     "debut": "1989-11-30",
@@ -9785,6 +9873,7 @@
     "set2": 5,
     "total": 17
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 328,
     "debut": "1990-10-27",
@@ -9813,6 +9902,7 @@
     "set2": 8,
     "total": 16
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 156,
     "debut": "1993-02-03",
@@ -9842,6 +9932,7 @@
     "set2": 25,
     "total": 33
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 151,
     "debut": "2009-03-06",
@@ -9871,6 +9962,7 @@
     "set2": 18,
     "total": 21
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 27,
     "debut": "2021-08-11",
@@ -9900,6 +9992,7 @@
     "set2": 0,
     "total": 3
    },
+   "p": 0.17,
    "catalog": {
     "timesPlayed": 33,
     "debut": "2009-06-07",
@@ -9929,6 +10022,7 @@
     "set2": 12,
     "total": 39
    },
+   "p": 0.16,
    "catalog": {
     "timesPlayed": 57,
     "debut": "2018-10-31",
@@ -9958,6 +10052,7 @@
     "set2": 23,
     "total": 33
    },
+   "p": 0.16,
    "catalog": {
     "timesPlayed": 188,
     "debut": "1995-06-08",
@@ -9987,6 +10082,7 @@
     "set2": 0,
     "total": 3
    },
+   "p": 0.16,
    "catalog": {
     "timesPlayed": 310,
     "debut": "1988-08-04",
@@ -10016,6 +10112,7 @@
     "set2": 9,
     "total": 16
    },
+   "p": 0.16,
    "catalog": {
     "timesPlayed": 16,
     "debut": "2023-07-22",
@@ -10044,6 +10141,7 @@
     "set2": 11,
     "total": 32
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 45,
     "debut": "2019-06-19",
@@ -10073,6 +10171,7 @@
     "set2": 11,
     "total": 18
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 107,
     "debut": "1999-09-10",
@@ -10101,6 +10200,7 @@
     "set2": 1,
     "total": 6
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 335,
     "debut": "1991-09-25",
@@ -10129,6 +10229,7 @@
     "set2": 5,
     "total": 23
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 344,
     "debut": "1986-04-01",
@@ -10157,6 +10258,7 @@
     "set2": 3,
     "total": 6
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 53,
     "debut": "2002-12-31",
@@ -10185,6 +10287,7 @@
     "set2": 0,
     "total": 7
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 83,
     "debut": "2009-06-02",
@@ -10213,6 +10316,7 @@
     "set2": 9,
     "total": 20
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 110,
     "debut": "1996-06-06",
@@ -10241,6 +10345,7 @@
     "set2": 7,
     "total": 20
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 315,
     "debut": "1993-02-04",
@@ -10269,6 +10374,7 @@
     "set2": 8,
     "total": 20
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 486,
     "debut": "1986-10-12",
@@ -10298,6 +10404,7 @@
     "set2": 6,
     "total": 8
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 86,
     "debut": "1985-03-08",
@@ -10327,6 +10434,7 @@
     "set2": 1,
     "total": 3
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 25,
     "debut": "2013-10-31",
@@ -10356,6 +10464,7 @@
     "set2": 1,
     "total": 7
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 76,
     "debut": "1997-02-13",
@@ -10385,6 +10494,7 @@
     "set2": 0,
     "total": 3
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 30,
     "debut": "1986-04-01",
@@ -10413,6 +10523,7 @@
     "set2": 0,
     "total": 17
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 162,
     "debut": "1992-03-06",
@@ -10441,6 +10552,7 @@
     "set2": 5,
     "total": 16
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 243,
     "debut": "1994-04-04",
@@ -10469,6 +10581,7 @@
     "set2": 7,
     "total": 15
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 336,
     "debut": "1988-01-27",
@@ -10498,6 +10611,7 @@
     "set2": 14,
     "total": 41
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 51,
     "debut": "2019-12-08",
@@ -10527,6 +10641,7 @@
     "set2": 0,
     "total": 3
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 59,
     "debut": "1996-07-21",
@@ -10556,6 +10671,7 @@
     "set2": 2,
     "total": 3
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 220,
     "debut": "1989-08-12",
@@ -10585,6 +10701,7 @@
     "set2": 2,
     "total": 2
    },
+   "p": 0.14,
    "catalog": {
     "timesPlayed": 4,
     "debut": "2000-10-01",
@@ -10614,6 +10731,7 @@
     "set2": 20,
     "total": 31
    },
+   "p": 0.12,
    "catalog": {
     "timesPlayed": 627,
     "debut": "1986-02-03",
@@ -10643,6 +10761,7 @@
     "set2": 0,
     "total": 2
    },
+   "p": 0.12,
    "catalog": {
     "timesPlayed": 75,
     "debut": "1993-02-23",
@@ -10671,6 +10790,7 @@
     "set2": 4,
     "total": 11
    },
+   "p": 0.11,
    "catalog": {
     "timesPlayed": 93,
     "debut": "1997-11-16",

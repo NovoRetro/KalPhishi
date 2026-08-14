@@ -100,6 +100,7 @@ for (const a of [...albumsData].sort((x, y) => x.year - y.year)) {
 // The model itself lives in lib/model.mjs so that scripts/backtest.js re-predicts past
 // shows with the exact same code path this uses for the next one.
 const { prepareRows, buildModel } = await import('../lib/model.mjs');
+const { isoProb } = await import('../lib/calibration.mjs');
 
 const rows = prepareRows(rawRows);
 
@@ -192,8 +193,31 @@ const perShowEra = tourShows.map(d => {
 // the song, not the prediction, and the model must not read them — songs.json reflects
 // whenever it was last fetched, so a backtest that scored on them would be reading the
 // future.
+// The score -> probability map, fitted by `npm run backtest` over a walk-forward of every
+// show in the era window. Applied HERE, after buildModel has already returned, and
+// deliberately not inside the model:
+//
+//   assembleSetlist gates openerPool, closerPool, s2openPool and encorePool on `c.score > 0`.
+//   Score accumulates penalties from zero against a base of only freq*30, so a just-played
+//   song goes negative and those gates are what keep it out of the opener, closer and encore
+//   slots. A probability is never <= 0. Teaching the model about `p` at all is how somebody
+//   later swaps it for `score`, makes all four filters vacuous, and changes the predicted
+//   setlist while believing they changed only a label. Attaching it out here means the
+//   assembly logic cannot be affected — not by convention, but because it never sees it.
+//
+// Missing file is not an error: `p` simply does not appear. The site has run without it.
+let calibration = null;
+try {
+  const raw = JSON.parse(fs.readFileSync(path.join(dataDir, 'calibration.json'), 'utf8'));
+  if (raw && Array.isArray(raw.bins) && raw.bins.length) calibration = raw;
+} catch { /* not fitted yet */ }
+if (!calibration) console.log('note: data/calibration.json missing — candidates will carry no probability.');
+
 const candidates = scored.slice(0, 120).map(c => ({
   ...c,
+  // Rounded to whole percent. The measured worst-bucket error is ~5pp, so a second decimal
+  // would be advertising a precision the fit does not have.
+  p: calibration ? Math.round(isoProb(calibration, c.score) * 100) / 100 : null,
   catalog: {
     timesPlayed: catalogBySlug.get(c.slug)?.times_played ?? null,
     debut: catalogBySlug.get(c.slug)?.debut ?? null,
