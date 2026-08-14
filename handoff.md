@@ -207,7 +207,56 @@ change in place, so they keep revalidating.
 
 ## In progress
 
-**Nothing.** The working tree is clean, `main` is deployed, and there is no unmerged branch.
+**Era-bias arms for the Nerd Zone.** Requested 2026-08-14: weight songs by how prevalent they
+were in a chosen Phish era, and offer each era as an arm. Design is not settled; nothing is
+built into the model yet.
+
+**Done so far — the data exists now, which it did not before.** `scripts/fetch-eras.js` pulls
+all-time setlists; `data/setlists-<year>.json` covers **every year 1983–2026** (44 files, 79MB,
+gitignored). The model still reads only 2022+ — `scripts/backtest.js` hardcodes the year list —
+so the extra files are inert until something asks for them.
+
+**Era definitions, verified against the data. They tile Phish's performing history with zero
+orphan dates:**
+
+| era | span | shows | distinct songs | ρ vs current (4.0) |
+|---|---|---|---|---|
+| 1.0 | 1983-12-02 → 2000-10-07 | 1201 | 628 | **0.551** |
+| 2.0 | 2002-12-31 → 2004-08-15 | **63** | 222 | **0.699** |
+| 3.0 | 2009-03-06 → 2020-03-01 | 444 | 514 | **0.785** |
+| 4.0 | 2021-07-01 → present | 250 | 366 | — |
+
+**Three findings that shape whatever gets built:**
+
+- **It is viable.** Rank correlation against the current era is 0.55–0.79, nowhere near 1, so an
+  era bias genuinely reorders the *current* candidate pool rather than being a no-op. It also
+  degrades monotonically with distance in time, which is the sanity check you want.
+- **Era 2.0 is dangerously thin — 63 shows against 1.0's 1201, a 19× difference in evidence.**
+  A "10%" song in 2.0 carries a ±7.4pp confidence interval against 1.0's ±1.7pp, and 132 of its
+  222 songs have under 5 plays. Raw prevalence is **not comparable across eras**, and an arm
+  built on it would make 2.0 the loudest and noisiest option in the menu.
+- **`lib/shrinkage.mjs` is the right tool for exactly this**, and this is the case it was built
+  for. It was rejected this morning because a *common* denominator makes `(k+α)/(n+α+β)` affine
+  in `k` and therefore incapable of reordering. Across eras the denominators differ 19×, so it is
+  not affine and does real work — damping 2.0 hard while leaving 1.0 almost untouched.
+
+**Boundary handling is already correct and needs no special-casing.** The model's existing
+`prepareRows` filter (`artistid===1`, `!exclude`, `set!=='s'`) leaves exactly **2002-12-31** as
+2.0's first show, matching the era definition. The 61 dates it drops across 43 years are
+rehearsals and sessions — Anastasio's house, Fish's house, MTV Studios, NPR, a wedding — plus
+day-before festival warmups of 3–8 songs, mostly "Jam". **Every real festival performance night
+is already counted** (Clifford Ball, Big Cypress, IT, Coventry, Super Ball, Mondegreen all
+present with full `1/2/3/e` structure).
+
+**Open:** which mechanism. Candidates are an additive log-lift term (matching how `dayrepeat.mjs`
+and `hazard.mjs` already work), swapping the base frequency term, blending current and era
+frequency, or widening the candidate pool to reach songs outside the current rotation. The
+pool-widening option looks weakest: the songs it would surface are mostly one-off covers
+(`uncle-pen`, `take-the-a-train`, `amazing-grace`), not the beloved bustouts.
+
+**Expect era arms to score BELOW the shipping model** and plan the framing for that — an arm
+that predicts 2026 as though it were 1998 *should* lose. The Nerd Zone has to publish that
+honestly without it reading as a failed experiment.
 
 ## Next steps
 
@@ -279,6 +328,51 @@ percentages as indicative. The conclusion is robust to the sample.)*
 correct regardless of dependence, because expectation is linear. The current predicted setlist is
 worth ~3.7 hits and the one graded show returned 4.
 
+### 5. Festival sensitivity — FLAGGED, deliberately not imminent
+
+Raised 2026-08-14: when a future festival is announced (2027 is the plausible one), the model
+should know, and this is wanted as a contribution to the **base model** rather than as a lens.
+That distinction sets the bar — a base-model term has to clear the walk-forward, which a lens
+does not.
+
+**Festivals really do have their own centre of gravity. Measured, not assumed:**
+
+| | festivals | regular shows |
+|---|---|---|
+| shows (1983–2026) | 27 | 1931 |
+| mean songs/show | **27.6** | 20.1 |
+| distinct songs | 266 | 935 |
+
+Spearman between festival and regular prevalence is **0.747** — the same order of effect as being
+in a different *era* (1.0 vs now is 0.551, 3.0 vs now is 0.785). Most over-represented at
+festivals, against their regular rate: `when-the-circus-comes` 5.8×, `meatstick` 5.6×,
+`scents-and-subtle-sounds` 5.7×, `water-in-the-sky` 4.2×, `boogie-on-reggae-woman` 3.7×,
+`punch-you-in-the-eye` 3.4×. Detected by venue: Plattsburgh Air Force Base, Loring Commerce
+Centre, Oswego County Airport, Big Cypress, Newport State Airport, Empire Polo Club, Watkins
+Glen International, The Woodlands.
+
+**Three things a future session should not have to rediscover:**
+
+- **The model already has a partial version of this.** `isResetVenue` in `lib/tourleg.mjs` matches
+  `watkins glen|the woodlands` among others, and softens the recency penalties through
+  `RESET_VENUE_PENALTY_SCALE = 0.3`. That is festival-shaped behaviour already shipping. Extend
+  it; do not build a second concept beside it.
+- **The forward hook already exists.** `scheduleRows` is passed into `buildModel` for
+  `isNearTourGap`, so the model can already see an announced show before it happens. A declared
+  festival needs no new data plumbing — but note `tour_name` will NOT identify one: Mondegreen is
+  filed as "2024 Summer Tour". **Venue is the signal**, so a curated venue list (or an explicit
+  festival flag) is required.
+- **It cannot be validated by the current harness, and this is the blocker.** Only **4 of the 174
+  backtest shows are festivals** (Mondegreen, 2024-08-15..18). A paired test over 4 shows says
+  nothing. Options, none free: widen the backtest window backwards (all-time setlists are now
+  fetched, see `scripts/fetch-eras.js`, which would bring in 27 festival shows but changes the era
+  window the whole model is tuned on); or accept it as a lens rather than a base-model term; or
+  wait until enough festivals accumulate, which at roughly one every few years is not a plan.
+
+Widening the backtest window is the interesting option and is a bigger change than it sounds —
+every published accuracy figure in the Nerd Zone is measured over the 2022+ window, and moving it
+re-bases all of them at once.
+
 ## Key files
 
 Anchors, not line numbers — an older version of this doc cited a tagline at "line 343" that had
@@ -307,6 +401,7 @@ drifted 80 lines by the time anyone read it.
 | `scripts/build-public.js` | The deploy allowlist, content-hash stamping, publishing `_headers`. Throws if a stamp matches nothing. |
 | `scripts/backtest.js` | Dev tool. `--experiments`, `--tune`, `--tune-dueness`, `--json`. Needs gitignored raw setlists. Writes `calibration.json` and `arms.json` unconditionally. |
 | `scripts/analyze.js` | Builds `analysis.json`, including every published arm's ranking and the `lenses` block. |
+| `scripts/fetch-eras.js` | One-off crawl of all-time setlists, 1983→now, for era analysis. Kept OUT of `fetch.js` so the routine refresh does not re-walk forty years. Idempotent — skips any year already cached, and never writes a partial file on failure. |
 | `data/arms.json` | Per-arm walk-forward accuracy, **plus `vsNearest`, `byYear`, and `diagnostics`**. Committed, not published, baked into `analysis.json`. |
 | `data/calibration.json` | Fitted isotonic bins. Committed, never published. |
 | `.github/workflows/deploy.yml` | Fires on push to `main` only — no CI on branches or PRs. Deliberately does **not** run migrations. |
