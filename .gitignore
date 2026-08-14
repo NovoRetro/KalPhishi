@@ -26,6 +26,12 @@ data/*.json
 # — without this file the number could not be regenerated on a fresh clone at all.
 !data/calibration.json
 
+# Walk-forward accuracy per approach, for the Nerd Zone. Committed for the same reason as the
+# calibration above: regenerating it costs a full backtest over raw setlists that are ignored,
+# and analyze.js needs it to publish accuracy beside each ranking. Also not served — it is
+# baked into analysis.json.
+!data/arms.json
+
 # user accounts, password hashes, sessions, predictions — never publish
 data/db.json
 

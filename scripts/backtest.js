@@ -101,6 +101,7 @@ function paired(armVals, refVals) {
 const { prepareRows, buildModel } = await import('../lib/model.mjs');
 const { fitPlatt, plattProb, fitIsotonic, isoProb, brier, logLoss, reliability } =
   await import('../lib/calibration.mjs');
+const { trailingFrequency } = await import('../lib/baselines.mjs');
 
 // Accumulated (score, played) pairs from shows already walked past, the calibrator's only
 // training data. Never includes the show being predicted.
@@ -222,17 +223,10 @@ for (let i = 0; i < showDates.length; i++) {
   const predSlugs = [...M.prediction.set1, ...M.prediction.set2, ...M.prediction.encore].map(s => s.slug);
   const topNSlugs = M.scored.slice(0, N).map(c => c.slug);
 
-  // Baselines, computed from the same history.
-  const trail = priorDates.slice(-TRAIL);
-  const freqTally = new Map();
-  for (const d of trail) for (const s of setOf.get(d)) freqTally.set(s, (freqTally.get(s) || 0) + 1);
-  const byFreq = [...freqTally.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(e => e[0]);
-
-  const recentlyPlayed = new Set();
-  for (const d of trail) {
-    const days = (new Date(target) - new Date(d)) / 86_400_000;
-    if (days <= 3) for (const s of setOf.get(d)) recentlyPlayed.add(s);
-  }
+  // Baselines, computed from the same history — and from lib/baselines.mjs, which
+  // analyze.js also publishes from, so the shipped ranking and the accuracy figure printed
+  // beside it can never come from two slightly different implementations.
+  const { trail, freq: byFreq, freqNoRepeat } = trailingFrequency(setOf, priorDates, target, { trail: TRAIL });
 
   const showGap = buildModel({
     rows: history,
@@ -251,7 +245,7 @@ for (let i = 0; i < showDates.length; i++) {
       actual,
     ),
     freq: grade(byFreq.slice(0, N), actual),
-    freqNoRepeat: grade(byFreq.filter(s => !recentlyPlayed.has(s)).slice(0, N), actual),
+    freqNoRepeat: grade(freqNoRepeat.slice(0, N), actual),
   };
 
   if (EXPERIMENTS) {
@@ -572,6 +566,53 @@ if (calEval.length) {
     },
   }, null, 1) + '\n');
   console.log(`\n  wrote ${calPath}`);
+}
+
+// ---- arm accuracy, for the Nerd Zone ----
+//
+// backtest.json is a gitignored dev artifact, so these numbers have never left the terminal.
+// This is the small committed slice of them, following data/calibration.json exactly: written
+// unconditionally, committed, NOT published — analyze.js reads it and bakes the figures into
+// analysis.json beside the rankings they describe.
+//
+// Only the arms that always exist. The experiment arms come and go with --experiments and a
+// menu option whose numbers vanish depending on how the backtest was last invoked would be
+// worse than no menu option.
+{
+  const PUBLISHED_ARMS = ['model', 'modelTopN', 'modelShowGap', 'freq', 'freqNoRepeat'];
+  const refArm = 'freqNoRepeat';
+  const armsOut = {};
+  for (const k of PUBLISHED_ARMS) {
+    if (!arms[k] || !arms[k].length) continue;
+    const rec = {
+      precision: mean(arms[k].map(x => x.precision)),
+      recall: mean(arms[k].map(x => x.recall)),
+      hitsPerShow: mean(arms[k].map(x => x.hits)),
+    };
+    // Against the naive baseline rather than against the model: the question a reader has is
+    // "is this better than just counting what they played lately", and the paired SE is what
+    // says whether the gap is real or noise.
+    if (k !== refArm) {
+      const p = paired(arms[k].map(x => x.recall), arms[refArm].map(x => x.recall));
+      rec.deltaRecallVsBaseline = p.delta;
+      rec.se = p.se;
+      rec.z = p.z;
+      rec.winRate = p.winRate;
+    }
+    armsOut[k] = rec;
+  }
+  const armsPath = path.join(dataDir, 'arms.json');
+  fs.writeFileSync(armsPath, JSON.stringify({
+    generated: new Date().toISOString(),
+    shows: arms.model.length,
+    reference: refArm,
+    params: { N, TRAIL, WARMUP },
+    note: 'Walk-forward accuracy per approach. Each show is predicted using only shows before '
+      + 'it. delta/se/z are paired against the ' + refArm + ' baseline on recall; |z| under 2 '
+      + 'is not distinguishable from chance.',
+    arms: armsOut,
+  }, null, 1) + '\n');
+  console.log(`\nwrote ${armsPath} (committed — analyze.js bakes these into analysis.json)`);
 }
 
 if (WRITE_JSON) {

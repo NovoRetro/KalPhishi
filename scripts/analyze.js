@@ -101,6 +101,7 @@ for (const a of [...albumsData].sort((x, y) => x.year - y.year)) {
 // shows with the exact same code path this uses for the next one.
 const { prepareRows, buildModel } = await import('../lib/model.mjs');
 const { isoProb } = await import('../lib/calibration.mjs');
+const { setsByDate, trailingFrequency } = await import('../lib/baselines.mjs');
 
 const rows = prepareRows(rawRows);
 
@@ -124,6 +125,27 @@ const {
   showDates, totalShows, songs, tourRows, tourShows, tourSongs, tourShowIdx,
   intraTourGaps, medianRepeatGap, nextShowTourIdx, scored, prediction,
 } = M;
+
+// ---- alternative approaches, for the Nerd Zone ----
+//
+// The same five arms scripts/backtest.js has been grading over 174 shows. Published so a
+// reader can re-rank under one and see its measured accuracy beside it. Every option here
+// must be one the backtest actually measures — an unmeasured one in the same menu borrows
+// the credibility of the measured ones.
+//
+// Cheap: prepareRows and the ~9MB of setlist JSON are already paid above, so a second
+// buildModel is milliseconds, and 'shows' skips fitRepeatCurve entirely.
+const priorRows = rows.filter(r => r.showdate < NEXT_SHOW.date);
+const showGapModel = buildModel({
+  rows: priorRows,
+  target: NEXT_SHOW,
+  tourName: TOUR,
+  venueSongCounts,
+  scheduleRows,
+  recency: 'shows',
+});
+const priorDates = [...new Set(priorRows.map(r => r.showdate))].sort();
+const base = trailingFrequency(setsByDate(priorRows), priorDates, NEXT_SHOW.date, { trail: 30 });
 
 // conspicuously absent: high-frequency modern songs with 0 tour plays
 const absent = [...songs.values()]
@@ -225,6 +247,48 @@ const candidates = scored.slice(0, 120).map(c => ({
   },
 }));
 
+// Walk-forward accuracy per arm, written by `npm run backtest`. Missing is not an error —
+// the Nerd Zone simply does not render without it, which is correct: an approach menu with
+// no numbers beside it is the thing this feature exists to avoid.
+let armStats = null;
+try {
+  const raw = JSON.parse(fs.readFileSync(path.join(dataDir, 'arms.json'), 'utf8'));
+  if (raw && raw.arms) armStats = raw;
+} catch { /* not backtested yet */ }
+if (!armStats) console.log('note: data/arms.json missing — run `npm run backtest`; Nerd Zone will not render.');
+
+// Rankings ship as slugs (plus score where it means something) and are joined client-side
+// against `candidates`, which already carries every name, why and catalog fact. Repeating
+// those per arm would multiply the payload for no new information.
+//
+// `usesCalibration` is the load-bearing flag. The isotonic bins were fitted on the SHIPPING
+// model's score distribution; applying them to show-gap scores would be a mis-calibration
+// wearing a credible-looking percentage. Only the two arms that share those exact scores may
+// show a Chance.
+const LENS_ARMS = [
+  { key: 'model', label: 'Day curve', blurb: 'The shipping model: rotation, recency by calendar day, venue history, then slot-aware assembly.', hasSlots: true, usesCalibration: true, isDefault: true },
+  { key: 'modelTopN', label: 'No slot logic', blurb: 'The same scores, taken straight off the top of the list without assigning sets.', hasSlots: false, usesCalibration: true },
+  { key: 'modelShowGap', label: 'Show-gap recency', blurb: 'The model as it was before the day curve — recency counted in shows rather than days.', hasSlots: true, usesCalibration: false },
+  { key: 'freqNoRepeat', label: 'Recent, minus repeats', blurb: 'Naive baseline: most-played over the last 30 shows, minus anything played in the last 3 days.', hasSlots: false, usesCalibration: false },
+  { key: 'freq', label: 'Most played lately', blurb: 'The simplest baseline there is: most-played over the last 30 shows, nothing else.', hasSlots: false, usesCalibration: false },
+];
+
+const lenses = armStats ? {
+  measuredOver: armStats.shows,
+  reference: armStats.reference,
+  params: armStats.params,
+  arms: LENS_ARMS
+    .filter(a => armStats.arms[a.key])
+    .map(a => ({ ...a, ...armStats.arms[a.key] })),
+  // model/modelTopN reuse `candidates` as-is, so only the arms that differ ship a ranking.
+  rankings: {
+    modelShowGap: showGapModel.scored.slice(0, 120).map(c => ({ slug: c.slug, score: c.score })),
+    freq: base.freq.slice(0, 120),
+    freqNoRepeat: base.freqNoRepeat.slice(0, 120),
+  },
+  predictions: { modelShowGap: showGapModel.prediction },
+} : null;
+
 const out = {
   generated: new Date().toISOString(),
   asOf: tourShows[tourShows.length - 1],
@@ -263,6 +327,7 @@ const out = {
   },
   candidates,
   prediction,
+  lenses,
 };
 
 fs.writeFileSync(path.join(dataDir, 'analysis.json'), JSON.stringify(out, null, 1));

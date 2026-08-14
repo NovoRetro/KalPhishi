@@ -315,6 +315,28 @@
      colours encode data categories elsewhere and this is not one of them. */
   .chance { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
   .chance-none { color: var(--muted); font-weight: 400; }
+
+  /* ---- Nerd Zone ---- */
+  .nz-prose { max-width: 66ch; }
+  .nz-prose p { margin: 0 0 10px; font-size: 14px; line-height: 1.55; }
+  .nz-prose p:last-child { margin-bottom: 0; }
+  .nz-picker { margin: 6px 0 8px; }
+  .nz-blurb { margin-bottom: 12px; }
+  /* Marks the shipping arm in the comparison table without a colour, which would read as a
+     ranking of its own next to columns that already rank. */
+  .nz-ship { font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+  .nz-notes { margin-top: 12px; padding: 10px 12px; border-left: 3px solid var(--series-2);
+    background: var(--accent-wash); border-radius: 0 8px 8px 0; max-width: 66ch; }
+  .nz-notes p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; }
+  .nz-notes p:last-child { margin-bottom: 0; }
+  /* Shown on every card a lens has altered. Deliberately loud: a reader who set a lens days
+     ago must not mistake an experimental ranking for the app's actual prediction. */
+  .lens-badge { margin: 8px 0 10px; padding: 8px 10px; border-radius: 8px; font-size: 13px;
+    border: 1px solid var(--series-2); background: var(--accent-wash); }
+  .lens-reset { background: none; border: none; padding: 0 2px; font: inherit; font-size: 13px;
+    color: var(--series-1); text-decoration: underline; cursor: pointer; }
+  @media (max-width: 560px) { .lens-reset { padding: 8px 2px; min-height: 44px; } }
   .sharebar { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
   .sharebar i { display: inline-block; height: 8px; background: var(--series-1); border-radius: 4px; }
   #tooltip { position: fixed; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; max-width: 300px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); display: none; z-index: 10; }
@@ -1538,22 +1560,93 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
 
   const app = document.getElementById('app');
 
+  // ---- lenses (see the Nerd Zone card below) ----
+  //
+  // A lens re-ranks the Data views under one of the approaches scripts/backtest.js grades.
+  // It never reaches the games: Our Prediction always fills from the shipping model, so a
+  // lens cannot influence a saved prediction or a point. Track Record is likewise pinned —
+  // it records predictions actually published, and no other arm has ever published one.
+  const LENS_DEFAULT = 'model';
+  const lensArms = (A.lenses && A.lenses.arms) || [];
+  const lensByKey = new Map(lensArms.map(a => [a.key, a]));
+  let lens = (() => {
+    try {
+      const v = localStorage.getItem('bb-lens');
+      return lensByKey.has(v) ? v : LENS_DEFAULT;
+    } catch { return LENS_DEFAULT; }   // private mode
+  })();
+  const lensArm = () => lensByKey.get(lens) || lensByKey.get(LENS_DEFAULT) || null;
+  const lensIsDefault = () => lens === LENS_DEFAULT || !lensByKey.has(lens);
+
+  // Shown on every card a lens has altered. Without it a reader who set a lens days ago
+  // reads an experimental ranking as the app's actual prediction — the one way this feature
+  // could mislead rather than inform.
+  function lensBadge() {
+    const a = lensArm();
+    return el('div', 'lens-badge',
+      `Viewing under <b>${esc(a.label)}</b> — not the shipping model. `
+      + `<button class="lens-reset" type="button">Back to Day curve</button>`);
+  }
+
+  // Baseline rankings ship as bare slugs, and a baseline can surface a song the model never
+  // ranked, so names come from every source that has them rather than from candidates alone.
+  const nameBySlug = new Map();
+  for (const c of A.candidates || []) nameBySlug.set(c.slug, c.name);
+  for (const t of A.horizontal?.tourSongs || []) if (!nameBySlug.has(t.slug)) nameBySlug.set(t.slug, t.name);
+
+  // The candidate list as the current lens orders it. model/modelTopN share the shipping
+  // scores, so they reuse `candidates` untouched.
+  function lensCandidates() {
+    const ranking = !lensIsDefault() && A.lenses?.rankings?.[lens];
+    if (!ranking) return A.candidates;
+    const bySlug = new Map((A.candidates || []).map(c => [c.slug, c]));
+    return ranking.map(x => {
+      const slug = typeof x === 'string' ? x : x.slug;
+      const known = bySlug.get(slug);
+      return {
+        ...(known || { slug, name: nameBySlug.get(slug) || slug, why: [], eraFreq: null, currentGap: null, medianInterval: null, tourPlays: null }),
+        score: typeof x === 'string' ? null : x.score,
+        // Never under a lens the calibration was not fitted for — see the Nerd Zone copy.
+        p: lensArm()?.usesCalibration ? known?.p ?? null : null,
+      };
+    });
+  }
+
+  // The predicted setlist under the current lens. Arms without slot logic have no sets to
+  // give, so they hand back a flat top-17 and the card says so rather than inventing one.
+  function lensPrediction() {
+    const arm = lensArm();
+    if (!arm || arm.key === 'model') return { sets: A.prediction, hasSlots: true };
+    if (arm.hasSlots && A.lenses?.predictions?.[arm.key]) {
+      return { sets: A.lenses.predictions[arm.key], hasSlots: true };
+    }
+    return { flat: lensCandidates().slice(0, 17), hasSlots: false };
+  }
+
   // ---- predicted setlist marquee
   const pred = el('div', 'card marquee');
-  pred.appendChild(el('h2', null, `Predicted setlist — ${esc(fmtDate(A.nextShow.date))} ${esc(A.nextShow.venue)} <span class="hint">(hover or tap a song for reasoning)</span>`));
-  // Prediction entries carry name/slug/score/why and deliberately not `p` — assembleSetlist
-  // never sees a probability, which is what keeps the four `score > 0` pool gates safe. So
-  // the chance is looked up by slug here instead. Built once rather than per set.
-  //
-  // A miss is possible and must not render as blank: when a slot pool comes up empty
-  // assembleSetlist falls back to the whole scored list, which can reach past the 120
-  // candidates published in analysis.json.
-  const chanceBySlug = new Map((A.candidates || []).filter(c => c.p != null).map(c => [c.slug, c.p]));
-  for (const [label, list] of [['Set 1', A.prediction.set1], ['Set 2', A.prediction.set2], ['Encore', A.prediction.encore]]) {
-    pred.appendChild(el('div', 'setlabel', label));
-    const row = el('div', 'setlist');
+  pred.dataset.section = 'Predicted Setlist';
+
+  // Refills IN PLACE. `sections` (below) is a one-time snapshot of app.children, so replacing
+  // this element with a new node would orphan the snapshot and the card would stop hiding.
+  function fillPredicted() {
+    pred.innerHTML = '';
+    const arm = lensArm();
+    pred.appendChild(el('h2', null, `Predicted setlist — ${esc(fmtDate(A.nextShow.date))} ${esc(A.nextShow.venue)} <span class="hint">(hover or tap a song for reasoning)</span>`));
+    if (!lensIsDefault() && arm) pred.appendChild(lensBadge());
+
+    // Prediction entries carry name/slug/score/why and deliberately not `p` —
+    // assembleSetlist never sees a probability, which is what keeps the four `score > 0`
+    // pool gates safe. So the chance is looked up by slug here instead.
+    //
+    // A miss is possible and must not render as blank: when a slot pool comes up empty
+    // assembleSetlist falls back to the whole scored list, which can reach past the 120
+    // candidates published in analysis.json.
+    const chanceBySlug = new Map(
+      arm?.usesCalibration ? (A.candidates || []).filter(c => c.p != null).map(c => [c.slug, c.p]) : [],
+    );
     const albumBySong = new Map((A.albums?.predictionMix || []).map(m => [m.song, m]));
-    list.forEach((s, i) => {
+    const songSpan = (s, sep) => {
       const sp = el('span', 's song', esc(s.name));
       const am = albumBySong.get(s.name);
       const albumNote = am && am.album ? ` · ${am.album} (${am.year})` : '';
@@ -1561,16 +1654,39 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       // reason: one of these is a number a reader can use and the other is the unit that
       // produced the ordering.
       const cp = chanceBySlug.get(s.slug);
-      const head = cp == null
-        ? `${s.name} — score ${s.score}`
-        : `${s.name} — ${Math.round(cp * 100)}% chance · score ${s.score}`;
-      bindTip(sp, head, (s.why.join('; ') || 'rotation strength') + albumNote);
-      row.appendChild(sp);
-      if (i < list.length - 1) row.appendChild(el('span', 't', label === 'Encore' ? ',' : '&gt;'));
-    });
-    pred.appendChild(row);
+      const bits = [];
+      if (cp != null) bits.push(`${Math.round(cp * 100)}% chance`);
+      if (s.score != null) bits.push(`score ${s.score}`);
+      bindTip(sp, bits.length ? `${s.name} — ${bits.join(' · ')}` : s.name,
+        ((s.why || []).join('; ') || 'rotation strength') + albumNote);
+      return sp;
+    };
+
+    const P = lensPrediction();
+    if (P.hasSlots) {
+      for (const [label, list] of [['Set 1', P.sets.set1], ['Set 2', P.sets.set2], ['Encore', P.sets.encore]]) {
+        pred.appendChild(el('div', 'setlabel', label));
+        const row = el('div', 'setlist');
+        list.forEach((s, i) => {
+          row.appendChild(songSpan(s));
+          if (i < list.length - 1) row.appendChild(el('span', 't', label === 'Encore' ? ',' : '&gt;'));
+        });
+        pred.appendChild(row);
+      }
+    } else {
+      pred.appendChild(el('div', 'setlabel', 'Top 17'));
+      const row = el('div', 'setlist');
+      P.flat.forEach((s, i) => {
+        row.appendChild(songSpan(s));
+        if (i < P.flat.length - 1) row.appendChild(el('span', 't', ','));
+      });
+      pred.appendChild(row);
+      pred.appendChild(el('div', 'hint',
+        'This approach ranks songs but does not assign them to sets — the slot logic belongs '
+        + 'to the model arms, so there is no opener, closer or encore here. That gap is itself '
+        + 'the measurement: compare its accuracy against Day curve in the Nerd Zone.'));
+    }
   }
-  pred.dataset.section = 'Predicted Setlist';
 
   // Both read by renderTabs, and both reachable from initPredictor's onModeChange before
   // the tab code below runs — see the note at the initPredictor call.
@@ -1588,6 +1704,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   const track = el('div', 'card card-overflow');
   track.dataset.section = 'Predicted Setlist';
 
+  fillPredicted();
   app.appendChild(up);
   app.appendChild(pred);
   app.appendChild(track);
@@ -1869,8 +1986,16 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   // ---- candidates table
   const c = el('div', 'card');
   c.dataset.section = 'Ranked Songs';
+
+  // Refilled in place on a lens change, for the same reason as the predicted setlist card:
+  // `sections` holds this exact element reference.
+  function fillRanked() {
+  c.innerHTML = '';
+  const arm = lensArm();
+  const rows = lensCandidates();
   c.appendChild(el('h2', null, 'All candidates <span class="hint">— ranked by combined horizontal + vertical score. '
     + 'Chance is that score calibrated against past shows. Tap a song for its best-loved version; hover or tap a Why to read it in full.</span>'));
+  if (!lensIsDefault() && arm) c.appendChild(lensBadge());
 
   // The name IS the control, rather than a name plus a play chip beside it — the chip cost
   // width in every one of 60 rows to say what the link already says.
@@ -1892,7 +2017,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
 
   const candTable = tableOf(
     ['#', 'Song', 'Chance', 'Score', 'Era freq', 'Shows since', 'Cadence', 'Tour plays', 'Why'],
-    A.candidates.slice(0, 60).map((x, i) => [
+    rows.slice(0, 60).map((x, i) => [
       num(i + 1),
       songCell(x),
       // Ahead of Score on purpose: this is the column a reader can actually use. Score is
@@ -1901,12 +2026,12 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       // decimal would be advertising precision the fit does not have.
       x.p == null ? '<span class="num chance chance-none">—</span>'
         : `<span class="num chance">${Math.round(x.p * 100)}%</span>`,
-      `<span class="score">${x.score}</span>`,
+      x.score == null ? '<span class="num chance-none">—</span>' : `<span class="score">${x.score}</span>`,
       pct(x.eraFreq), num(x.currentGap), num(x.medianInterval), num(x.tourPlays),
       // Full text, clamped to one line by CSS — see .why-trunc. The reason travels in a
       // data attribute too, so the tip reads it without depending on what the clamp left
       // visible.
-      `<span class="why why-trunc" data-song="${esc(x.name)}" data-why="${esc(x.why.join('; '))}">${esc(x.why.join('; '))}</span>`,
+      `<span class="why why-trunc" data-song="${esc(x.name)}" data-why="${esc((x.why || []).join('; '))}">${esc((x.why || []).join('; '))}</span>`,
       // Shifted by one from [0,2,3,4,5,6]: inserting Chance at index 2 moved every numeric
       // column after it. These drive right-alignment AND the numeric filter/sort mode, so a
       // stale index silently turns a number column into a substring match.
@@ -1915,7 +2040,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   // Where Chance comes from, and what it is not. Both halves matter: without the first it
   // reads as a number somebody made up, and without the second the repeated values in the
   // middle of the table read as a bug rather than as the fit declining to pretend.
-  if (A.candidates.some(x => x.p != null)) {
+  if (rows.some(x => x.p != null)) {
     c.appendChild(el('div', 'hint',
       'Chance is measured, not asserted: every past show in the era window was re-predicted '
       + 'using only what was known beforehand, and each score was scored against what actually '
@@ -1924,6 +2049,15 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       + 'this list plays about three times in ten. Songs sharing a Chance are songs the '
       + 'calibration cannot honestly separate, which is most of the middle of the table — '
       + 'the ranking there is finer than the evidence behind it.'));
+  } else if (arm && !arm.usesCalibration) {
+    // Not a gap to be filled later — showing a Chance here would be actively wrong. The
+    // isotonic bins were fitted on the shipping model's score distribution; run them over a
+    // different arm's scores and the number is a mis-calibration wearing a credible label.
+    c.appendChild(el('div', 'hint',
+      `Chance is blank under <b>${esc(arm.label)}</b>. The calibration was fitted on the `
+      + 'shipping model\'s scores, and applying it to a different approach\'s scores would '
+      + 'produce a confident-looking number with nothing behind it. The ranking is still this '
+      + 'approach\'s own, and its measured accuracy is in the Nerd Zone.'));
   }
   // Bound after the table exists, since tableOf builds its cells from HTML strings and
   // there is no node to hand a listener to until it has run.
@@ -1931,7 +2065,134 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     bindTip(cell, cell.dataset.song, cell.dataset.why);
   }
   if (window.KalphishiListen) window.KalphishiListen.bind(c);
+  }
+  fillRanked();
   app.appendChild(c);
+
+  // ---- nerd zone
+  //
+  // Appended here, with the other cards, because `sections` below is a ONE-TIME snapshot of
+  // app.children. A card appended after that line is never in the show/hide loop and would
+  // render on every sub-tab at once.
+  // Plain `card`, NOT card-overflow: `.card` carries overflow-x:auto, which gives the
+  // comparison table its own scroller. card-overflow sets overflow:visible for cards whose
+  // content must escape the box, and here that let a 445px table push the page sideways on
+  // a 375px phone.
+  const nerd = el('div', 'card');
+  nerd.dataset.section = 'Nerd Zone';
+  nerd.appendChild(el('h2', null, 'Nerd zone <span class="hint">— how the prediction is made, and what happens if you make it differently.</span>'));
+
+  nerd.appendChild(el('div', 'nz-prose',
+    '<p><b>Two slices.</b> Horizontally, what this tour has been playing and how long it has '
+    + 'been since each song came round — every song has its own cadence, and being overdue '
+    + 'against <i>its own</i> cadence matters more than being rare. Vertically, what this band '
+    + 'plays <i>at this venue</i>, which is a real signal at a room they return to.</p>'
+    + '<p><b>A score, then a setlist.</b> Each candidate accumulates a score: era frequency as '
+    + 'the base, plus dueness, venue history and a bonus for conspicuous absence, minus '
+    + 'penalties for having just been played or already appearing three times this tour. Then '
+    + 'the songs are assembled into sets — openers, closers and encores are drawn from songs '
+    + 'that historically hold those slots, rather than just taking the top of the list.</p>'
+    + '<p><b>A probability, separately.</b> The score is an arbitrary unit — 44 is not "twice '
+    + 'as likely" as 22. Calibration maps it onto real probabilities by re-predicting every '
+    + 'past show and checking what actually played. It is <i>monotonic</i>, so it never '
+    + 'reorders anything; it only attaches a meaning to the number.</p>'
+    + '<p><b>How any of this is checked.</b> Every approach below was run against '
+    + `${A.lenses ? A.lenses.measuredOver : 0} past shows, one at a time, each predicted using `
+    + '<i>only</i> what was known before it. The model throws rather than proceed if it is '
+    + 'ever handed a row dated on or after the show it is predicting, so a good number here '
+    + 'cannot come from having seen the answer.</p>'));
+
+  if (A.lenses && A.lenses.arms.length) {
+    nerd.appendChild(el('div', 'setlabel', 'Pick an approach'));
+    const picker = el('div', 'p-modes nz-picker');
+    nerd.appendChild(picker);
+    const blurb = el('div', 'hint nz-blurb');
+    nerd.appendChild(blurb);
+
+    // Ordered by measured recall, so the menu itself reports the finding rather than
+    // flattering the shipping default by putting it first.
+    const ordered = [...A.lenses.arms].sort((x, y) => y.recall - x.recall);
+    const ref = A.lenses.reference;
+    // One decimal, unlike pct() elsewhere. The gaps between these arms are around a single
+    // point, and rounding to whole percent renders the two closest as the same number —
+    // which turned the finding below into the sentence "28% against 28%".
+    const pct1 = v => (v * 100).toFixed(1) + '%';
+    nerd.appendChild(tableOf(
+      ['Approach', 'Precision', 'Recall', 'Hits/show', 'vs baseline', 'Real?'],
+      ordered.map(a => [
+        `${esc(a.label)}${a.isDefault ? ' <span class="nz-ship">shipping</span>' : ''}`,
+        pct1(a.precision), pct1(a.recall), a.hitsPerShow.toFixed(2),
+        a.key === ref ? '<span class="chance-none">baseline</span>'
+          : `${a.deltaRecallVsBaseline >= 0 ? '+' : ''}${(a.deltaRecallVsBaseline * 100).toFixed(1)}pp`,
+        a.key === ref ? '<span class="chance-none">—</span>'
+          : Math.abs(a.z) >= 2 ? '<b>yes</b>' : '<span class="chance-none">noise</span>',
+      ]), [1, 2, 3, 4]));
+
+    nerd.appendChild(el('div', 'hint',
+      `Measured over ${A.lenses.measuredOver} shows. <b>vs baseline</b> is the recall gap `
+      + `against <i>${esc(lensByKey.get(ref)?.label || ref)}</i>, the naive "play what they have `
+      + 'been playing" approach. <b>Real?</b> asks whether that gap is bigger than two standard '
+      + 'errors — under that, it is not distinguishable from chance, however large it looks.'));
+
+    // The two findings a reader should not have to derive from the table themselves.
+    const topN = lensByKey.get('modelTopN');
+    const shipping = lensByKey.get('model');
+    const gap = lensByKey.get('modelShowGap');
+    const notes = [];
+    if (topN && shipping && topN.recall > shipping.recall) {
+      notes.push('<b>The slot logic currently costs accuracy.</b> Taking the top of the list '
+        + `and ignoring sets scores ${pct1(topN.recall)} recall against the assembled setlist's `
+        + `${pct1(shipping.recall)}. The assembly is what makes a readable setlist with an `
+        + `opener and an encore, and it is paying about ${(topN.hitsPerShow - shipping.hitsPerShow).toFixed(2)} `
+        + 'hits a show for it.');
+    }
+    if (gap && Math.abs(gap.z) < 2) {
+      notes.push('<b>The old show-gap recency was not beating the naive baseline</b> to within '
+        + 'measurement error, which is what the day curve replaced.');
+    }
+    if (notes.length) nerd.appendChild(el('div', 'nz-notes', notes.map(n => `<p>${n}</p>`).join('')));
+
+    nerd.appendChild(el('div', 'hint',
+      'Choosing an approach re-ranks <b>Predicted Setlist</b> and <b>All candidates</b>. It '
+      + 'does not touch the games — Our Prediction always fills from the shipping model — and '
+      + 'it cannot affect your points, which are graded against the real setlist and never '
+      + 'against the model. <b>Track record</b> stays on the shipping model too: it records '
+      + 'predictions that were actually published before a show, and no other approach here '
+      + 'has ever published one.'));
+
+    // Repainted rather than rebuilt, so the card keeps its scroll position on a change.
+    function paintPicker() {
+      picker.innerHTML = '';
+      for (const a of ordered) {
+        const b = el('button', 'p-mode' + (a.key === lens ? ' active' : ''), esc(a.label));
+        b.addEventListener('click', () => setLens(a.key));
+        picker.appendChild(b);
+      }
+      const a = lensArm();
+      blurb.innerHTML = a ? `${esc(a.blurb)}` : '';
+    }
+    paintPicker();
+
+    // eslint-disable-next-line no-inner-declarations
+    function setLens(key) {
+      if (!lensByKey.has(key)) return;
+      lens = key;
+      try { localStorage.setItem('bb-lens', key); } catch { /* private mode */ }
+      paintPicker();
+      fillPredicted();
+      fillRanked();
+    }
+    // The badge on each re-ranked card offers the way back, and it is rebuilt on every
+    // refill, so the listener is delegated from the app root rather than bound per badge.
+    app.addEventListener('click', ev => {
+      if (ev.target.closest('.lens-reset')) setLens(LENS_DEFAULT);
+    });
+  } else {
+    nerd.appendChild(el('div', 'hint',
+      'Approach comparison is unavailable — data/arms.json has not been generated. '
+      + 'Run <code>npm run backtest</code>.'));
+  }
+  app.appendChild(nerd);
 
   // ---- play a show
   //
@@ -2102,7 +2363,10 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     { name: 'Phish Bingo', mode: 'bingo' },
     { name: 'Setlist Bets', mode: 'setlist' },
   ];
-  const DATA_TABS = ['Predicted Setlist', 'Song Rotation', 'Album Coverage', 'Venue History', 'Ranked Songs'];
+  // Six now. The mobile grid is repeat(3, 1fr), so six pills fill it 3+3 with no trailing
+  // gap — measured, no CSS change needed. These strings are matched character-for-character
+  // against each card's dataset.section; a typo makes a pill that shows nothing.
+  const DATA_TABS = ['Predicted Setlist', 'Song Rotation', 'Album Coverage', 'Venue History', 'Ranked Songs', 'Nerd Zone'];
   let activeTab = GAME_TABS[0].name;
   let activeDataTab = DATA_TABS[0];
 

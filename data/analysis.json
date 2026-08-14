@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-14T12:58:14.898Z",
+ "generated": "2026-08-14T14:34:44.293Z",
  "asOf": "2026-08-01",
  "nextShow": {
   "date": "2026-09-04",
@@ -10982,5 +10982,996 @@
     ]
    }
   ]
+ },
+ "lenses": {
+  "measuredOver": 174,
+  "reference": "freqNoRepeat",
+  "params": {
+   "N": 17,
+   "TRAIL": 30,
+   "WARMUP": 40
+  },
+  "arms": [
+   {
+    "key": "model",
+    "label": "Day curve",
+    "blurb": "The shipping model: rotation, recency by calendar day, venue history, then slot-aware assembly.",
+    "hasSlots": true,
+    "usesCalibration": true,
+    "isDefault": true,
+    "precision": 0.29276538201487506,
+    "recall": 0.27686726194408573,
+    "hitsPerShow": 4.977011494252873,
+    "deltaRecallVsBaseline": 0.034508023160505746,
+    "se": 0.01223181027701078,
+    "z": 2.8211705691153712,
+    "winRate": 0.5114942528735632
+   },
+   {
+    "key": "modelTopN",
+    "label": "No slot logic",
+    "blurb": "The same scores, taken straight off the top of the list without assigning sets.",
+    "hasSlots": false,
+    "usesCalibration": true,
+    "precision": 0.30121703853955395,
+    "recall": 0.28496321869056823,
+    "hitsPerShow": 5.120689655172414,
+    "deltaRecallVsBaseline": 0.042603979906988367,
+    "se": 0.011758562229475512,
+    "z": 3.623230381023268,
+    "winRate": 0.5459770114942529
+   },
+   {
+    "key": "modelShowGap",
+    "label": "Show-gap recency",
+    "blurb": "The model as it was before the day curve — recency counted in shows rather than days.",
+    "hasSlots": true,
+    "usesCalibration": false,
+    "precision": 0.26369168356997974,
+    "recall": 0.2497440817305262,
+    "hitsPerShow": 4.482758620689655,
+    "deltaRecallVsBaseline": 0.007384842946946289,
+    "se": 0.011344758802155597,
+    "z": 0.6509475499420144,
+    "winRate": 0.41379310344827586
+   },
+   {
+    "key": "freqNoRepeat",
+    "label": "Recent, minus repeats",
+    "blurb": "Naive baseline: most-played over the last 30 shows, minus anything played in the last 3 days.",
+    "hasSlots": false,
+    "usesCalibration": false,
+    "precision": 0.25693035835023664,
+    "recall": 0.2423592387835798,
+    "hitsPerShow": 4.367816091954023
+   },
+   {
+    "key": "freq",
+    "label": "Most played lately",
+    "blurb": "The simplest baseline there is: most-played over the last 30 shows, nothing else.",
+    "hasSlots": false,
+    "usesCalibration": false,
+    "precision": 0.13387423935091256,
+    "recall": 0.12924439576331828,
+    "hitsPerShow": 2.2758620689655173,
+    "deltaRecallVsBaseline": -0.11311484302026138,
+    "se": 0.009355041072835045,
+    "z": -12.091325109060364,
+    "winRate": 0
+   }
+  ],
+  "rankings": {
+   "modelShowGap": [
+    {
+     "slug": "the-moma-dance",
+     "score": 48.3
+    },
+    {
+     "slug": "46-days",
+     "score": 48
+    },
+    {
+     "slug": "piper",
+     "score": 45.1
+    },
+    {
+     "slug": "bathtub-gin",
+     "score": 44.3
+    },
+    {
+     "slug": "slave-to-the-traffic-light",
+     "score": 43.6
+    },
+    {
+     "slug": "wolfmans-brother",
+     "score": 41
+    },
+    {
+     "slug": "down-with-disease",
+     "score": 40.8
+    },
+    {
+     "slug": "blaze-on",
+     "score": 39.8
+    },
+    {
+     "slug": "tube",
+     "score": 38
+    },
+    {
+     "slug": "steam",
+     "score": 36.9
+    },
+    {
+     "slug": "first-tube",
+     "score": 35.6
+    },
+    {
+     "slug": "also-sprach-zarathustra",
+     "score": 34.6
+    },
+    {
+     "slug": "the-wedge",
+     "score": 30.8
+    },
+    {
+     "slug": "555",
+     "score": 29.7
+    },
+    {
+     "slug": "harry-hood",
+     "score": 29.6
+    },
+    {
+     "slug": "twist",
+     "score": 28.2
+    },
+    {
+     "slug": "theme-from-the-bottom",
+     "score": 27.8
+    },
+    {
+     "slug": "walls-of-the-cave",
+     "score": 27.6
+    },
+    {
+     "slug": "split-open-and-melt",
+     "score": 27.3
+    },
+    {
+     "slug": "more",
+     "score": 26.9
+    },
+    {
+     "slug": "roggae",
+     "score": 26.5
+    },
+    {
+     "slug": "cavern",
+     "score": 26.4
+    },
+    {
+     "slug": "mercury",
+     "score": 25.8
+    },
+    {
+     "slug": "undermind",
+     "score": 25.1
+    },
+    {
+     "slug": "simple",
+     "score": 24.4
+    },
+    {
+     "slug": "david-bowie",
+     "score": 24.3
+    },
+    {
+     "slug": "evolve",
+     "score": 24.1
+    },
+    {
+     "slug": "halleys-comet",
+     "score": 23.9
+    },
+    {
+     "slug": "a-song-i-heard-the-ocean-sing",
+     "score": 23.8
+    },
+    {
+     "slug": "silent-in-the-morning",
+     "score": 23.7
+    },
+    {
+     "slug": "birds-of-a-feather",
+     "score": 23.5
+    },
+    {
+     "slug": "whats-the-use",
+     "score": 23.4
+    },
+    {
+     "slug": "ocelot",
+     "score": 22.5
+    },
+    {
+     "slug": "limb-by-limb",
+     "score": 22.4
+    },
+    {
+     "slug": "reba",
+     "score": 22.2
+    },
+    {
+     "slug": "ghost",
+     "score": 22.1
+    },
+    {
+     "slug": "chalk-dust-torture",
+     "score": 21.9
+    },
+    {
+     "slug": "bouncing-around-the-room",
+     "score": 21.8
+    },
+    {
+     "slug": "free",
+     "score": 21.5
+    },
+    {
+     "slug": "oblivion",
+     "score": 21.5
+    },
+    {
+     "slug": "halfway-to-the-moon",
+     "score": 21.3
+    },
+    {
+     "slug": "most-events-arent-planned",
+     "score": 21.3
+    },
+    {
+     "slug": "carini",
+     "score": 21.2
+    },
+    {
+     "slug": "martian-monster",
+     "score": 21.1
+    },
+    {
+     "slug": "suzy-greenberg",
+     "score": 20.7
+    },
+    {
+     "slug": "mountains-in-the-mist",
+     "score": 20.7
+    },
+    {
+     "slug": "drift-while-youre-sleeping",
+     "score": 20.4
+    },
+    {
+     "slug": "funky-bitch",
+     "score": 20.2
+    },
+    {
+     "slug": "hey-stranger",
+     "score": 20.2
+    },
+    {
+     "slug": "run-like-an-antelope",
+     "score": 20.1
+    },
+    {
+     "slug": "sleeping-monkey",
+     "score": 20.1
+    },
+    {
+     "slug": "maze",
+     "score": 19.7
+    },
+    {
+     "slug": "plasma",
+     "score": 19.6
+    },
+    {
+     "slug": "fluffhead",
+     "score": 19.6
+    },
+    {
+     "slug": "runaway-jim",
+     "score": 19
+    },
+    {
+     "slug": "rift",
+     "score": 18.7
+    },
+    {
+     "slug": "the-horse",
+     "score": 18.7
+    },
+    {
+     "slug": "back-on-the-train",
+     "score": 18.6
+    },
+    {
+     "slug": "set-your-soul-free",
+     "score": 18.4
+    },
+    {
+     "slug": "leaves",
+     "score": 18.3
+    },
+    {
+     "slug": "lawn-boy",
+     "score": 17.8
+    },
+    {
+     "slug": "fuego",
+     "score": 17.6
+    },
+    {
+     "slug": "pillow-jets",
+     "score": 17.6
+    },
+    {
+     "slug": "life-saving-gun",
+     "score": 17.6
+    },
+    {
+     "slug": "kill-devil-falls",
+     "score": 17.5
+    },
+    {
+     "slug": "lonely-trip",
+     "score": 17.4
+    },
+    {
+     "slug": "sugar-shack",
+     "score": 17.4
+    },
+    {
+     "slug": "boogie-on-reggae-woman",
+     "score": 17.2
+    },
+    {
+     "slug": "sand",
+     "score": 17.1
+    },
+    {
+     "slug": "meatstick",
+     "score": 17
+    },
+    {
+     "slug": "poor-heart",
+     "score": 17
+    },
+    {
+     "slug": "cities",
+     "score": 16.5
+    },
+    {
+     "slug": "divided-sky",
+     "score": 16.2
+    },
+    {
+     "slug": "scents-and-subtle-sounds",
+     "score": 16.2
+    },
+    {
+     "slug": "about-to-run",
+     "score": 16.2
+    },
+    {
+     "slug": "ether-edge",
+     "score": 16.1
+    },
+    {
+     "slug": "stealing-time-from-the-faulty-plan",
+     "score": 16
+    },
+    {
+     "slug": "gumbo",
+     "score": 15.7
+    },
+    {
+     "slug": "bug",
+     "score": 15.7
+    },
+    {
+     "slug": "sneakin-sally-thru-the-alley",
+     "score": 15.7
+    },
+    {
+     "slug": "shade",
+     "score": 15.6
+    },
+    {
+     "slug": "winterqueen",
+     "score": 15.6
+    },
+    {
+     "slug": "when-the-circus-comes",
+     "score": 15.5
+    },
+    {
+     "slug": "llama",
+     "score": 15.4
+    },
+    {
+     "slug": "icculus",
+     "score": 15.4
+    },
+    {
+     "slug": "light",
+     "score": 15.3
+    },
+    {
+     "slug": "loving-cup",
+     "score": 15.2
+    },
+    {
+     "slug": "train-song",
+     "score": 14.9
+    },
+    {
+     "slug": "the-oh-kee-pa-ceremony",
+     "score": 14.8
+    },
+    {
+     "slug": "guy-forget",
+     "score": 14.8
+    },
+    {
+     "slug": "prince-caspian",
+     "score": 14.7
+    },
+    {
+     "slug": "nellie-kane",
+     "score": 14.6
+    },
+    {
+     "slug": "monsters",
+     "score": 14.5
+    },
+    {
+     "slug": "joy",
+     "score": 14.3
+    },
+    {
+     "slug": "my-soul",
+     "score": 14.2
+    },
+    {
+     "slug": "everythings-right",
+     "score": 14
+    },
+    {
+     "slug": "gotta-jibboo",
+     "score": 14
+    },
+    {
+     "slug": "cars-trucks-buses",
+     "score": 14
+    },
+    {
+     "slug": "sparkle",
+     "score": 13.8
+    },
+    {
+     "slug": "character-zero",
+     "score": 13.7
+    },
+    {
+     "slug": "acdc-bag",
+     "score": 13.7
+    },
+    {
+     "slug": "seven-below",
+     "score": 13.7
+    },
+    {
+     "slug": "the-well",
+     "score": 13.5
+    },
+    {
+     "slug": "twenty-years-later",
+     "score": 13.4
+    },
+    {
+     "slug": "ya-mar",
+     "score": 13.4
+    },
+    {
+     "slug": "tweezer",
+     "score": 13.3
+    },
+    {
+     "slug": "meat",
+     "score": 13.3
+    },
+    {
+     "slug": "sample-in-a-jar",
+     "score": 13.3
+    },
+    {
+     "slug": "golgi-apparatus",
+     "score": 13.3
+    },
+    {
+     "slug": "tweezer-reprise",
+     "score": 13.2
+    },
+    {
+     "slug": "grind",
+     "score": 13.2
+    },
+    {
+     "slug": "saw-it-again",
+     "score": 13.1
+    },
+    {
+     "slug": "strawberry-letter-23",
+     "score": 13
+    },
+    {
+     "slug": "nicu",
+     "score": 12.9
+    },
+    {
+     "slug": "julius",
+     "score": 12.7
+    },
+    {
+     "slug": "the-lizards",
+     "score": 12.6
+    },
+    {
+     "slug": "golden-age",
+     "score": 12.6
+    },
+    {
+     "slug": "your-pet-cat",
+     "score": 12
+    },
+    {
+     "slug": "farmhouse",
+     "score": 12
+    },
+    {
+     "slug": "rock-and-roll",
+     "score": 11.9
+    }
+   ],
+   "freq": [
+    "free",
+    "harry-hood",
+    "run-like-an-antelope",
+    "a-wave-of-hope",
+    "also-sprach-zarathustra",
+    "carini",
+    "character-zero",
+    "everythings-right",
+    "ghost",
+    "light",
+    "mikes-song",
+    "my-friend-my-friend",
+    "possum",
+    "prince-caspian",
+    "ruby-waves",
+    "sand",
+    "say-it-to-me-santos",
+    "stash",
+    "weekapaug-groove",
+    "whats-going-through-your-mind",
+    "a-life-beyond-the-dream",
+    "back-on-the-train",
+    "backwards-down-the-number-line",
+    "bathtub-gin",
+    "blaze-on",
+    "bouncing-around-the-room",
+    "chalk-dust-torture",
+    "first-tube",
+    "fuego",
+    "golden-age",
+    "gumbo",
+    "halleys-comet",
+    "julius",
+    "life-saving-gun",
+    "mcgrupp-and-the-watchful-hosemasters",
+    "nicu",
+    "no-men-in-no-mans-land",
+    "oblivion",
+    "runaway-jim",
+    "sigma-oasis",
+    "slave-to-the-traffic-light",
+    "tube",
+    "tweezer",
+    "tweezer-reprise",
+    "wolfmans-brother",
+    "you-enjoy-myself",
+    "a-song-i-heard-the-ocean-sing",
+    "acdc-bag",
+    "axilla-part-ii",
+    "beneath-a-sea-of-stars-part-1",
+    "cavern",
+    "crosseyed-and-painless",
+    "david-bowie",
+    "divided-sky",
+    "down-with-disease",
+    "drift-while-youre-sleeping",
+    "evolve",
+    "fluffhead",
+    "golgi-apparatus",
+    "guyute",
+    "its-ice",
+    "kill-devil-falls",
+    "lifeboy",
+    "llama",
+    "loving-cup",
+    "maze",
+    "meatstick",
+    "monsters",
+    "more",
+    "most-events-arent-planned",
+    "mull",
+    "punch-you-in-the-eye",
+    "reba",
+    "rift",
+    "sample-in-a-jar",
+    "simple",
+    "split-open-and-melt",
+    "suzy-greenberg",
+    "taste",
+    "the-curtain-with",
+    "the-lizards",
+    "the-man-who-stepped-into-yesterday",
+    "the-moma-dance",
+    "the-squirming-coil",
+    "the-wedge",
+    "theme-from-the-bottom",
+    "timber-jerry-the-mule",
+    "vultures",
+    "waste",
+    "wilson",
+    "46-days",
+    "555",
+    "about-to-run",
+    "avenu-malkenu",
+    "billy-breathes",
+    "birds-of-a-feather",
+    "boogie-on-reggae-woman",
+    "brian-and-robert",
+    "bug",
+    "buried-alive",
+    "cities",
+    "colonel-forbins-ascent",
+    "dirt",
+    "esther",
+    "ether-edge",
+    "farmhouse",
+    "fee",
+    "fly-famous-mockingbird",
+    "foam",
+    "gotta-jibboo",
+    "guelah-papyrus",
+    "hey-stranger",
+    "hold-your-head-up",
+    "horn",
+    "i-am-hydrogen",
+    "i-am-the-walrus",
+    "i-didnt-know",
+    "if-i-could",
+    "leaves",
+    "limb-by-limb"
+   ],
+   "freqNoRepeat": [
+    "free",
+    "harry-hood",
+    "run-like-an-antelope",
+    "a-wave-of-hope",
+    "also-sprach-zarathustra",
+    "carini",
+    "character-zero",
+    "everythings-right",
+    "ghost",
+    "light",
+    "mikes-song",
+    "my-friend-my-friend",
+    "possum",
+    "prince-caspian",
+    "ruby-waves",
+    "sand",
+    "say-it-to-me-santos",
+    "stash",
+    "weekapaug-groove",
+    "whats-going-through-your-mind",
+    "a-life-beyond-the-dream",
+    "back-on-the-train",
+    "backwards-down-the-number-line",
+    "bathtub-gin",
+    "blaze-on",
+    "bouncing-around-the-room",
+    "chalk-dust-torture",
+    "first-tube",
+    "fuego",
+    "golden-age",
+    "gumbo",
+    "halleys-comet",
+    "julius",
+    "life-saving-gun",
+    "mcgrupp-and-the-watchful-hosemasters",
+    "nicu",
+    "no-men-in-no-mans-land",
+    "oblivion",
+    "runaway-jim",
+    "sigma-oasis",
+    "slave-to-the-traffic-light",
+    "tube",
+    "tweezer",
+    "tweezer-reprise",
+    "wolfmans-brother",
+    "you-enjoy-myself",
+    "a-song-i-heard-the-ocean-sing",
+    "acdc-bag",
+    "axilla-part-ii",
+    "beneath-a-sea-of-stars-part-1",
+    "cavern",
+    "crosseyed-and-painless",
+    "david-bowie",
+    "divided-sky",
+    "down-with-disease",
+    "drift-while-youre-sleeping",
+    "evolve",
+    "fluffhead",
+    "golgi-apparatus",
+    "guyute",
+    "its-ice",
+    "kill-devil-falls",
+    "lifeboy",
+    "llama",
+    "loving-cup",
+    "maze",
+    "meatstick",
+    "monsters",
+    "more",
+    "most-events-arent-planned",
+    "mull",
+    "punch-you-in-the-eye",
+    "reba",
+    "rift",
+    "sample-in-a-jar",
+    "simple",
+    "split-open-and-melt",
+    "suzy-greenberg",
+    "taste",
+    "the-curtain-with",
+    "the-lizards",
+    "the-man-who-stepped-into-yesterday",
+    "the-moma-dance",
+    "the-squirming-coil",
+    "the-wedge",
+    "theme-from-the-bottom",
+    "timber-jerry-the-mule",
+    "vultures",
+    "waste",
+    "wilson",
+    "46-days",
+    "555",
+    "about-to-run",
+    "avenu-malkenu",
+    "billy-breathes",
+    "birds-of-a-feather",
+    "boogie-on-reggae-woman",
+    "brian-and-robert",
+    "bug",
+    "buried-alive",
+    "cities",
+    "colonel-forbins-ascent",
+    "dirt",
+    "esther",
+    "ether-edge",
+    "farmhouse",
+    "fee",
+    "fly-famous-mockingbird",
+    "foam",
+    "gotta-jibboo",
+    "guelah-papyrus",
+    "hey-stranger",
+    "hold-your-head-up",
+    "horn",
+    "i-am-hydrogen",
+    "i-am-the-walrus",
+    "i-didnt-know",
+    "if-i-could",
+    "leaves",
+    "limb-by-limb"
+   ]
+  },
+  "predictions": {
+   "modelShowGap": {
+    "show": {
+     "date": "2026-09-04",
+     "venue": "Dick's Sporting Goods Park",
+     "city": "Commerce City, CO",
+     "venueid": 961
+    },
+    "set1": [
+     {
+      "name": "46 Days",
+      "slug": "46-days",
+      "score": 48,
+      "why": [
+       "due (13 shows since last, cadence ~5)",
+       "tour repeat window open (gap 14)",
+       "played at Dick's Sporting Goods Park 11x before"
+      ]
+     },
+     {
+      "name": "The Moma Dance",
+      "slug": "the-moma-dance",
+      "score": 48.3,
+      "why": [
+       "due (8 shows since last, cadence ~5)",
+       "tour repeat window open (gap 9)",
+       "played at Dick's Sporting Goods Park 12x before"
+      ]
+     },
+     {
+      "name": "Bathtub Gin",
+      "slug": "bathtub-gin",
+      "score": 44.3,
+      "why": [
+       "due (5 shows since last, cadence ~5)",
+       "tour repeat window open (gap 6)",
+       "played at Dick's Sporting Goods Park 12x before"
+      ]
+     },
+     {
+      "name": "Wolfman's Brother",
+      "slug": "wolfmans-brother",
+      "score": 41,
+      "why": [
+       "due (4 shows since last, cadence ~5)",
+       "tour repeat window open (gap 5)",
+       "played at Dick's Sporting Goods Park 11x before"
+      ]
+     },
+     {
+      "name": "Blaze On",
+      "slug": "blaze-on",
+      "score": 39.8,
+      "why": [
+       "due (7 shows since last, cadence ~5)",
+       "tour repeat window open (gap 8)",
+       "played at Dick's Sporting Goods Park 9x before"
+      ]
+     },
+     {
+      "name": "Tube",
+      "slug": "tube",
+      "score": 38,
+      "why": [
+       "due (5 shows since last, cadence ~6)",
+       "tour repeat window open (gap 6)",
+       "played at Dick's Sporting Goods Park 10x before"
+      ]
+     },
+     {
+      "name": "Steam",
+      "slug": "steam",
+      "score": 36.9,
+      "why": [
+       "due (12 shows since last, cadence ~8.5)",
+       "tour repeat window open (gap 13)",
+       "played at Dick's Sporting Goods Park 9x before"
+      ]
+     },
+     {
+      "name": "First Tube",
+      "slug": "first-tube",
+      "score": 35.6,
+      "why": [
+       "due (8 shows since last, cadence ~5)",
+       "tour repeat window open (gap 9)",
+       "played at Dick's Sporting Goods Park 7x before"
+      ]
+     }
+    ],
+    "set2": [
+     {
+      "name": "A Song I Heard the Ocean Sing",
+      "slug": "a-song-i-heard-the-ocean-sing",
+      "score": 23.8,
+      "why": [
+       "due (11 shows since last, cadence ~10)",
+       "tour repeat window open (gap 12)",
+       "played at Dick's Sporting Goods Park 5x before"
+      ]
+     },
+     {
+      "name": "Piper",
+      "slug": "piper",
+      "score": 45.1,
+      "why": [
+       "due (12 shows since last, cadence ~7)",
+       "tour repeat window open (gap 13)",
+       "played at Dick's Sporting Goods Park 11x before"
+      ]
+     },
+     {
+      "name": "Down with Disease",
+      "slug": "down-with-disease",
+      "score": 40.8,
+      "why": [
+       "due (4 shows since last, cadence ~5)",
+       "tour repeat window open (gap 5)",
+       "played at Dick's Sporting Goods Park 11x before"
+      ]
+     },
+     {
+      "name": "Also Sprach Zarathustra",
+      "slug": "also-sprach-zarathustra",
+      "score": 34.6,
+      "why": [
+       "due (5 shows since last, cadence ~5)",
+       "tour repeat window open (gap 6)",
+       "already 3+ tour plays",
+       "played at Dick's Sporting Goods Park 10x before"
+      ]
+     },
+     {
+      "name": "The Wedge",
+      "slug": "the-wedge",
+      "score": 30.8,
+      "why": [
+       "tour repeat window open (gap 6)",
+       "played at Dick's Sporting Goods Park 10x before"
+      ]
+     },
+     {
+      "name": "Harry Hood",
+      "slug": "harry-hood",
+      "score": 29.6,
+      "why": [
+       "just played 2026-07-31",
+       "already 3+ tour plays",
+       "played at Dick's Sporting Goods Park 13x before"
+      ]
+     },
+     {
+      "name": "Slave to the Traffic Light",
+      "slug": "slave-to-the-traffic-light",
+      "score": 43.6,
+      "why": [
+       "due (5 shows since last, cadence ~5.5)",
+       "tour repeat window open (gap 6)",
+       "played at Dick's Sporting Goods Park 12x before"
+      ]
+     }
+    ],
+    "encore": [
+     {
+      "name": "More",
+      "slug": "more",
+      "score": 26.9,
+      "why": [
+       "due (7 shows since last, cadence ~8)",
+       "tour repeat window open (gap 8)",
+       "played at Dick's Sporting Goods Park 6x before"
+      ]
+     },
+     {
+      "name": "Silent in the Morning",
+      "slug": "silent-in-the-morning",
+      "score": 23.7,
+      "why": [
+       "tour repeat window open (gap 7)",
+       "played at Dick's Sporting Goods Park 8x before"
+      ]
+     }
+    ]
+   }
+  }
  }
 }

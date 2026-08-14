@@ -494,25 +494,58 @@ and members must already be friends.
    needs a 145-show walk-forward over the raw setlists, which are gitignored.
 3. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
    rehoming the era window / tour totals, rehoming the attendance toggle.
-4. **"Nerd Zone" — low priority, revisit after fall tour 2026.** A user-selectable analysis
-   mode (calibrated probabilities / simulated odds / etc., current model as default).
-   Deferred on **timing, not merit** — don't re-litigate whether it's a good idea; it
-   probably is. This fandom compiles encyclopedic data about the band for fun.
+4. **"Nerd Zone" — APPROVED 2026-08-14, plan before code.** A sixth Data sub-tab, after
+   Ranked Songs: explain the statistical approach, and let a reader re-rank the candidates
+   under a *different* approach. Was deferred to ~30 graded shows; that deferral is now void,
+   for two reasons that only became true today.
 
-   The blocker is the one graded show. Any alternative mode needs its own walk-forward
-   backtest to be shown with the same authority as the current one, so a menu of lenses now
-   would present unvalidated output as validated — the one thing that would cost the app its
-   credibility. Revisit around ~30 graded shows.
+   **The old blocker was "any alternative mode needs its own walk-forward backtest".
+   Several already have one.** `scripts/backtest.js` has been grading five arms all along,
+   over 174 shows, against paired standard errors:
 
-   Two conclusions worth keeping so they aren't rediscovered:
+   | arm | what it is |
+   |---|---|
+   | `model` | day curve — the shipping model |
+   | `modelTopN` | the same scores with the slot logic removed |
+   | `modelShowGap` | the model as it was *before* the day curve |
+   | `freq` | baseline: top-N by trailing-30 frequency |
+   | `freqNoRepeat` | the same, minus anything played ≤3 days ago |
+
+   Those are real, measured, and already computed. A menu built from exactly these presents
+   nothing unvalidated, and each option can show its own precision and recall next to it —
+   which is the opposite of the failure the original entry feared.
+
+   **And calibration shipped with its own 145-show walk-forward**, so probabilities are now
+   the most validated output in the app. Note they went out *without* a mode switch, as the
+   `Chance` column, because they are more honest than the ranking beside them and belong on
+   by default rather than behind a toggle.
+
+   **`buildModel` already accepts `recency: 'days' | 'shows' | 'off'`**, so producing the
+   alternative rankings is a matter of calling it more than once in `analyze.js`. Measured
+   cost: one extra ranking as `(slug, score, p)` is 3.2KB against a 235KB `analysis.json`.
+
+   **Out of scope, and the reasons are not timing:**
+   - **Monte Carlo odds.** Blocked by song *dependence*, not sample size. Sampling 120
+     independent Bernoullis produces 40-song sets, Tweezer Reprise without Tweezer, and two
+     openers. Real odds need a joint distribution — set structure, segue pairs, slot
+     constraints — and none of it exists. Graded shows do not fix this.
+   - Made worse by **the flat middle**: 78 of 120 candidates sit at 17–18%, so simulated odds
+     would be mush wearing a precise-looking number.
+   - **Bayesian parameter fitting.** Worth doing, but it *changes the ranking*, so it is a
+     model change that must win on precision and recall — not a lens, and not a display mode.
+   - **Expected hits is the one odds-flavoured number available free.** Summing `p` over a
+     card is valid *regardless of dependence*, because expectation is linear. The current
+     predicted setlist is worth ~3.7 hits.
+
+   Two conclusions from the original entry that still hold:
    - Calibrated / Bayesian / Monte Carlo are **not alternatives** — they're layers of one
-     pipeline (Bayesian fits parameters → calibration makes them probabilities → Monte Carlo
-     turns those into outcome odds). A menu presenting them as mutually exclusive teaches the
-     audience most likely to notice something false. If it ships, the axis is *how much
-     uncertainty do you want to see*: ranked picks → probabilities → odds.
-   - It's safe to expose at all only because predictions are graded against the real setlist,
-     never against the model — so a user's mode can't touch their points or the leaderboard.
-     It **would** fragment Track Record, which grades the model.
+     pipeline. A menu presenting them as mutually exclusive teaches the audience most likely
+     to notice something false. The axis for a menu is *which validated ranking*, not *which
+     layer of the pipeline*.
+   - Safe to expose at all only because predictions are graded against the real setlist,
+     never against the model — a reader's choice of lens **cannot** touch their points or the
+     leaderboard. It **would** fragment Track Record, which grades the model, so Track Record
+     stays pinned to the shipping arm.
 5. **Calibration caveat — still live, and still the trap.** Honoured by keeping `p` out of
    the model entirely (see step 2), but the moment somebody moves it *in* to reuse it inside
    `assembleSetlist`, all of this applies again. `lib/model.mjs` gates the opener, closer,

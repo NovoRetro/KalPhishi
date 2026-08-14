@@ -158,8 +158,15 @@ test('the ranked-songs Why is clamped visually, not truncated', () => {
   assert.ok(rule, '.why-trunc rule not found');
   assert.match(rule[0], /text-overflow:\s*ellipsis/, 'the column must be clamped visually');
   assert.match(rule[0], /white-space:\s*nowrap/, 'the clamp is a single line');
-  assert.match(html, /class="why why-trunc"[^`]*\$\{esc\(x\.why\.join/,
-    'the cell must still render the full reason');
+  // The full reason must reach the DOM. Written to tolerate the `|| []` guard added when
+  // baseline lenses started supplying rows that carry no `why` at all, while still failing
+  // if anyone shortens the string on the way in.
+  const cell = html.match(/class="why why-trunc"[^`]*/);
+  assert.ok(cell, 'the why cell was not found');
+  assert.match(cell[0], /\$\{esc\(\(?x\.why(\s*\|\|\s*\[\])?\)?\.join\('; '\)\)\}/,
+    'the cell must still render the full joined reason');
+  assert.ok(!/x\.why[^)]*\.slice\(|\.substring\(/.test(cell[0]),
+    'the reason must not be shortened in JS — the clamp is CSS');
 });
 
 test('tooltips respond to touch as well as hover', () => {

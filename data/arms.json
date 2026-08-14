@@ -1,0 +1,54 @@
+{
+ "generated": "2026-08-14T14:33:03.345Z",
+ "shows": 174,
+ "reference": "freqNoRepeat",
+ "params": {
+  "N": 17,
+  "TRAIL": 30,
+  "WARMUP": 40
+ },
+ "note": "Walk-forward accuracy per approach. Each show is predicted using only shows before it. delta/se/z are paired against the freqNoRepeat baseline on recall; |z| under 2 is not distinguishable from chance.",
+ "arms": {
+  "model": {
+   "precision": 0.29276538201487506,
+   "recall": 0.27686726194408573,
+   "hitsPerShow": 4.977011494252873,
+   "deltaRecallVsBaseline": 0.034508023160505746,
+   "se": 0.01223181027701078,
+   "z": 2.8211705691153712,
+   "winRate": 0.5114942528735632
+  },
+  "modelTopN": {
+   "precision": 0.30121703853955395,
+   "recall": 0.28496321869056823,
+   "hitsPerShow": 5.120689655172414,
+   "deltaRecallVsBaseline": 0.042603979906988367,
+   "se": 0.011758562229475512,
+   "z": 3.623230381023268,
+   "winRate": 0.5459770114942529
+  },
+  "modelShowGap": {
+   "precision": 0.26369168356997974,
+   "recall": 0.2497440817305262,
+   "hitsPerShow": 4.482758620689655,
+   "deltaRecallVsBaseline": 0.007384842946946289,
+   "se": 0.011344758802155597,
+   "z": 0.6509475499420144,
+   "winRate": 0.41379310344827586
+  },
+  "freq": {
+   "precision": 0.13387423935091256,
+   "recall": 0.12924439576331828,
+   "hitsPerShow": 2.2758620689655173,
+   "deltaRecallVsBaseline": -0.11311484302026138,
+   "se": 0.009355041072835045,
+   "z": -12.091325109060364,
+   "winRate": 0
+  },
+  "freqNoRepeat": {
+   "precision": 0.25693035835023664,
+   "recall": 0.2423592387835798,
+   "hitsPerShow": 4.367816091954023
+  }
+ }
+}
