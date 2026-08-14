@@ -310,6 +310,11 @@
   .bar .v { font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
   .legend-note { color: var(--muted); font-size: 12px; margin-top: 8px; }
   .score { color: var(--series-1); font-weight: 600; font-variant-numeric: tabular-nums; }
+  /* Heavier than the score beside it: Chance is the column a reader can act on, and score is
+     the internal unit that produced the ordering. Ink, not a series colour — the series
+     colours encode data categories elsewhere and this is not one of them. */
+  .chance { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .chance-none { color: var(--muted); font-weight: 400; }
   .sharebar { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
   .sharebar i { display: inline-block; height: 8px; background: var(--series-1); border-radius: 4px; }
   #tooltip { position: fixed; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; max-width: 300px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); display: none; z-index: 10; }
@@ -1849,7 +1854,8 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   // ---- candidates table
   const c = el('div', 'card');
   c.dataset.section = 'Ranked Songs';
-  c.appendChild(el('h2', null, 'All candidates <span class="hint">— ranked by combined horizontal + vertical score. Tap a song for its best-loved version; hover or tap a Why to read it in full.</span>'));
+  c.appendChild(el('h2', null, 'All candidates <span class="hint">— ranked by combined horizontal + vertical score. '
+    + 'Chance is that score calibrated against past shows. Tap a song for its best-loved version; hover or tap a Why to read it in full.</span>'));
 
   // The name IS the control, rather than a name plus a play chip beside it — the chip cost
   // width in every one of 60 rows to say what the link already says.
@@ -1870,18 +1876,40 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     : `<span class="song">${esc(x.name)}</span>`);
 
   const candTable = tableOf(
-    ['#', 'Song', 'Score', 'Era freq', 'Shows since', 'Cadence', 'Tour plays', 'Why'],
+    ['#', 'Song', 'Chance', 'Score', 'Era freq', 'Shows since', 'Cadence', 'Tour plays', 'Why'],
     A.candidates.slice(0, 60).map((x, i) => [
       num(i + 1),
       songCell(x),
+      // Ahead of Score on purpose: this is the column a reader can actually use. Score is
+      // the model's internal unit and is kept beside it because the ordering is score's.
+      // Whole percent only — the measured worst-bucket error is about 5 points, so a
+      // decimal would be advertising precision the fit does not have.
+      x.p == null ? '<span class="num chance chance-none">—</span>'
+        : `<span class="num chance">${Math.round(x.p * 100)}%</span>`,
       `<span class="score">${x.score}</span>`,
       pct(x.eraFreq), num(x.currentGap), num(x.medianInterval), num(x.tourPlays),
       // Full text, clamped to one line by CSS — see .why-trunc. The reason travels in a
       // data attribute too, so the tip reads it without depending on what the clamp left
       // visible.
       `<span class="why why-trunc" data-song="${esc(x.name)}" data-why="${esc(x.why.join('; '))}">${esc(x.why.join('; '))}</span>`,
-    ]), [0, 2, 3, 4, 5, 6]);
+      // Shifted by one from [0,2,3,4,5,6]: inserting Chance at index 2 moved every numeric
+      // column after it. These drive right-alignment AND the numeric filter/sort mode, so a
+      // stale index silently turns a number column into a substring match.
+    ]), [0, 2, 3, 4, 5, 6, 7]);
   c.appendChild(candTable);
+  // Where Chance comes from, and what it is not. Both halves matter: without the first it
+  // reads as a number somebody made up, and without the second the repeated values in the
+  // middle of the table read as a bug rather than as the fit declining to pretend.
+  if (A.candidates.some(x => x.p != null)) {
+    c.appendChild(el('div', 'hint',
+      'Chance is measured, not asserted: every past show in the era window was re-predicted '
+      + 'using only what was known beforehand, and each score was scored against what actually '
+      + 'played. Of everything called 20%, about 20% played — within roughly 5 points. '
+      + '<b>Nothing reaches 30%</b>, because a Phish setlist is never a sure thing; the top of '
+      + 'this list plays about three times in ten. Songs sharing a Chance are songs the '
+      + 'calibration cannot honestly separate, which is most of the middle of the table — '
+      + 'the ranking there is finer than the evidence behind it.'));
+  }
   // Bound after the table exists, since tableOf builds its cells from HTML strings and
   // there is no node to hand a listener to until it has run.
   for (const cell of candTable.querySelectorAll('.why-trunc')) {
