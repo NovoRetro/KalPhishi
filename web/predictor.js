@@ -7,6 +7,54 @@ function initPredictor(mount, A, opts = {}) {
   // Resolved at call time (initPredictor runs after that script) and degrades to the raw
   // ISO string rather than throwing if it is somehow absent.
   const fmtDate = iso => (window.fmtDate ? window.fmtDate(iso) : String(iso ?? ''));
+
+  // ---------- approach lens ----------
+  //
+  // The approach chosen in the Nerd Zone. index.html owns the choice and hands it over as a
+  // getter, so there is one source of truth and no second copy to fall out of step.
+  //
+  // It reaches EXACTLY two things: what Our Prediction offers, and a label saying so. It
+  // does not touch saving, scoring, points, standings or the track record — predictions are
+  // graded against the real setlist and never against the model, which is the property that
+  // makes changing the model safe to expose at all. Nothing about the lens is sent to the
+  // server; it is a client-side reading choice.
+  const lensKey = () => (typeof opts.lens === 'function' ? opts.lens() : 'model');
+  const lensArm = () => (A.lenses?.arms || []).find(a => a.key === lensKey()) || null;
+  const lensIsDefault = () => { const a = lensArm(); return !a || !!a.isDefault; };
+
+  // Baseline rankings ship as bare slugs and can surface a song the model never ranked, so
+  // names are resolved from every source that carries them.
+  const lensNameBySlug = (() => {
+    const m = new Map();
+    for (const c of A.candidates || []) m.set(c.slug, c.name);
+    for (const t of A.horizontal?.tourSongs || []) if (!m.has(t.slug)) m.set(t.slug, t.name);
+    return m;
+  })();
+
+  // The candidate order under the current approach.
+  function lensRanking() {
+    const arm = lensArm();
+    if (!arm || arm.isDefault || arm.usesCalibration) return A.candidates || [];
+    const r = A.lenses?.rankings?.[arm.key];
+    if (!r) return A.candidates || [];
+    const bySlug = new Map((A.candidates || []).map(c => [c.slug, c]));
+    return r.map(x => {
+      const slug = typeof x === 'string' ? x : x.slug;
+      return bySlug.get(slug) || { slug, name: lensNameBySlug.get(slug) || slug };
+    });
+  }
+
+  // The setlist Our Prediction fills from. An approach with no slot logic has no sets to
+  // give, so its top 17 are laid into the same 8/7/2 shape the model produces — the order is
+  // that approach's own, the shape is only so the three lists have something to hold.
+  function lensSetlist() {
+    const arm = lensArm();
+    if (!arm || arm.isDefault) return A.prediction;
+    if (arm.hasSlots && A.lenses?.predictions?.[arm.key]) return A.lenses.predictions[arm.key];
+    const flat = lensRanking().slice(0, 17);
+    return { set1: flat.slice(0, 8), set2: flat.slice(8, 15), encore: flat.slice(15, 17) };
+  }
+
   const FREE = 12;
   const PHISH = ['P', 'H', 'I', 'S', 'H'];
   // Mirrors of lib/scoring.mjs. The browser cannot import it — the Worker bundles it —
@@ -202,6 +250,18 @@ function initPredictor(mount, A, opts = {}) {
     // status the eye passes over on the way into the game.
     const head = el('div', 'p-headrow');
     head.appendChild(el('h2', null, HEADINGS[mode] || HEADINGS.setlist));
+    // Names the approach whenever it is not the house model, because Our Prediction will
+    // hand back something different from what the Data tab's default shows and a player who
+    // set this days ago has no other way to know. It says what it affects, so nobody reads
+    // it as "my card is being scored differently" — it is not; scoring never sees this.
+    if ((mode === 'bingo' || mode === 'setlist') && !lensIsDefault()) {
+      const arm = lensArm();
+      const chip = el('span', 'p-lensnote', `🛟 ${esc(arm.label)}`);
+      chip.title = `Our Prediction will fill from "${arm.label}" instead of the house model. `
+        + 'Your picks are still scored against the real setlist — this changes what is '
+        + 'offered, never how it counts. Change it in Data → Nerd Zone.';
+      head.appendChild(chip);
+    }
     const L = lockInfo();
     // The saved/scored state rides the heading row beside the game's name instead of
     // taking a line of its own above the board. It is a status, not an instruction, and
@@ -915,12 +975,14 @@ function initPredictor(mount, A, opts = {}) {
     };
 
     const fillSetlistFromModel = () => {
+      const P = lensSetlist();
       build = {
-        set1: A.prediction.set1.map(s => ({ slug: s.slug, name: s.name })),
-        set2: A.prediction.set2.map(s => ({ slug: s.slug, name: s.name })),
-        encore: A.prediction.encore.map(s => ({ slug: s.slug, name: s.name })),
+        set1: P.set1.map(s => ({ slug: s.slug, name: s.name })),
+        set2: P.set2.map(s => ({ slug: s.slug, name: s.name })),
+        encore: P.encore.map(s => ({ slug: s.slug, name: s.name })),
       };
       render();
+      if (!lensIsDefault()) flash(`Filled from ${lensArm().label}.`);
     };
 
     // Row order, left to right: Save, Ask Diego?, then Actions pinned to the far right.
@@ -1348,14 +1410,16 @@ function initPredictor(mount, A, opts = {}) {
         const pushUnique = s => {
           if (s && s.slug && !keep.has(s.slug) && !seq.some(x => x.slug === s.slug)) seq.push({ slug: s.slug, name: s.name });
         };
-        for (const list of [A.prediction.set1, A.prediction.set2, A.prediction.encore]) list.forEach(pushUnique);
-        for (const c of A.candidates) pushUnique(c); // top up beyond the 17 predicted songs
+        const P = lensSetlist();
+        for (const list of [P.set1, P.set2, P.encore]) list.forEach(pushUnique);
+        for (const c of lensRanking()) pushUnique(c); // top up beyond the 17 predicted songs
         let k = 0;
         for (let i = 0; i < 25; i++) {
           if (i === FREE || locks[i]) continue;
           grid[i] = seq[k++] || null;
         }
         render();
+        if (!lensIsDefault()) flash(`Filled from ${lensArm().label}.`);
       };
 
       const clearCard = () => {
@@ -2009,6 +2073,9 @@ function initPredictor(mount, A, opts = {}) {
       actionsOpen = false;
       render();
     },
+    // Called when the approach changes in the Nerd Zone, so the header chip and what Our
+    // Prediction would offer are redrawn. Nothing about a saved prediction moves.
+    refresh() { render(); },
     getMode: () => mode,
   };
 }

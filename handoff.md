@@ -494,10 +494,28 @@ and members must already be friends.
    needs a 145-show walk-forward over the raw setlists, which are gitignored.
 3. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
    rehoming the era window / tour totals, rehoming the attendance toggle.
-4. **"Nerd Zone" — APPROVED 2026-08-14, plan before code.** A sixth Data sub-tab, after
-   Ranked Songs: explain the statistical approach, and let a reader re-rank the candidates
-   under a *different* approach. Was deferred to ~30 graded shows; that deferral is now void,
-   for two reasons that only became true today.
+4. ~~"Nerd Zone"~~ — **BUILT 2026-08-14.** A sixth Data sub-tab after Ranked Songs: explains
+   the approach, and lets a reader re-rank under a *different* one. Was deferred to ~30
+   graded shows; that deferral was void for two reasons that became true the same day.
+
+   **Where a chosen approach reaches, and where it does not.** It re-ranks Predicted Setlist
+   and All candidates, and — added after the first pass — it decides what **Our Prediction**
+   offers in both games, with a `🛟 <approach>` chip on the game's heading row whenever it is
+   not the house model. It reaches **nothing else**: not saving, not scoring, not points, not
+   standings, not Track Record. Nothing about the choice is sent to the server. That is safe
+   only because a prediction is graded against the real setlist and never against the model,
+   so which approach filled a card cannot move a single point — the property to preserve if
+   this is ever extended again. `test/lenses.test.mjs` asserts the save payload carries no
+   lens and that Track Record stays pinned.
+
+   **The chip costs a line on a phone, unavoidably.** At 375px the heading and the lock
+   countdown already fill 288px of a 290px row, so any chip wraps. It lands as
+   heading + chip on one line and the countdown on the next, which reads fine and only
+   happens to a reader who opted into a lens.
+
+   **A slot-less approach still fills all three lists.** Baselines rank but do not assign
+   sets, so their top 17 are laid into the same 8/7/2 shape — otherwise picking one and
+   pressing Our Prediction would half-fill the builder with no explanation.
 
    **The old blocker was "any alternative mode needs its own walk-forward backtest".
    Several already have one.** `scripts/backtest.js` has been grading five arms all along,

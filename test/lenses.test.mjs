@@ -130,13 +130,44 @@ test('a lens re-ranks in place rather than replacing the card', () => {
     'fillRanked must clear and refill the same element');
 });
 
-test('a lens cannot reach the games or the track record', () => {
-  // The property that makes exposing this safe at all: predictions are graded against the
-  // real setlist, never against the model, and no lens may change what a player saved.
-  assert.ok(!/lens/i.test(read('web/predictor.js')),
-    'predictor.js owns the games and must know nothing about lenses');
+test('a lens reaches Our Prediction and the label, and nothing else in the games', () => {
+  // This invariant CHANGED deliberately on 2026-08-14: the games were previously sealed off
+  // from lenses entirely. They are not any more — Our Prediction fills from the chosen
+  // approach. What has not changed is the thing that makes it safe: a prediction is graded
+  // against the real setlist and never against the model, so which approach filled the card
+  // cannot alter a single point.
+  const predictor = read('web/predictor.js');
+
+  // The two sanctioned uses.
+  assert.match(predictor, /const P = lensSetlist\(\);/, 'Our Prediction must fill from the lens');
+  assert.match(predictor, /p-lensnote/, 'the header must name the approach when it is not the default');
+
+  // Nothing about the reader's choice may travel to the server. It is a client-side reading
+  // preference; a prediction is just songs, and how they were chosen is not the server's
+  // business or the scorer's.
+  const saves = predictor.match(/api\('\/api\/predictions'[^)]*\)/g) || [];
+  for (const s of saves) {
+    assert.ok(!/lens/i.test(s), `a save must not carry the lens: ${s}`);
+  }
+  assert.ok(!/lens/i.test(predictor.match(/function scoreSetlistPrediction[\s\S]{0,400}/)?.[0] || ''),
+    'scoring must not see the lens');
+});
+
+test('the track record stays pinned to the shipping model', () => {
+  // It records predictions actually published before a show and then graded. No other
+  // approach has ever published one, so showing its numbers here would invent a history.
   const trackRecord = html.match(/function renderTrackRecord[\s\S]*?\n  \}/);
   assert.ok(trackRecord, 'renderTrackRecord not found');
   assert.ok(!/lens/i.test(trackRecord[0]),
     'track record must stay pinned to the shipping model');
+});
+
+test('a no-slot approach still fills all three lists', () => {
+  // Baselines rank but do not assign sets. Our Prediction has three lists to fill either
+  // way, so the top 17 are laid into the same 8/7/2 shape — otherwise picking a baseline and
+  // pressing Our Prediction would half-fill the builder with no explanation.
+  const fn = read('web/predictor.js').match(/function lensSetlist\(\)[\s\S]*?\n  \}/);
+  assert.ok(fn, 'lensSetlist not found');
+  assert.match(fn[0], /slice\(0, 8\)[\s\S]*slice\(8, 15\)[\s\S]*slice\(15, 17\)/,
+    'a slot-less approach must still produce set1/set2/encore');
 });

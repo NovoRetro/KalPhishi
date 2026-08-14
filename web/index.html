@@ -492,6 +492,13 @@
   /* Sits with the heading rather than centred between it and the countdown, which is
      where space-between would otherwise strand a third child. */
   .p-headnote { font-size: 13px; color: var(--ink-2); margin-right: auto; }
+  /* Names the approach when it is not the house model. A pill rather than plain text, so it
+     reads as a setting that is switched on rather than as a description of the game — and
+     bordered rather than filled, because it must not compete with the lock countdown, which
+     is the one thing on this row with a deadline attached. */
+  .p-lensnote { font-size: 12px; color: var(--ink-2); white-space: nowrap;
+    border: 1px solid var(--series-2); border-radius: 99px; padding: 2px 9px; cursor: help; }
+  @media (max-width: 560px) { .p-lensnote { font-size: 11px; padding: 2px 7px; } }
   .p-lock { font-size: 12px; padding: 4px 10px; border-radius: 99px; background: var(--accent-wash); border: 1px solid var(--border); white-space: nowrap; }
   .p-lock.p-locked { border-color: var(--series-2); color: var(--ink); }
   /* Sits at the right-hand end of a control row without the row needing to know about it. */
@@ -1719,6 +1726,9 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     // account — both are "someone showing up", and the fade makes the swap read as
     // deliberate rather than the page glitching under them.
     onSignedIn: () => showTagline(true),
+    // A getter, not a value: the choice can change after the predictor is built, and one
+    // source of truth beats handing over a copy that then has to be kept in step.
+    lens: () => lens,
   });
   renderTrackRecord(track);
 
@@ -2181,6 +2191,9 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       paintPicker();
       fillPredicted();
       fillRanked();
+      // The games show a chip naming the approach, and Our Prediction fills from it, so
+      // they have to hear about the change too.
+      predictor?.refresh?.();
     }
     // The badge on each re-ranked card offers the way back, and it is rebuilt on every
     // refill, so the listener is delegated from the app root rather than bound per badge.
