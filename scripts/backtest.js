@@ -58,6 +58,12 @@ const EXPERIMENTS = TUNE || argv.includes('--experiments');
 // multiplicative evidence; k decides how loudly it speaks next to the existing terms.
 // k=0 is a control: recency off entirely, no curve.
 const K_VALUES = TUNE ? [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 60] : [3, 6, 10];
+// Same idea for the fitted dueness curve. Swept under --tune-dueness, which also splits
+// train/held-out so the winning k is chosen on one set and confirmed on another — picking it
+// on all 174 shows and reporting the same number is how a tuned constant looks like a finding.
+// DUENESS_K_VALUES needs the model's own default, which arrives with the dynamic import
+// below, so the list itself is built there.
+const TUNE_DUENESS = argv.includes('--tune-dueness');
 
 // ---------------------------------------------------------------- metrics
 
@@ -98,7 +104,8 @@ function paired(armVals, refVals) {
 // ---------------------------------------------------------------- main
 
 (async () => {
-const { prepareRows, buildModel } = await import('../lib/model.mjs');
+const { prepareRows, buildModel, DUENESS_K } = await import('../lib/model.mjs');
+const DUENESS_K_VALUES = TUNE_DUENESS ? [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20] : [DUENESS_K];
 const { fitPlatt, plattProb, fitIsotonic, isoProb, brier, logLoss, reliability } =
   await import('../lib/calibration.mjs');
 const { trailingFrequency } = await import('../lib/baselines.mjs');
@@ -162,6 +169,8 @@ const arms = {
   modelShowGap: [],    // the pre-day-curve model, kept so the change stays visible
   modelShrunk: [],     // rotation rate over each song's own window, shrunk to a fitted prior
   modelShrunkTopN: [], // the same, without the slot logic — isolates the estimator from it
+  modelDueness: [],     // dueness from a fitted relative-time hazard, not the hand-picked band
+  modelDuenessTopN: [], // the same, without the slot logic
   freq: [],            // baseline A: most-played in the trailing window
   freqNoRepeat: [],    // baseline B: same, minus anything played in the last 3 days
 };
@@ -172,6 +181,7 @@ if (EXPERIMENTS) {
   }
   for (const k of K_VALUES) arms[`dayOnly${k}`] = [];   // curve INSTEAD of show-gap
 }
+if (TUNE_DUENESS) for (const k of DUENESS_K_VALUES) arms[`dueK${k}`] = [];
 const perShow = [];
 const venueCoverage = { cache: 0, 'in-window': 0 };
 let skipped = 0;
@@ -251,9 +261,31 @@ for (let i = 0; i < showDates.length; i++) {
     freqEstimator: 'shrunk',
   });
 
+  // Dueness scored from a fitted relative-time hazard instead of the hand-picked band.
+  // One model per candidate weight: k scales how far the curve may move a song, and picking
+  // it by hand is the thing this arm exists to stop doing.
+  const duenessModels = new Map();
+  for (const k of DUENESS_K_VALUES) {
+    duenessModels.set(k, buildModel({
+      rows: history,
+      target: { date: target, venue: meta.venue, venueid: meta.venueid },
+      tourName: meta.tourname,
+      venueSongCounts,
+      scheduleRows,
+      dueness: 'fitted',
+      duenessK: k,
+    }));
+  }
+  const duenessMain = duenessModels.get(DUENESS_K);
+
   const g = {
     model: grade(predSlugs, actual),
     modelTopN: grade(topNSlugs, actual),
+    modelDueness: grade(
+      [...duenessMain.prediction.set1, ...duenessMain.prediction.set2, ...duenessMain.prediction.encore].map(s => s.slug),
+      actual,
+    ),
+    modelDuenessTopN: grade(duenessMain.scored.slice(0, N).map(c => c.slug), actual),
     modelShowGap: grade(
       [...showGap.prediction.set1, ...showGap.prediction.set2, ...showGap.prediction.encore].map(s => s.slug),
       actual,
@@ -268,6 +300,13 @@ for (let i = 0; i < showDates.length; i++) {
     freq: grade(byFreq.slice(0, N), actual),
     freqNoRepeat: grade(freqNoRepeat.slice(0, N), actual),
   };
+
+  // Graded top-N, so the sweep measures the curve rather than the slot logic sitting on it.
+  if (TUNE_DUENESS) {
+    for (const k of DUENESS_K_VALUES) {
+      g[`dueK${k}`] = grade(duenessModels.get(k).scored.slice(0, N).map(c => c.slug), actual);
+    }
+  }
 
   if (EXPERIMENTS) {
     // The curve is refitted from history at every step, so it never sees the show it is
@@ -372,6 +411,8 @@ const LABELS = {
   modelShowGap: 'MODEL before the day curve (show-gap)',
   modelShrunk: 'MODEL shrunk rate (own window + prior)',
   modelShrunkTopN: 'MODEL shrunk rate, no slot logic',
+  modelDueness: 'MODEL fitted dueness (relative hazard)',
+  modelDuenessTopN: 'MODEL fitted dueness, no slot logic',
   freq: `baseline: top-${N} by trailing-${TRAIL} frequency`,
   freqNoRepeat: `baseline: same, minus played <=3d ago`,
 };
@@ -384,7 +425,10 @@ if (EXPERIMENTS) {
 }
 // Only ever list arms that were actually populated — in --tune the on-top and hard-drop
 // variants are skipped, and naming them here would index into an undefined arm.
-const ARM_ORDER = ['model', 'modelTopN', 'modelShrunk', 'modelShrunkTopN', 'modelShowGap', 'freqNoRepeat', 'freq',
+if (TUNE_DUENESS) for (const k of DUENESS_K_VALUES) LABELS[`dueK${k}`] = `EXP fitted dueness k=${k}`;
+const ARM_ORDER = ['model', 'modelTopN', 'modelDueness', 'modelDuenessTopN',
+  'modelShrunk', 'modelShrunkTopN', 'modelShowGap', 'freqNoRepeat', 'freq',
+  ...(TUNE_DUENESS ? DUENESS_K_VALUES.map(k => `dueK${k}`) : []),
   ...(EXPERIMENTS ? [
     ...(TUNE ? [] : ['dayHard', ...K_VALUES.map(k => `dayCurve${k}`)]),
     ...K_VALUES.map(k => `dayOnly${k}`),
@@ -467,6 +511,51 @@ if (TUNE) {
   console.log(`    gain     ${(heldPaired.delta * 100 >= 0 ? '+' : '') + (heldPaired.delta * 100).toFixed(2)}pp` +
     `  se ${(heldPaired.se * 100).toFixed(2)}pp  z ${heldPaired.z.toFixed(2)}  wins ${pct(heldPaired.winRate)}`);
   console.log(`    ${Math.abs(heldPaired.z) < 2 ? 'NOT CONFIRMED — inside noise on held-out data' : 'CONFIRMED on data that did not choose k'}`);
+}
+
+if (TUNE_DUENESS) {
+  // Same discipline as --tune above, and for the same reason: this arm's whole pitch is that
+  // it replaces hand-picked constants with measured ones, so choosing its ONE constant by
+  // eyeballing all 174 shows would hand the criticism straight back.
+  const train = perShow.filter(s => s.date <= TRAIN_END);
+  const test = perShow.filter(s => s.date > TRAIN_END);
+  if (!train.length || !test.length) {
+    console.error(`\n--tune-dueness needs shows on both sides of ${TRAIN_END}`);
+    process.exit(1);
+  }
+  const recallOf = (sub, arm) => mean(sub.map(s => s.arms[arm].r));
+  console.log(`\nTuning the fitted-dueness weight k`);
+  console.log(`  train: ${train.length} shows through ${TRAIN_END}   |   held out: ${test.length} shows after\n`);
+  console.log('     K'.padEnd(8), 'TRAIN RECALL'.padStart(14), 'HELD-OUT RECALL'.padStart(17));
+  let peakK = null, peakTrain = -Infinity;
+  for (const k of DUENESS_K_VALUES) {
+    const tr = recallOf(train, `dueK${k}`);
+    if (tr > peakTrain) { peakTrain = tr; peakK = k; }
+    console.log(`  ${String(k).padStart(4)}`.padEnd(8), pct(tr).padStart(14), pct(recallOf(test, `dueK${k}`)).padStart(17));
+  }
+
+  // Smallest k statistically indistinguishable from the training peak — assume least.
+  const bestK = DUENESS_K_VALUES.find(k => {
+    const p = paired(train.map(s => s.arms[`dueK${k}`].r), train.map(s => s.arms[`dueK${peakK}`].r));
+    return p.delta >= -p.se;
+  }) ?? peakK;
+  if (bestK !== peakK) {
+    console.log(`\n  train peak is k=${peakK} (${pct(peakTrain)}), top is flat — smallest k within`);
+    console.log(`  one standard error: k=${bestK} (${pct(recallOf(train, `dueK${bestK}`))}).`);
+  }
+
+  // Compared against modelTopN, not model: the sweep arms are all top-N, so measuring them
+  // against the slot-assembled model would credit this curve for removing the slot logic.
+  const arm = `dueK${bestK}`;
+  const held = paired(test.map(s => s.arms[arm].r), test.map(s => s.arms.modelTopN.r));
+  console.log(`\n  k = ${bestK} on the training window (${pct(recallOf(train, arm))} vs modelTopN ${pct(recallOf(train, 'modelTopN'))}).`);
+  console.log(`  On the ${test.length} held-out shows it was never tuned against:`);
+  console.log(`    modelTopN  ${pct(recallOf(test, 'modelTopN'))}`);
+  console.log(`    k=${bestK}        ${pct(recallOf(test, arm))}`);
+  console.log(`    gain       ${(held.delta * 100 >= 0 ? '+' : '') + (held.delta * 100).toFixed(2)}pp` +
+    `  se ${(held.se * 100).toFixed(2)}pp  z ${held.z.toFixed(2)}  wins ${pct(held.winRate)}`);
+  console.log(`    ${Math.abs(held.z) < 2 ? 'NOT CONFIRMED — inside noise on held-out data' : 'CONFIRMED on data that did not choose k'}`);
+  console.log(`\n  DUENESS_K in lib/model.mjs is currently ${DUENESS_K}.`);
 }
 
 if (EXPERIMENTS) {
