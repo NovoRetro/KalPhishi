@@ -58,6 +58,12 @@ const EXPERIMENTS = TUNE || argv.includes('--experiments');
 // multiplicative evidence; k decides how loudly it speaks next to the existing terms.
 // k=0 is a control: recency off entirely, no curve.
 const K_VALUES = TUNE ? [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 60] : [3, 6, 10];
+// Same idea for the fitted dueness curve. Swept under --tune-dueness, which also splits
+// train/held-out so the winning k is chosen on one set and confirmed on another — picking it
+// on all 174 shows and reporting the same number is how a tuned constant looks like a finding.
+// DUENESS_K_VALUES needs the model's own default, which arrives with the dynamic import
+// below, so the list itself is built there.
+const TUNE_DUENESS = argv.includes('--tune-dueness');
 
 // ---------------------------------------------------------------- metrics
 
@@ -98,9 +104,11 @@ function paired(armVals, refVals) {
 // ---------------------------------------------------------------- main
 
 (async () => {
-const { prepareRows, buildModel } = await import('../lib/model.mjs');
+const { prepareRows, buildModel, DUENESS_K } = await import('../lib/model.mjs');
+const DUENESS_K_VALUES = TUNE_DUENESS ? [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20] : [DUENESS_K];
 const { fitPlatt, plattProb, fitIsotonic, isoProb, brier, logLoss, reliability } =
   await import('../lib/calibration.mjs');
+const { trailingFrequency } = await import('../lib/baselines.mjs');
 
 // Accumulated (score, played) pairs from shows already walked past, the calibrator's only
 // training data. Never includes the show being predicted.
@@ -156,11 +164,15 @@ function venueHistory(venueid) {
 }
 
 const arms = {
-  model: [],        // production model: score + slot-aware assembly
-  modelTopN: [],    // same scores, but just take the top N — isolates the slot logic
-  modelShowGap: [], // the pre-day-curve model, kept so the change stays visible
-  freq: [],         // baseline A: most-played in the trailing window
-  freqNoRepeat: [], // baseline B: same, minus anything played in the last 3 days
+  model: [],           // production model: score + slot-aware assembly
+  modelTopN: [],       // same scores, but just take the top N — isolates the slot logic
+  modelShowGap: [],    // the pre-day-curve model, kept so the change stays visible
+  modelShrunk: [],     // rotation rate over each song's own window, shrunk to a fitted prior
+  modelShrunkTopN: [], // the same, without the slot logic — isolates the estimator from it
+  modelDueness: [],     // dueness from a fitted relative-time hazard, not the hand-picked band
+  modelDuenessTopN: [], // the same, without the slot logic
+  freq: [],            // baseline A: most-played in the trailing window
+  freqNoRepeat: [],    // baseline B: same, minus anything played in the last 3 days
 };
 if (EXPERIMENTS) {
   if (!TUNE) {
@@ -169,6 +181,7 @@ if (EXPERIMENTS) {
   }
   for (const k of K_VALUES) arms[`dayOnly${k}`] = [];   // curve INSTEAD of show-gap
 }
+if (TUNE_DUENESS) for (const k of DUENESS_K_VALUES) arms[`dueK${k}`] = [];
 const perShow = [];
 const venueCoverage = { cache: 0, 'in-window': 0 };
 let skipped = 0;
@@ -222,17 +235,10 @@ for (let i = 0; i < showDates.length; i++) {
   const predSlugs = [...M.prediction.set1, ...M.prediction.set2, ...M.prediction.encore].map(s => s.slug);
   const topNSlugs = M.scored.slice(0, N).map(c => c.slug);
 
-  // Baselines, computed from the same history.
-  const trail = priorDates.slice(-TRAIL);
-  const freqTally = new Map();
-  for (const d of trail) for (const s of setOf.get(d)) freqTally.set(s, (freqTally.get(s) || 0) + 1);
-  const byFreq = [...freqTally.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(e => e[0]);
-
-  const recentlyPlayed = new Set();
-  for (const d of trail) {
-    const days = (new Date(target) - new Date(d)) / 86_400_000;
-    if (days <= 3) for (const s of setOf.get(d)) recentlyPlayed.add(s);
-  }
+  // Baselines, computed from the same history — and from lib/baselines.mjs, which
+  // analyze.js also publishes from, so the shipped ranking and the accuracy figure printed
+  // beside it can never come from two slightly different implementations.
+  const { trail, freq: byFreq, freqNoRepeat } = trailingFrequency(setOf, priorDates, target, { trail: TRAIL });
 
   const showGap = buildModel({
     rows: history,
@@ -243,16 +249,64 @@ for (let i = 0; i < showDates.length; i++) {
     recency: 'shows',
   });
 
+  // Base rotation rate estimated over each song's own availability window and shrunk toward
+  // a fitted prior, instead of plays/totalShows. Everything else is identical to `model`, so
+  // the pair isolates the estimator — which is the only way to say whether it earned its place.
+  const shrunk = buildModel({
+    rows: history,
+    target: { date: target, venue: meta.venue, venueid: meta.venueid },
+    tourName: meta.tourname,
+    venueSongCounts,
+    scheduleRows,
+    freqEstimator: 'shrunk',
+  });
+
+  // Dueness scored from a fitted relative-time hazard instead of the hand-picked band.
+  // One model per candidate weight: k scales how far the curve may move a song, and picking
+  // it by hand is the thing this arm exists to stop doing.
+  const duenessModels = new Map();
+  for (const k of DUENESS_K_VALUES) {
+    duenessModels.set(k, buildModel({
+      rows: history,
+      target: { date: target, venue: meta.venue, venueid: meta.venueid },
+      tourName: meta.tourname,
+      venueSongCounts,
+      scheduleRows,
+      dueness: 'fitted',
+      duenessK: k,
+    }));
+  }
+  const duenessMain = duenessModels.get(DUENESS_K);
+
   const g = {
     model: grade(predSlugs, actual),
     modelTopN: grade(topNSlugs, actual),
+    modelDueness: grade(
+      [...duenessMain.prediction.set1, ...duenessMain.prediction.set2, ...duenessMain.prediction.encore].map(s => s.slug),
+      actual,
+    ),
+    modelDuenessTopN: grade(duenessMain.scored.slice(0, N).map(c => c.slug), actual),
     modelShowGap: grade(
       [...showGap.prediction.set1, ...showGap.prediction.set2, ...showGap.prediction.encore].map(s => s.slug),
       actual,
     ),
+    // Both shapes, because `model` and `modelTopN` already differ by more than the slot logic
+    // is worth — comparing a shrunk setlist against an unshrunk top-N would confound the two.
+    modelShrunk: grade(
+      [...shrunk.prediction.set1, ...shrunk.prediction.set2, ...shrunk.prediction.encore].map(s => s.slug),
+      actual,
+    ),
+    modelShrunkTopN: grade(shrunk.scored.slice(0, N).map(c => c.slug), actual),
     freq: grade(byFreq.slice(0, N), actual),
-    freqNoRepeat: grade(byFreq.filter(s => !recentlyPlayed.has(s)).slice(0, N), actual),
+    freqNoRepeat: grade(freqNoRepeat.slice(0, N), actual),
   };
+
+  // Graded top-N, so the sweep measures the curve rather than the slot logic sitting on it.
+  if (TUNE_DUENESS) {
+    for (const k of DUENESS_K_VALUES) {
+      g[`dueK${k}`] = grade(duenessModels.get(k).scored.slice(0, N).map(c => c.slug), actual);
+    }
+  }
 
   if (EXPERIMENTS) {
     // The curve is refitted from history at every step, so it never sees the show it is
@@ -355,6 +409,10 @@ const LABELS = {
   model: 'MODEL (day curve, shipping)',
   modelTopN: 'MODEL top-N (no slot logic)',
   modelShowGap: 'MODEL before the day curve (show-gap)',
+  modelShrunk: 'MODEL shrunk rate (own window + prior)',
+  modelShrunkTopN: 'MODEL shrunk rate, no slot logic',
+  modelDueness: 'MODEL fitted dueness (relative hazard)',
+  modelDuenessTopN: 'MODEL fitted dueness, no slot logic',
   freq: `baseline: top-${N} by trailing-${TRAIL} frequency`,
   freqNoRepeat: `baseline: same, minus played <=3d ago`,
 };
@@ -367,7 +425,10 @@ if (EXPERIMENTS) {
 }
 // Only ever list arms that were actually populated — in --tune the on-top and hard-drop
 // variants are skipped, and naming them here would index into an undefined arm.
-const ARM_ORDER = ['model', 'modelTopN', 'modelShowGap', 'freqNoRepeat', 'freq',
+if (TUNE_DUENESS) for (const k of DUENESS_K_VALUES) LABELS[`dueK${k}`] = `EXP fitted dueness k=${k}`;
+const ARM_ORDER = ['model', 'modelTopN', 'modelDueness', 'modelDuenessTopN',
+  'modelShrunk', 'modelShrunkTopN', 'modelShowGap', 'freqNoRepeat', 'freq',
+  ...(TUNE_DUENESS ? DUENESS_K_VALUES.map(k => `dueK${k}`) : []),
   ...(EXPERIMENTS ? [
     ...(TUNE ? [] : ['dayHard', ...K_VALUES.map(k => `dayCurve${k}`)]),
     ...K_VALUES.map(k => `dayOnly${k}`),
@@ -450,6 +511,51 @@ if (TUNE) {
   console.log(`    gain     ${(heldPaired.delta * 100 >= 0 ? '+' : '') + (heldPaired.delta * 100).toFixed(2)}pp` +
     `  se ${(heldPaired.se * 100).toFixed(2)}pp  z ${heldPaired.z.toFixed(2)}  wins ${pct(heldPaired.winRate)}`);
   console.log(`    ${Math.abs(heldPaired.z) < 2 ? 'NOT CONFIRMED — inside noise on held-out data' : 'CONFIRMED on data that did not choose k'}`);
+}
+
+if (TUNE_DUENESS) {
+  // Same discipline as --tune above, and for the same reason: this arm's whole pitch is that
+  // it replaces hand-picked constants with measured ones, so choosing its ONE constant by
+  // eyeballing all 174 shows would hand the criticism straight back.
+  const train = perShow.filter(s => s.date <= TRAIN_END);
+  const test = perShow.filter(s => s.date > TRAIN_END);
+  if (!train.length || !test.length) {
+    console.error(`\n--tune-dueness needs shows on both sides of ${TRAIN_END}`);
+    process.exit(1);
+  }
+  const recallOf = (sub, arm) => mean(sub.map(s => s.arms[arm].r));
+  console.log(`\nTuning the fitted-dueness weight k`);
+  console.log(`  train: ${train.length} shows through ${TRAIN_END}   |   held out: ${test.length} shows after\n`);
+  console.log('     K'.padEnd(8), 'TRAIN RECALL'.padStart(14), 'HELD-OUT RECALL'.padStart(17));
+  let peakK = null, peakTrain = -Infinity;
+  for (const k of DUENESS_K_VALUES) {
+    const tr = recallOf(train, `dueK${k}`);
+    if (tr > peakTrain) { peakTrain = tr; peakK = k; }
+    console.log(`  ${String(k).padStart(4)}`.padEnd(8), pct(tr).padStart(14), pct(recallOf(test, `dueK${k}`)).padStart(17));
+  }
+
+  // Smallest k statistically indistinguishable from the training peak — assume least.
+  const bestK = DUENESS_K_VALUES.find(k => {
+    const p = paired(train.map(s => s.arms[`dueK${k}`].r), train.map(s => s.arms[`dueK${peakK}`].r));
+    return p.delta >= -p.se;
+  }) ?? peakK;
+  if (bestK !== peakK) {
+    console.log(`\n  train peak is k=${peakK} (${pct(peakTrain)}), top is flat — smallest k within`);
+    console.log(`  one standard error: k=${bestK} (${pct(recallOf(train, `dueK${bestK}`))}).`);
+  }
+
+  // Compared against modelTopN, not model: the sweep arms are all top-N, so measuring them
+  // against the slot-assembled model would credit this curve for removing the slot logic.
+  const arm = `dueK${bestK}`;
+  const held = paired(test.map(s => s.arms[arm].r), test.map(s => s.arms.modelTopN.r));
+  console.log(`\n  k = ${bestK} on the training window (${pct(recallOf(train, arm))} vs modelTopN ${pct(recallOf(train, 'modelTopN'))}).`);
+  console.log(`  On the ${test.length} held-out shows it was never tuned against:`);
+  console.log(`    modelTopN  ${pct(recallOf(test, 'modelTopN'))}`);
+  console.log(`    k=${bestK}        ${pct(recallOf(test, arm))}`);
+  console.log(`    gain       ${(held.delta * 100 >= 0 ? '+' : '') + (held.delta * 100).toFixed(2)}pp` +
+    `  se ${(held.se * 100).toFixed(2)}pp  z ${held.z.toFixed(2)}  wins ${pct(held.winRate)}`);
+  console.log(`    ${Math.abs(held.z) < 2 ? 'NOT CONFIRMED — inside noise on held-out data' : 'CONFIRMED on data that did not choose k'}`);
+  console.log(`\n  DUENESS_K in lib/model.mjs is currently ${DUENESS_K}.`);
 }
 
 if (EXPERIMENTS) {
@@ -572,6 +678,167 @@ if (calEval.length) {
     },
   }, null, 1) + '\n');
   console.log(`\n  wrote ${calPath}`);
+}
+
+// ---- arm accuracy, for the Nerd Zone ----
+//
+// backtest.json is a gitignored dev artifact, so these numbers have never left the terminal.
+// This is the small committed slice of them, following data/calibration.json exactly: written
+// unconditionally, committed, NOT published — analyze.js reads it and bakes the figures into
+// analysis.json beside the rankings they describe.
+//
+// Only the arms that always exist. The experiment arms come and go with --experiments and a
+// menu option whose numbers vanish depending on how the backtest was last invoked would be
+// worse than no menu option.
+{
+  // modelDuenessTopN ships; modelDueness, modelShrunk and modelShrunkTopN do not. An arm is
+  // published only if the site offers it, because arms.json exists to put measured numbers
+  // beside a menu entry — figures for an option nobody can select are dead weight in a file
+  // that gets baked into every page load.
+  const PUBLISHED_ARMS = ['model', 'modelTopN', 'modelDuenessTopN', 'modelShowGap', 'freq', 'freqNoRepeat'];
+  // Arms that are one deliberate change away from another arm, so the honest comparison is
+  // that pairing and not the baseline. Fitted dueness differs from modelTopN in exactly one
+  // respect: where the dueness term comes from.
+  const NEAREST = { modelDuenessTopN: 'modelTopN' };
+  const refArm = 'freqNoRepeat';
+  const armsOut = {};
+  for (const k of PUBLISHED_ARMS) {
+    if (!arms[k] || !arms[k].length) continue;
+    const rec = {
+      precision: mean(arms[k].map(x => x.precision)),
+      recall: mean(arms[k].map(x => x.recall)),
+      hitsPerShow: mean(arms[k].map(x => x.hits)),
+    };
+    // Against the naive baseline rather than against the model: the question a reader has is
+    // "is this better than just counting what they played lately", and the paired SE is what
+    // says whether the gap is real or noise.
+    if (k !== refArm) {
+      const p = paired(arms[k].map(x => x.recall), arms[refArm].map(x => x.recall));
+      rec.deltaRecallVsBaseline = p.delta;
+      rec.se = p.se;
+      rec.z = p.z;
+      rec.winRate = p.winRate;
+    }
+
+    // Against the naive baseline EVERY model arm looks strong, because they all beat "play
+    // what they played last week" — a bar the shipping model cleared years ago. The number
+    // that can actually mislead a reader is the one against the arm they would otherwise
+    // have picked, so where an arm is a single change away from another, publish that too.
+    // Without it, an arm can top the table on +5.01pp while its real advantage over the
+    // next-best is +0.75pp and inside noise.
+    const near = NEAREST[k];
+    if (near && arms[near] && arms[near].length) {
+      const p = paired(arms[k].map(x => x.recall), arms[near].map(x => x.recall));
+      rec.vsNearest = { arm: near, delta: p.delta, se: p.se, z: p.z };
+    }
+
+    // Recall per calendar year. "It gains 5pp" and "it gains 5pp, all of it since 2025" are
+    // different claims, and the summary row cannot tell them apart.
+    rec.byYear = [...new Set(perShow.map(s => s.date.slice(0, 4)))].sort().map(y => {
+      const sub = perShow.filter(s => s.date.startsWith(y));
+      return { year: y, shows: sub.length, recall: mean(sub.map(s => s.arms[k].r)) };
+    });
+
+    armsOut[k] = rec;
+  }
+  // ---- diagnostics ----
+  //
+  // Measurements this walk-forward already makes, printed once and then thrown away. They
+  // are deliberately NOT arms: nothing here re-ranks anything and a reader cannot choose
+  // one. They answer the questions the arm table provokes and cannot itself answer — how
+  // much of a single show is luck, whether tonight was ever reachable at all, whether the
+  // probabilities mean what they say, and whether any of it is holding up over time.
+  //
+  // Kept in this file rather than backtest.json because that one is gitignored and only
+  // written under --json, so it goes stale silently. Anything the site renders has to come
+  // from a committed artifact.
+  const sd = a => { const m = mean(a); return Math.sqrt(mean(a.map(x => (x - m) ** 2))); };
+  const pctile = (a, p) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(p * (s.length - 1))]; };
+  const diagnostics = {};
+
+  // How much of one show is luck. The arm table reports a mean and reads as though the
+  // model produces about five hits every time; the spread is what says a single show is
+  // nearly a coin toss between three and eight, which is the honest thing to tell somebody
+  // about to predict one show.
+  {
+    const h = arms.model.map(x => x.hits);
+    const histogram = {};
+    for (const v of h) histogram[v] = (histogram[v] || 0) + 1;
+    diagnostics.spread = {
+      budget: N,
+      mean: mean(h), sd: sd(h), min: Math.min(...h), max: Math.max(...h),
+      p10: pctile(h, 0.1), p25: pctile(h, 0.25), p50: pctile(h, 0.5),
+      p75: pctile(h, 0.75), p90: pctile(h, 0.9),
+      histogram,
+    };
+  }
+
+  // What was even reachable. Songs with no play in the trailing window cannot be produced
+  // by any rotation-based approach, so they are a hard cap on recall that belongs beside
+  // the recall figure — without it 27.7% reads as failure rather than as a share of what
+  // was catchable.
+  {
+    const size = mean(perShow.map(s => s.actualSize));
+    const un = mean(perShow.map(s => s.unreachable));
+    diagnostics.reachability = {
+      trail: TRAIL,
+      meanSetSize: size,
+      meanUnreachable: un,
+      meanReachable: size - un,
+      ceiling: mean(perShow.map(s => s.reachableCeiling)),
+      captured: mean(arms.model.map(x => x.hits)) / (size - un),
+    };
+  }
+
+  // Whether it holds up over time. The per-year split exists to catch a model that only
+  // works on the era it was tuned against — but it also carries the finding nothing else
+  // surfaces: the model's absolute recall is flat while the naive baseline falls away, so
+  // the gap widens because the band is rotating harder, not because the model improved.
+  {
+    const years = [...new Set(perShow.map(s => s.date.slice(0, 4)))].sort();
+    diagnostics.drift = years.map(y => {
+      const sub = perShow.filter(s => s.date.startsWith(y));
+      const m = mean(sub.map(s => s.arms.model.r));
+      const b = mean(sub.map(s => s.arms[refArm].r));
+      return {
+        year: y, shows: sub.length,
+        model: m, baseline: b, edge: m - b,
+        unreachable: mean(sub.map(s => s.unreachable)),
+        setSize: mean(sub.map(s => s.actualSize)),
+      };
+    });
+  }
+
+  // Do the probabilities mean what they say. This is the only measurement here that the
+  // ranking metrics structurally cannot see: an arm can rank perfectly and still be wildly
+  // overconfident, which is exactly what Platt did. Taken from the isotonic out-of-sample
+  // pairs — the fit that ships — so the table describes the numbers actually on the site.
+  if (calIsoEval.length) {
+    const rows = reliability(calIsoEval);
+    const tot = rows.reduce((a, r) => a + r.n, 0);
+    diagnostics.reliability = {
+      shows: calFits.length,
+      samples: calIsoEval.length,
+      buckets: rows.map(r => ({ predicted: r.predicted, observed: r.observed, n: r.n })),
+      weightedError: rows.reduce((a, r) => a + r.n * Math.abs(r.observed - r.predicted), 0) / tot,
+      worstBucket: rows.reduce((m, r) => Math.max(m, Math.abs(r.observed - r.predicted)), 0),
+    };
+  }
+
+  const armsPath = path.join(dataDir, 'arms.json');
+  fs.writeFileSync(armsPath, JSON.stringify({
+    generated: new Date().toISOString(),
+    shows: arms.model.length,
+    reference: refArm,
+    params: { N, TRAIL, WARMUP },
+    note: 'Walk-forward accuracy per approach. Each show is predicted using only shows before '
+      + 'it. delta/se/z are paired against the ' + refArm + ' baseline on recall; |z| under 2 '
+      + 'is not distinguishable from chance. `diagnostics` are measurements of the shipping '
+      + 'model, not selectable approaches — see the Nerd Zone.',
+    arms: armsOut,
+    diagnostics,
+  }, null, 1) + '\n');
+  console.log(`\nwrote ${armsPath} (committed — analyze.js bakes these into analysis.json)`);
 }
 
 if (WRITE_JSON) {
