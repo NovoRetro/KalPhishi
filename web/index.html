@@ -1541,6 +1541,14 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   // ---- predicted setlist marquee
   const pred = el('div', 'card marquee');
   pred.appendChild(el('h2', null, `Predicted setlist — ${esc(fmtDate(A.nextShow.date))} ${esc(A.nextShow.venue)} <span class="hint">(hover or tap a song for reasoning)</span>`));
+  // Prediction entries carry name/slug/score/why and deliberately not `p` — assembleSetlist
+  // never sees a probability, which is what keeps the four `score > 0` pool gates safe. So
+  // the chance is looked up by slug here instead. Built once rather than per set.
+  //
+  // A miss is possible and must not render as blank: when a slot pool comes up empty
+  // assembleSetlist falls back to the whole scored list, which can reach past the 120
+  // candidates published in analysis.json.
+  const chanceBySlug = new Map((A.candidates || []).filter(c => c.p != null).map(c => [c.slug, c.p]));
   for (const [label, list] of [['Set 1', A.prediction.set1], ['Set 2', A.prediction.set2], ['Encore', A.prediction.encore]]) {
     pred.appendChild(el('div', 'setlabel', label));
     const row = el('div', 'setlist');
@@ -1549,7 +1557,14 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       const sp = el('span', 's song', esc(s.name));
       const am = albumBySong.get(s.name);
       const albumNote = am && am.album ? ` · ${am.album} (${am.year})` : '';
-      bindTip(sp, `${s.name} — score ${s.score}`, (s.why.join('; ') || 'rotation strength') + albumNote);
+      // Chance first, score second — same order as the Ranked Songs table, and for the same
+      // reason: one of these is a number a reader can use and the other is the unit that
+      // produced the ordering.
+      const cp = chanceBySlug.get(s.slug);
+      const head = cp == null
+        ? `${s.name} — score ${s.score}`
+        : `${s.name} — ${Math.round(cp * 100)}% chance · score ${s.score}`;
+      bindTip(sp, head, (s.why.join('; ') || 'rotation strength') + albumNote);
       row.appendChild(sp);
       if (i < list.length - 1) row.appendChild(el('span', 't', label === 'Encore' ? ',' : '&gt;'));
     });
