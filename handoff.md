@@ -12,13 +12,15 @@
 > `0001_schema.sql` comment. `wrangler` commands in this doc are literal for that reason.
 > `'kalphishi'` also stays in the reserved-handle list — a retired brand is exactly what
 > somebody would register to look official.
-**Written:** 2026-08-09 (replaces the 2026-08-07 version, which predates Play a Show,
-password reset and the cache policy)
+**Written:** 2026-08-14 (replaces the 2026-08-09 version, which predates the rename,
+calibration, the Nerd Zone, track pre-caching and the first-run wizard)
 
-> **Production is current, but the branch is ahead of it.** `main` is at `1bdf3e3` and
-> everything deployed is green. Group invites (`group-invites`) are code-complete and
-> unmerged, and **`0008_invite_groups.sql` is pending on remote** — see In progress.
-> 206 tests passing, working tree clean.
+> **Production is current; one branch is ahead of it.** `main` is at `2b90570`, everything
+> on it is deployed and green, 242 tests pass, and **no migrations are pending**
+> (`0008_invite_groups.sql` is applied to remote).
+>
+> **`nerd-zone` is code-complete and unmerged** — two commits, reviewed but not yet approved
+> to merge. It is the only unmerged work. See "In progress".
 
 Still **closed beta** (~30 testers). The URL is public and registration is open, but this is
 not a public launch — say "in beta," never "launched."
@@ -35,6 +37,17 @@ roughly four weeks out, and is the best available shot at a burst of them.
 A cohort of willing phans is being assembled to test through to it. So the priority order
 is: remove what could **lose** a tester, then what could **stop one playing**, then
 everything else. The app is shipped and good enough; what it needs is players, not features.
+
+**Every blocker in that list is now closed** (see Next steps §0) — group onboarding, invite
+reach, day-one empty states, password recovery, the first-run wizard. The session that closed
+them also shipped calibration, gapless playback and the Nerd Zone.
+
+**One thing has not moved all session, and it is the one that matters most: reach.** There is
+no email, no push, no service worker — verified, not assumed. Nothing the app can do reaches
+a tester who does not open it. Every feature above assumes somebody who already did. With
+~30 people who are already in a group chat, **a message in that chat beats building a
+notification pipeline**, and it is the difference between graded predictions existing at
+Dick's and not. If only one thing happens before the show, make it that.
 
 ## Done
 
@@ -67,9 +80,18 @@ everything else. The app is shipped and good enough; what it needs is players, n
 ### The app surface
 - Landing view opens on the games: **45,175px → ~2,700px on a phone**.
 - Tabs are **Phish Bingo | Setlist Bets | Data**, with **Play a Show pinned to the right of
-  the same row** (Data has five sub-tabs). Play a Show used to float on the banner above the
-  row; it read as elevated above the things it is a peer of. Only the **"Updated" stamp**
-  stays on the banner — it describes the data behind Data and is not somewhere you go.
+  the same row**. Play a Show used to float on the banner above the row; it read as elevated
+  above the things it is a peer of. Only the **"Updated" stamp** stays on the banner — it
+  describes the data behind Data and is not somewhere you go.
+- **Data has six sub-tabs**: Predicted Setlist · Song Rotation · Album Coverage · Venue
+  History · Ranked Songs · **Nerd Zone**. Six fills the mobile `repeat(3, 1fr)` grid as a
+  clean 3+3. Pill-to-card mapping is by **exact string identity** between `DATA_TABS` and each
+  card's `dataset.section` — a typo on either side makes a tab that silently shows nothing,
+  and a test now checks every tab has a card.
+- **`const sections = [...app.children]` is a ONE-TIME snapshot**, taken after every card is
+  appended. A card appended later is never in the show/hide loop and renders on *every*
+  sub-tab at once — which looks like a CSS bug and is not one. Anything that re-renders a
+  card must refill the **existing element**, never replace it, or that card stops hiding.
 - **The standings are not a tab.** They were briefly, and it cost a permanent slot in the
   row a phone can least afford for something read occasionally. They now open **per game
   from that game's Actions menu** (`boardMenuItem`/`boardPanel` in `predictor.js`), plus a
@@ -210,18 +232,19 @@ change in place, so they keep revalidating.
 
 ## In progress
 
-**Branch `group-invites` — code complete, NOT deployed.** 206 tests passing, working tree
-clean. Two things stand between it and production:
+**Branch `nerd-zone` — code complete, reviewed, NOT merged.** Two commits, 242 tests
+passing, working tree clean, no migration involved. It adds the Nerd Zone sub-tab and lets a
+chosen approach drive Our Prediction (see Next steps item 4 for what it is and why).
 
-1. **`0008_invite_groups.sql` must be applied to remote BEFORE this merges.** It is applied
-   locally only. CI deliberately does not run migrations, and the deploy fires on push to
-   `main`, so merging first means a Worker selecting `group_id` from a column that isn't
-   there — every invite route 500s, including plain friend invites.
-   ```
-   npx wrangler d1 migrations apply kalphishi --remote
-   ```
-2. The branch was cut from `handoff-refresh`, so it carries this document too. That branch
-   is still unmerged on its own.
+Nothing blocks the merge technically. What was left open is a **judgement call, deliberately
+not made unilaterally**: the Nerd Zone publishes the finding that the shipping model's slot
+logic *costs* accuracy — 28.5% recall without it against 27.7% with it. Publishing that is
+in keeping with how the rest of the app treats its own numbers, and it is the app's own
+credibility being spent. The alternative is to keep `modelTopN` out of the menu.
+
+One cosmetic thing to eyeball before merging, because the Browser pane's compositing failed
+during the last checks and it is verified by measurement only: the `🛟 <approach>` chip on
+the game heading row at 375px.
 
 ## Next steps
 
@@ -479,7 +502,7 @@ and members must already be friends.
    in ten. The ranking never revealed that, and it is the single most useful thing
    calibration produced.
 
-   **The step 5 caveat is resolved by construction, not by discipline.** `p` is attached in
+   **The caveat in item 6 is resolved by construction, not by discipline.** `p` is attached in
    `analyze.js` AFTER `buildModel` returns — `lib/model.mjs` is untouched and never sees a
    probability, so the four `score > 0` pool gates cannot be affected by anything here.
    Verified: with `p` attached, the published prediction, the candidate order and every score
@@ -492,9 +515,72 @@ and members must already be friends.
 
    `data/calibration.json` is committed (un-ignored in `.gitignore`) because reproducing it
    needs a 145-show walk-forward over the raw setlists, which are gitignored.
-3. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
+3. **Bayesian and Monte Carlo approaches in the Nerd Zone — NEXT, agreed 2026-08-14.**
+   The Nerd Zone menu currently offers five arms that all rank by the same hand-tuned score.
+   These two are genuinely different machinery, and they are **not** interchangeable with
+   each other — they are consecutive layers of one pipeline:
+
+   > Bayesian **fits the parameters** → calibration **turns scores into probabilities**
+   > (done) → Monte Carlo **turns probabilities into outcome odds**.
+
+   A menu that presents them as alternatives teaches the audience most likely to notice it is
+   false. In the Nerd Zone they can still appear as separate rows, because each is a distinct
+   *ranking* a reader can apply — but the copy must say they stack, not compete.
+
+   ### 3a. Bayesian parameter fitting — do this one first
+   Replace the hand-tuned weights in `lib/model.mjs` (`freq × 30`, `−15` just played, `−10`
+   at last tour show, `+8` conspicuously absent, `+2.5` per venue play, the `DAY_CURVE_K`
+   weight) with parameters **fitted from outcomes** rather than chosen by hand.
+
+   - **It changes the ranking**, so unlike calibration it is a real model change and must
+     win on precision and recall, not merely on elegance. It gets an arm in the backtest and
+     lives or dies on the paired test against `freqNoRepeat` like everything else.
+   - **Fit inside the walk-forward**, refitting per target from prior shows only. Fitting
+     once over all 174 and then "evaluating" is the same leak the calibrator had to avoid,
+     and it will look like a large improvement.
+   - Simplest honest version: **logistic regression** on the existing per-song features
+     (era frequency, gap vs own cadence, days since last, tour plays, venue count, slot
+     shares) predicting "played at this show". That IS the Bayesian layer in practice — with
+     a prior/regularisation term it is literally MAP estimation — and it produces a
+     probability directly, which means it may not need the isotonic step at all. **Check its
+     reliability before assuming it does**; a regression's raw output is often already close.
+   - **The `score > 0` trap applies with full force here.** Four pools in `assembleSetlist`
+     gate on it. A fitted model emitting probabilities has no negatives, so those gates go
+     vacuous and the predicted setlist changes silently. Either keep a score-shaped quantity
+     for the gates or replace the gates deliberately, with the setlist diffed before and
+     after. See item 6.
+   - Cheap prerequisite already in place: the walk-forward harness, `lib/baselines.mjs`,
+     `arms.json`, and a UI that will display a sixth arm with no changes at all.
+
+   ### 3b. Monte Carlo odds — harder than it looks, and not blocked by sample size
+   Simulate whole setlists from the probabilities, many times, and report outcome odds:
+   "chance Tweezer opens set 2", "chance of a bustout", "odds your card gets 5 hits".
+
+   - **The blocker is song dependence, and it is structural.** Sampling 120 independent
+     Bernoullis gives 40-song sets, Tweezer Reprise without Tweezer, two openers, and Harry
+     Hood in three places. Real odds need a **joint** distribution: set sizes, slot
+     constraints, segue pairs, and the strong pairwise rules this band actually follows.
+     More graded shows do not help. This is modelling work, not data collection.
+   - **The flat middle makes the payoff smaller than it sounds.** 78 of 120 candidates sit
+     at 17–18%, so simulated odds over that mass would be mush wearing a precise number.
+   - **A sane first version**: sample *set sizes* from history, then draw without replacement
+     using the calibrated probabilities as weights, then apply a small rule table (Reprise
+     requires its parent; one opener; encore drawn from the encore pool). That is defensible
+     and testable — simulate the 174 backtest shows and check the simulated distribution of
+     hits matches the observed one.
+   - **The free thing to ship before any of this: expected hits.** Summing `p` over a card is
+     valid *regardless of dependence*, because expectation is linear. The current predicted
+     setlist is worth ~3.7 hits, and the one graded show returned 4. No simulation required.
+
+   ### What must stay true for both
+   - Every arm in the menu carries its own walk-forward numbers, or it does not go in the
+     menu. That rule is the whole reason the Nerd Zone is defensible.
+   - A lens still may not touch saving, scoring, points, standings or Track Record.
+   - Whatever ships must state its own limits in the card, as the isotonic one does.
+
+4. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
    rehoming the era window / tour totals, rehoming the attendance toggle.
-4. ~~"Nerd Zone"~~ — **BUILT 2026-08-14.** A sixth Data sub-tab after Ranked Songs: explains
+5. ~~"Nerd Zone"~~ — **BUILT 2026-08-14.** A sixth Data sub-tab after Ranked Songs: explains
    the approach, and lets a reader re-rank under a *different* one. Was deferred to ~30
    graded shows; that deferral was void for two reasons that became true the same day.
 
@@ -564,7 +650,7 @@ and members must already be friends.
      never against the model — a reader's choice of lens **cannot** touch their points or the
      leaderboard. It **would** fragment Track Record, which grades the model, so Track Record
      stays pinned to the shipping arm.
-5. **Calibration caveat — still live, and still the trap.** Honoured by keeping `p` out of
+6. **Calibration caveat — still live, and still the trap.** Honoured by keeping `p` out of
    the model entirely (see step 2), but the moment somebody moves it *in* to reuse it inside
    `assembleSetlist`, all of this applies again. `lib/model.mjs` gates the opener, closer,
    set-2-opener and encore
@@ -586,6 +672,8 @@ had drifted 80 lines by the time anyone read it.
 |---|---|
 | `lib/model.mjs` | The prediction model, pure. Leakage guard at the top of `buildModel`. The `score > 0` pool gates are near the bottom. |
 | `lib/dayrepeat.mjs` | Day-since-last-play curve; `DAY_CURVE_K` lives in `model.mjs`. |
+| `lib/calibration.mjs` | score → probability. `fitIsotonic`/`isoProb` are what ship; `fitPlatt`/`plattProb` are kept as the rejected comparison. Plus `brier`, `logLoss`, `reliability`. |
+| `lib/baselines.mjs` | The naive baselines, shared by the backtest and analyze so a shipped ranking cannot drift from the accuracy printed under it. |
 | `lib/scoring.mjs` | Setlist + bingo scoring. `SETLIST_POINTS`, `SETLIST_SOFT_CAP`, per-row `rows`/`setTotals`. Mirrored in `predictor.js`; a test asserts they stay in step. |
 | `lib/showtime.mjs` | Showtime parsing, venue→timezone, `lockStateFor`, `preferResolved`. |
 | `lib/identity.mjs` | Email/handle rules **and** `sanitizeLine`/`sanitizeBlock`/`sanitizeAvatar`. |
@@ -598,7 +686,9 @@ had drifted 80 lines by the time anyone read it.
 | `web/relisten.js` | The audio player. `slugify` is the single source of truth for phish.in slugs. `bind(container)` wires `data-listen-*`; `playFrom()` is the only way playback starts; `advance()` stops at the queue end. |
 | `web/_headers` | Cache policy. Opposite rules for the HTML and the hashed scripts — read the file, it explains why. |
 | `scripts/build-public.js` | The deploy allowlist, the content-hash stamping, and publishing `_headers`. Throws if a stamp matches nothing. |
-| `scripts/backtest.js` | Dev tool. `--experiments`, `--tune`. Needs gitignored raw setlists. |
+| `scripts/backtest.js` | Dev tool. `--experiments`, `--tune`. Needs gitignored raw setlists. Also writes `data/calibration.json` and `data/arms.json` unconditionally. |
+| `data/calibration.json` | Fitted isotonic bins. **Committed, never published** — analyze bakes `p` into `analysis.json`. |
+| `data/arms.json` | Walk-forward accuracy per approach. Same deal: committed, not published, baked into `analysis.json` as `lenses`. |
 | `.github/workflows/deploy.yml` | Fires on push to `main`. Tests gate the deploy. Deliberately does **not** run migrations. |
 
 ## Open decisions / questions
@@ -696,15 +786,18 @@ had drifted 80 lines by the time anyone read it.
 ## Branches
 
 ```
-main            1bdf3e3   ← production, current
-handoff-refresh           ← this document, unmerged
-group-invites             ← branched from handoff-refresh; needs 0008 on remote first
+main        2b90570   ← production, current, deployed green
+nerd-zone   ac48f28   ← 2 commits ahead, code complete, NOT merged
 ```
 
-Everything is merged. Nine branches are fully merged and safe to delete: `explain-soft-cap`,
-`first-run-mobile`, `bingo-cell-icons`, `scoring-scope`, `play-a-show`, `show-autoadvance`,
-`controls-and-taglines`, `password-reset`, `cache-policy`. A further ~13 older branches carry
-commits unreachable from `main` (squash-merge leftovers) — `backtest-harness` and
-`leaderboard-split` are the two I would not delete unexamined.
+Merged and deleted this session, in order: `group-invites` (#33), `handoff-roadmap` (#42),
+`tagline-fluff` (#40), `tagline-weigh` → the rename (#41), `actions-ellipsis` (#34),
+`setup-wizard` (#45), `track-precache` (#46), `calibration` (#47), `show-chance` (#48),
+`chance-tooltips` (#49).
 
-Branch from `main` for the next piece of work.
+Older leftovers still around: ~13 branches carrying commits unreachable from `main`
+(squash-merge residue) — `backtest-harness` and `leaderboard-split` are the two I would not
+delete unexamined.
+
+Branch from `main` for the next piece of work — **unless** it builds on the Nerd Zone, in
+which case branch from `nerd-zone` and say so, since that is where `lenses` lives.
