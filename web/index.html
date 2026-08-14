@@ -330,6 +330,29 @@
     background: var(--accent-wash); border-radius: 0 8px 8px 0; max-width: 66ch; }
   .nz-notes p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; }
   .nz-notes p:last-child { margin-bottom: 0; }
+  /* Diagnostics. Separated from the picker by a rule because they are measurements of the
+     shipping model, NOT more approaches — sat directly under a row of buttons they read as
+     further options, which is the one thing they must not. */
+  .nz-diag { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 14px; }
+  .nz-diag h3 { margin: 0 0 6px; font-size: 15px; }
+  .nz-diag p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; max-width: 66ch; }
+  .nz-diag table { margin: 8px 0 6px; }
+  .nz-diag-sub { margin: 18px 0 6px; font-size: 14px; font-weight: 600; }
+  /* Hits per show. A bar chart rather than a table because the SHAPE is the finding — the
+     mean sits on a wide, flat hump, and no column of numbers says that at a glance. Widths
+     are a share of the tallest bucket, so the count is printed too: a bar is not a quantity. */
+  .nz-hist { display: grid; grid-template-columns: auto minmax(60px, 1fr) auto; gap: 3px 8px;
+    align-items: center; font-variant-numeric: tabular-nums; font-size: 12px;
+    margin: 10px 0; max-width: 440px; }
+  .nz-hist .hk { text-align: right; color: var(--ink-2); }
+  .nz-hist .hb { height: 11px; border-radius: 3px; background: var(--border); min-width: 3px; }
+  /* The middle 80%. Highlighted because that band, not the mean, is what somebody predicting
+     a single show should actually expect. */
+  .nz-hist .hb.mid { background: var(--series-1); }
+  .nz-hist .hn { color: var(--muted); font-size: 11px; white-space: nowrap; }
+  /* A year measured on a handful of shows is noise; it stays in the table because dropping
+     rows to make a trend look cleaner is the thing this whole section argues against. */
+  .nz-thin { color: var(--muted); font-style: italic; }
   /* Shown on every card a lens has altered. Deliberately loud: a reader who set a lens days
      ago must not mistake an experimental ranking for the app's actual prediction. */
   .lens-badge { margin: 8px 0 10px; padding: 8px 10px; border-radius: 8px; font-size: 13px;
@@ -2200,6 +2223,131 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     app.addEventListener('click', ev => {
       if (ev.target.closest('.lens-reset')) setLens(LENS_DEFAULT);
     });
+
+    // ---- diagnostics ----
+    //
+    // Measurements of the shipping model, from the same walk-forward that produced the table
+    // above. They are NOT arms: nothing here re-ranks anything and there is nothing to pick,
+    // which is why they sit below a rule rather than beside the picker.
+    //
+    // Absent from an arms.json generated before the block existed, hence the guard — an old
+    // artifact should cost the section, not the whole card.
+    const D = A.lenses.diagnostics;
+    if (D) {
+      const diag = el('div', 'nz-diag');
+      diag.appendChild(el('h3', null, 'How well does it actually work?'));
+      diag.appendChild(el('p', 'hint',
+        'Nothing below is an option — these are measurements of the shipping model, from the '
+        + 'same walk-forward as the table above.'));
+
+      // First column text, the rest numeric. Deliberately not tableOf(): that one adds a
+      // filter box and a sort toggle per column, which on a four-row table is more furniture
+      // than data.
+      const plainTable = (headers, rows) => el('table', null,
+        '<tr>' + headers.map((h, i) => `<th${i ? ' class="num"' : ''}>${h}</th>`).join('') + '</tr>'
+        + rows.map(r => '<tr>' + r.map((c, i) => `<td${i ? ' class="num"' : ''}>${c}</td>`).join('') + '</tr>').join(''));
+
+      if (D.spread) {
+        const s = D.spread;
+        diag.appendChild(el('div', 'nz-diag-sub', 'One show is mostly luck'));
+        diag.appendChild(el('p', null,
+          `Over ${A.lenses.measuredOver} shows the model averages <b>${s.mean.toFixed(1)} hits</b> from `
+          + `${s.budget} picks. The average is the least useful number here: half of all shows land `
+          + `between ${s.p25} and ${s.p75} hits, the middle 80% between <b>${s.p10} and ${s.p90}</b>, `
+          + `and the range runs from ${s.min} to ${s.max}. Predicting one night, that spread is the `
+          + 'honest expectation — which is exactly why a three-night run tells you more than a single show.'));
+
+        // Continuous axis: iterating the observed keys alone would silently close a gap and
+        // draw a smoother distribution than the one measured.
+        const counts = s.histogram;
+        const max = Math.max(...Object.values(counts));
+        const hist = el('div', 'nz-hist');
+        for (let k = s.min; k <= s.max; k++) {
+          const n = counts[k] || 0;
+          hist.appendChild(el('div', 'hk', String(k)));
+          const bar = el('div', 'hb' + (k >= s.p10 && k <= s.p90 ? ' mid' : ''));
+          bar.style.width = Math.max(3, Math.round((n / max) * 100)) + '%';
+          const cell = el('div');
+          cell.appendChild(bar);
+          hist.appendChild(cell);
+          hist.appendChild(el('div', 'hn', n ? `${n} show${n === 1 ? '' : 's'}` : ''));
+        }
+        diag.appendChild(hist);
+        diag.appendChild(el('p', 'hint', 'Hits per show. Shaded bars are the middle 80% of shows.'));
+      }
+
+      if (D.reachability) {
+        const r = D.reachability;
+        diag.appendChild(el('div', 'nz-diag-sub', 'Some of the show was never reachable'));
+        diag.appendChild(el('p', null,
+          `An average show is ${r.meanSetSize.toFixed(1)} songs, and <b>${r.meanUnreachable.toFixed(1)} of them</b> `
+          + `had not been played once in the previous ${r.trail} shows. Bustouts, debuts and one-offs cannot `
+          + 'be produced by <i>any</i> approach on this page, because every one of them ranks songs by how '
+          + `they have recently been played. That caps recall at <b>${(r.ceiling * 100).toFixed(0)}%</b> before `
+          + `the model does anything at all. Of the ${r.meanReachable.toFixed(1)} songs that <i>were</i> `
+          + `reachable, it finds <b>${(r.captured * 100).toFixed(0)}%</b> — so the ceiling is not what is `
+          + 'holding the number down.'));
+      }
+
+      if (D.drift && D.drift.length) {
+        diag.appendChild(el('div', 'nz-diag-sub', 'Is it holding up?'));
+        const THIN = 10;
+        diag.appendChild(plainTable(
+          ['Year', 'Shows', 'Model', 'Baseline', 'Gap', 'Unreachable'],
+          D.drift.map(r => [
+            r.shows < THIN ? `<span class="nz-thin">${r.year}</span>` : r.year,
+            r.shows,
+            (r.model * 100).toFixed(1) + '%',
+            (r.baseline * 100).toFixed(1) + '%',
+            `<b>${r.edge >= 0 ? '+' : ''}${(r.edge * 100).toFixed(1)}pp</b>`,
+            r.unreachable.toFixed(1),
+          ])));
+        const solid = D.drift.filter(r => r.shows >= THIN);
+        const thin = D.drift.filter(r => r.shows < THIN);
+        if (solid.length >= 2) {
+          const a = solid[0], b = solid[solid.length - 1];
+          diag.appendChild(el('p', null,
+            `<b>The model is not getting better — the naive approach is getting worse.</b> Its own recall `
+            + `is roughly flat (${(a.model * 100).toFixed(1)}% in ${a.year}, ${(b.model * 100).toFixed(1)}% in `
+            + `${b.year}). What moved is the baseline, which fell from ${(a.baseline * 100).toFixed(1)}% to `
+            + `${(b.baseline * 100).toFixed(1)}% over the same span, while songs it could never reach rose to `
+            + `${b.unreachable.toFixed(1)} a night. The gap widens because the band is rotating harder and `
+            + 'busting out more, which punishes &ldquo;play what they played last week&rdquo; far more than '
+            + 'it punishes a model that also weighs cadence and absence.'));
+        }
+        if (thin.length) {
+          diag.appendChild(el('p', 'hint',
+            `${thin.map(r => r.year).join(', ')} covers only ${thin.map(r => r.shows).join('/')} shows — `
+            + 'too few to read a trend from. It stays in the table because dropping a row to tidy a trend '
+            + 'is the thing this whole section argues against.'));
+        }
+      }
+
+      if (D.reliability) {
+        const rel = D.reliability;
+        diag.appendChild(el('div', 'nz-diag-sub', 'Do the percentages mean anything?'));
+        diag.appendChild(el('p', null,
+          'The <b>Chance</b> column on Ranked Songs is only worth printing if it is true. Across '
+          + `${rel.shows} shows and ${rel.samples.toLocaleString()} song-outcomes — every one scored against `
+          + 'a fit that had not seen it — of everything called X%, this is what actually played:'));
+        diag.appendChild(plainTable(
+          ['Called', 'Actually played', 'Songs'],
+          rel.buckets.map(b => [
+            (b.predicted * 100).toFixed(1) + '%',
+            (b.observed * 100).toFixed(1) + '%',
+            b.n.toLocaleString(),
+          ])));
+        const top = rel.buckets[rel.buckets.length - 1];
+        diag.appendChild(el('p', null,
+          `Average miss <b>${(rel.weightedError * 100).toFixed(2)}pp</b>, worst row `
+          + `${(rel.worstBucket * 100).toFixed(1)}pp. The last row is the one worth sitting with: the songs `
+          + `this thing is most confident about play about <b>${(top.observed * 100).toFixed(0)}% of the time</b>. `
+          + 'There is no bucket above that, because nothing in a Phish setlist is a sure thing — and a model '
+          + 'that told you otherwise would be lying to you.'));
+      }
+
+      nerd.appendChild(diag);
+    }
   } else {
     nerd.appendChild(el('div', 'hint',
       'Approach comparison is unavailable — data/arms.json has not been generated. '

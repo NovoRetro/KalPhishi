@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-14T14:33:03.345Z",
+ "generated": "2026-08-14T19:55:31.384Z",
  "shows": 174,
  "reference": "freqNoRepeat",
  "params": {
@@ -7,7 +7,7 @@
   "TRAIL": 30,
   "WARMUP": 40
  },
- "note": "Walk-forward accuracy per approach. Each show is predicted using only shows before it. delta/se/z are paired against the freqNoRepeat baseline on recall; |z| under 2 is not distinguishable from chance.",
+ "note": "Walk-forward accuracy per approach. Each show is predicted using only shows before it. delta/se/z are paired against the freqNoRepeat baseline on recall; |z| under 2 is not distinguishable from chance. `diagnostics` are measurements of the shipping model, not selectable approaches — see the Nerd Zone.",
  "arms": {
   "model": {
    "precision": 0.29276538201487506,
@@ -49,6 +49,118 @@
    "precision": 0.25693035835023664,
    "recall": 0.2423592387835798,
    "hitsPerShow": 4.367816091954023
+  }
+ },
+ "diagnostics": {
+  "spread": {
+   "budget": 17,
+   "mean": 4.977011494252873,
+   "sd": 2.3067966119845242,
+   "min": 1,
+   "max": 13,
+   "p10": 2,
+   "p25": 3,
+   "p50": 5,
+   "p75": 6,
+   "p90": 8,
+   "histogram": {
+    "1": 8,
+    "2": 17,
+    "3": 20,
+    "4": 31,
+    "5": 34,
+    "6": 30,
+    "7": 9,
+    "8": 13,
+    "9": 5,
+    "10": 2,
+    "11": 3,
+    "12": 1,
+    "13": 1
+   }
+  },
+  "reachability": {
+   "trail": 30,
+   "meanSetSize": 18.017241379310345,
+   "meanUnreachable": 2.132183908045977,
+   "meanReachable": 15.885057471264368,
+   "ceiling": 0.8859078068972266,
+   "captured": 0.3133140376266281
+  },
+  "drift": [
+   {
+    "year": "2022",
+    "shows": 6,
+    "model": 0.2935170884992367,
+    "baseline": 0.36883361154308925,
+    "edge": -0.07531652304385256,
+    "unreachable": 1.8333333333333333,
+    "setSize": 19.333333333333332
+   },
+   {
+    "year": "2023",
+    "shows": 49,
+    "model": 0.2752844599641213,
+    "baseline": 0.23916181769691588,
+    "edge": 0.036122642267205435,
+    "unreachable": 2.142857142857143,
+    "setSize": 17.979591836734695
+   },
+   {
+    "year": "2024",
+    "shows": 41,
+    "model": 0.29279803623322753,
+    "baseline": 0.29045743919317474,
+    "edge": 0.0023405970400527942,
+    "unreachable": 2.024390243902439,
+    "setSize": 18.51219512195122
+   },
+   {
+    "year": "2025",
+    "shows": 47,
+    "model": 0.27293627790795305,
+    "baseline": 0.23277545745186218,
+    "edge": 0.04016082045609087,
+    "unreachable": 1.9148936170212767,
+    "setSize": 17.893617021276597
+   },
+   {
+    "year": "2026",
+    "shows": 31,
+    "model": 0.2610367084450776,
+    "baseline": 0.17385081628315427,
+    "edge": 0.08718589216192332,
+    "unreachable": 2.6451612903225805,
+    "setSize": 17.35483870967742
+   }
+  ],
+  "reliability": {
+   "shows": 145,
+   "samples": 26176,
+   "buckets": [
+    {
+     "predicted": 0.045786823248119994,
+     "observed": 0.04894083272461651,
+     "n": 16428
+    },
+    {
+     "predicted": 0.15310126268027602,
+     "observed": 0.15049904676460693,
+     "n": 8917
+    },
+    {
+     "predicted": 0.240072734978914,
+     "observed": 0.2088888888888889,
+     "n": 450
+    },
+    {
+     "predicted": 0.30928680602794734,
+     "observed": 0.25984251968503935,
+     "n": 381
+    }
+   ],
+   "weightedError": 0.0041216775228096435,
+   "worstBucket": 0.049444286342907984
   }
  }
 }

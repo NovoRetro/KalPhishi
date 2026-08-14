@@ -277,6 +277,11 @@ const lenses = armStats ? {
   measuredOver: armStats.shows,
   reference: armStats.reference,
   params: armStats.params,
+  // Measurements of the shipping model, not selectable approaches. They ride along with
+  // `lenses` because they come out of the same walk-forward and are meaningless without the
+  // arm table beside them — a spread of hits per show says nothing until a reader knows what
+  // produced the hits. Older arms.json files predate the block, so this may be absent.
+  diagnostics: armStats.diagnostics || null,
   arms: LENS_ARMS
     .filter(a => armStats.arms[a.key])
     .map(a => ({ ...a, ...armStats.arms[a.key] })),

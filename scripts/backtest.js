@@ -601,6 +601,90 @@ if (calEval.length) {
     }
     armsOut[k] = rec;
   }
+  // ---- diagnostics ----
+  //
+  // Measurements this walk-forward already makes, printed once and then thrown away. They
+  // are deliberately NOT arms: nothing here re-ranks anything and a reader cannot choose
+  // one. They answer the questions the arm table provokes and cannot itself answer — how
+  // much of a single show is luck, whether tonight was ever reachable at all, whether the
+  // probabilities mean what they say, and whether any of it is holding up over time.
+  //
+  // Kept in this file rather than backtest.json because that one is gitignored and only
+  // written under --json, so it goes stale silently. Anything the site renders has to come
+  // from a committed artifact.
+  const sd = a => { const m = mean(a); return Math.sqrt(mean(a.map(x => (x - m) ** 2))); };
+  const pctile = (a, p) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(p * (s.length - 1))]; };
+  const diagnostics = {};
+
+  // How much of one show is luck. The arm table reports a mean and reads as though the
+  // model produces about five hits every time; the spread is what says a single show is
+  // nearly a coin toss between three and eight, which is the honest thing to tell somebody
+  // about to predict one show.
+  {
+    const h = arms.model.map(x => x.hits);
+    const histogram = {};
+    for (const v of h) histogram[v] = (histogram[v] || 0) + 1;
+    diagnostics.spread = {
+      budget: N,
+      mean: mean(h), sd: sd(h), min: Math.min(...h), max: Math.max(...h),
+      p10: pctile(h, 0.1), p25: pctile(h, 0.25), p50: pctile(h, 0.5),
+      p75: pctile(h, 0.75), p90: pctile(h, 0.9),
+      histogram,
+    };
+  }
+
+  // What was even reachable. Songs with no play in the trailing window cannot be produced
+  // by any rotation-based approach, so they are a hard cap on recall that belongs beside
+  // the recall figure — without it 27.7% reads as failure rather than as a share of what
+  // was catchable.
+  {
+    const size = mean(perShow.map(s => s.actualSize));
+    const un = mean(perShow.map(s => s.unreachable));
+    diagnostics.reachability = {
+      trail: TRAIL,
+      meanSetSize: size,
+      meanUnreachable: un,
+      meanReachable: size - un,
+      ceiling: mean(perShow.map(s => s.reachableCeiling)),
+      captured: mean(arms.model.map(x => x.hits)) / (size - un),
+    };
+  }
+
+  // Whether it holds up over time. The per-year split exists to catch a model that only
+  // works on the era it was tuned against — but it also carries the finding nothing else
+  // surfaces: the model's absolute recall is flat while the naive baseline falls away, so
+  // the gap widens because the band is rotating harder, not because the model improved.
+  {
+    const years = [...new Set(perShow.map(s => s.date.slice(0, 4)))].sort();
+    diagnostics.drift = years.map(y => {
+      const sub = perShow.filter(s => s.date.startsWith(y));
+      const m = mean(sub.map(s => s.arms.model.r));
+      const b = mean(sub.map(s => s.arms[refArm].r));
+      return {
+        year: y, shows: sub.length,
+        model: m, baseline: b, edge: m - b,
+        unreachable: mean(sub.map(s => s.unreachable)),
+        setSize: mean(sub.map(s => s.actualSize)),
+      };
+    });
+  }
+
+  // Do the probabilities mean what they say. This is the only measurement here that the
+  // ranking metrics structurally cannot see: an arm can rank perfectly and still be wildly
+  // overconfident, which is exactly what Platt did. Taken from the isotonic out-of-sample
+  // pairs — the fit that ships — so the table describes the numbers actually on the site.
+  if (calIsoEval.length) {
+    const rows = reliability(calIsoEval);
+    const tot = rows.reduce((a, r) => a + r.n, 0);
+    diagnostics.reliability = {
+      shows: calFits.length,
+      samples: calIsoEval.length,
+      buckets: rows.map(r => ({ predicted: r.predicted, observed: r.observed, n: r.n })),
+      weightedError: rows.reduce((a, r) => a + r.n * Math.abs(r.observed - r.predicted), 0) / tot,
+      worstBucket: rows.reduce((m, r) => Math.max(m, Math.abs(r.observed - r.predicted)), 0),
+    };
+  }
+
   const armsPath = path.join(dataDir, 'arms.json');
   fs.writeFileSync(armsPath, JSON.stringify({
     generated: new Date().toISOString(),
@@ -609,8 +693,10 @@ if (calEval.length) {
     params: { N, TRAIL, WARMUP },
     note: 'Walk-forward accuracy per approach. Each show is predicted using only shows before '
       + 'it. delta/se/z are paired against the ' + refArm + ' baseline on recall; |z| under 2 '
-      + 'is not distinguishable from chance.',
+      + 'is not distinguishable from chance. `diagnostics` are measurements of the shipping '
+      + 'model, not selectable approaches — see the Nerd Zone.',
     arms: armsOut,
+    diagnostics,
   }, null, 1) + '\n');
   console.log(`\nwrote ${armsPath} (committed — analyze.js bakes these into analysis.json)`);
 }
