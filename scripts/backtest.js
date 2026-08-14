@@ -157,11 +157,13 @@ function venueHistory(venueid) {
 }
 
 const arms = {
-  model: [],        // production model: score + slot-aware assembly
-  modelTopN: [],    // same scores, but just take the top N — isolates the slot logic
-  modelShowGap: [], // the pre-day-curve model, kept so the change stays visible
-  freq: [],         // baseline A: most-played in the trailing window
-  freqNoRepeat: [], // baseline B: same, minus anything played in the last 3 days
+  model: [],           // production model: score + slot-aware assembly
+  modelTopN: [],       // same scores, but just take the top N — isolates the slot logic
+  modelShowGap: [],    // the pre-day-curve model, kept so the change stays visible
+  modelShrunk: [],     // rotation rate over each song's own window, shrunk to a fitted prior
+  modelShrunkTopN: [], // the same, without the slot logic — isolates the estimator from it
+  freq: [],            // baseline A: most-played in the trailing window
+  freqNoRepeat: [],    // baseline B: same, minus anything played in the last 3 days
 };
 if (EXPERIMENTS) {
   if (!TUNE) {
@@ -237,6 +239,18 @@ for (let i = 0; i < showDates.length; i++) {
     recency: 'shows',
   });
 
+  // Base rotation rate estimated over each song's own availability window and shrunk toward
+  // a fitted prior, instead of plays/totalShows. Everything else is identical to `model`, so
+  // the pair isolates the estimator — which is the only way to say whether it earned its place.
+  const shrunk = buildModel({
+    rows: history,
+    target: { date: target, venue: meta.venue, venueid: meta.venueid },
+    tourName: meta.tourname,
+    venueSongCounts,
+    scheduleRows,
+    freqEstimator: 'shrunk',
+  });
+
   const g = {
     model: grade(predSlugs, actual),
     modelTopN: grade(topNSlugs, actual),
@@ -244,6 +258,13 @@ for (let i = 0; i < showDates.length; i++) {
       [...showGap.prediction.set1, ...showGap.prediction.set2, ...showGap.prediction.encore].map(s => s.slug),
       actual,
     ),
+    // Both shapes, because `model` and `modelTopN` already differ by more than the slot logic
+    // is worth — comparing a shrunk setlist against an unshrunk top-N would confound the two.
+    modelShrunk: grade(
+      [...shrunk.prediction.set1, ...shrunk.prediction.set2, ...shrunk.prediction.encore].map(s => s.slug),
+      actual,
+    ),
+    modelShrunkTopN: grade(shrunk.scored.slice(0, N).map(c => c.slug), actual),
     freq: grade(byFreq.slice(0, N), actual),
     freqNoRepeat: grade(freqNoRepeat.slice(0, N), actual),
   };
@@ -349,6 +370,8 @@ const LABELS = {
   model: 'MODEL (day curve, shipping)',
   modelTopN: 'MODEL top-N (no slot logic)',
   modelShowGap: 'MODEL before the day curve (show-gap)',
+  modelShrunk: 'MODEL shrunk rate (own window + prior)',
+  modelShrunkTopN: 'MODEL shrunk rate, no slot logic',
   freq: `baseline: top-${N} by trailing-${TRAIL} frequency`,
   freqNoRepeat: `baseline: same, minus played <=3d ago`,
 };
@@ -361,7 +384,7 @@ if (EXPERIMENTS) {
 }
 // Only ever list arms that were actually populated — in --tune the on-top and hard-drop
 // variants are skipped, and naming them here would index into an undefined arm.
-const ARM_ORDER = ['model', 'modelTopN', 'modelShowGap', 'freqNoRepeat', 'freq',
+const ARM_ORDER = ['model', 'modelTopN', 'modelShrunk', 'modelShrunkTopN', 'modelShowGap', 'freqNoRepeat', 'freq',
   ...(EXPERIMENTS ? [
     ...(TUNE ? [] : ['dayHard', ...K_VALUES.map(k => `dayCurve${k}`)]),
     ...K_VALUES.map(k => `dayOnly${k}`),
