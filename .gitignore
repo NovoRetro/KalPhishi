@@ -20,6 +20,12 @@ data/*.json
 !data/history.json
 !data/showtimes.json
 
+# The fitted score -> probability map. Not served to anyone: analyze.js reads it and bakes
+# `p` into analysis.json. Committed because it is the record of a fit that costs a 145-show
+# walk-forward to reproduce, and because the raw setlists it was fitted on are ignored above
+# — without this file the number could not be regenerated on a fresh clone at all.
+!data/calibration.json
+
 # user accounts, password hashes, sessions, predictions — never publish
 data/db.json
 

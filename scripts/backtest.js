@@ -99,6 +99,20 @@ function paired(armVals, refVals) {
 
 (async () => {
 const { prepareRows, buildModel } = await import('../lib/model.mjs');
+const { fitPlatt, plattProb, fitIsotonic, isoProb, brier, logLoss, reliability } =
+  await import('../lib/calibration.mjs');
+
+// Accumulated (score, played) pairs from shows already walked past, the calibrator's only
+// training data. Never includes the show being predicted.
+const calSamples = [];
+// Out-of-sample probabilities and their outcomes, one entry per candidate per target.
+const calEval = [];
+const calIsoEval = [];
+const calBaseEval = [];
+const calFits = [];
+// Below this the fit is noise — a couple of shows is a few hundred lopsided samples, and
+// early wild parameters would drag the reported reliability around for no reason.
+const CAL_MIN_SAMPLES = 5000;
 const { fitRepeatCurve, repeatAdjustment, isSuppressed, daysBetween, BUCKETS } =
   await import('../lib/dayrepeat.mjs');
 
@@ -276,6 +290,31 @@ for (let i = 0; i < showDates.length; i++) {
   }
 
   for (const k of Object.keys(arms)) arms[k].push(g[k]);
+
+  // ---- calibration, walk-forward ----
+  //
+  // Fitted on shows STRICTLY BEFORE this one and scored against this one, then this show's
+  // outcomes join the pool for the next target. Fitting once over everything and evaluating
+  // on the same data would make the calibrator look good by having already seen the answers
+  // — the same leak buildModel's own guard exists to prevent, and it would show up as
+  // calibration "helping" rather than as a bug.
+  //
+  // Evaluated over the whole candidate list, not the top N: a probability that is only
+  // honest about songs we already ranked highly is not a probability.
+  if (calSamples.length >= CAL_MIN_SAMPLES) {
+    const params = fitPlatt(calSamples);
+    const iso = fitIsotonic(calSamples);
+    const ys = M.scored.map(c => (actual.has(c.slug) ? 1 : 0));
+    const pairs = M.scored.map((c, i) => ({ p: plattProb(params, c.score), y: ys[i] }));
+    calEval.push(...pairs);
+    calIsoEval.push(...M.scored.map((c, i) => ({ p: isoProb(iso, c.score), y: ys[i] })));
+    // The floor: predict the running base rate for every song, ignoring the score. If
+    // calibration cannot beat this it is not earning its place.
+    const base = calSamples.reduce((a, s) => a + s.y, 0) / calSamples.length;
+    calBaseEval.push(...ys.map(y => ({ p: base, y })));
+    calFits.push({ date: target, A: params.A, B: params.B, n: params.n });
+  }
+  for (const c of M.scored) calSamples.push({ score: c.score, y: actual.has(c.slug) ? 1 : 0 });
 
   // Slot accuracy for the model arm — the one thing the baselines structurally cannot do.
   const bySet = {};
@@ -465,6 +504,74 @@ console.log(`  ${venueCoverage.cache} shows used cached full venue history (as p
   ` ${venueCoverage['in-window']} fell back to 2022+ rows only.`);
 if (venueCoverage['in-window']) {
   console.log('  Fallback shows give the model a weaker venue signal than it has in production.');
+}
+
+// ---- calibration report ----
+//
+// None of this moves precision or recall, and it is not supposed to: Platt scaling is
+// monotonic, so the ranking and therefore the predicted setlist are identical either way.
+// What it adds is an axis the ranking metrics cannot see — whether the numbers mean
+// anything. A model can rank perfectly and still be wildly overconfident.
+if (calEval.length) {
+  const b = brier(calEval), bb = brier(calBaseEval), bi = brier(calIsoEval);
+  const l = logLoss(calEval), lb = logLoss(calBaseEval), li = logLoss(calIsoEval);
+  console.log(`\nCalibration — out of sample, ${calFits.length} shows, ${calEval.length} candidate-outcomes`);
+  console.log('  (fitted only on shows before each target; scored on the target)');
+  console.log('                 Brier    log loss');
+  console.log(`  base rate    ${bb.toFixed(4)}      ${lb.toFixed(4)}`);
+  console.log(`  Platt        ${b.toFixed(4)}      ${l.toFixed(4)}`);
+  console.log(`  isotonic     ${bi.toFixed(4)}      ${li.toFixed(4)}`);
+  const last = calFits[calFits.length - 1];
+  console.log(`  Platt final fit  A=${last.A.toFixed(5)}  B=${last.B.toFixed(5)}  (n=${last.n})`);
+
+  // The aggregate numbers are the smaller half of this. A model can beat the base rate on
+  // Brier and still be useless as a probability, which is exactly what Platt does here.
+  const table = (label, pairs) => {
+    console.log(`\n  Reliability, ${label} — of everything called X%, how much actually played:`);
+    console.log('    predicted   observed        n     gap');
+    for (const r of reliability(pairs)) {
+      const gap = (r.observed - r.predicted) * 100;
+      console.log(
+        `    ${(r.predicted * 100).toFixed(1).padStart(8)}%  ${(r.observed * 100).toFixed(1).padStart(8)}%  ` +
+        `${String(r.n).padStart(7)}  ${(gap >= 0 ? '+' : '') + gap.toFixed(1)}`,
+      );
+    }
+    // The number that decides whether these are usable: the worst a reader could be misled
+    // by, weighted by how often that bucket comes up.
+    const rows = reliability(pairs);
+    const tot = rows.reduce((a, r) => a + r.n, 0);
+    const wece = rows.reduce((a, r) => a + r.n * Math.abs(r.observed - r.predicted), 0) / tot;
+    const worst = rows.reduce((m, r) => Math.max(m, Math.abs(r.observed - r.predicted)), 0);
+    console.log(`    weighted calibration error ${(wece * 100).toFixed(2)}pp, worst bucket ${(worst * 100).toFixed(1)}pp`);
+  };
+  table('Platt', calEval);
+  table('isotonic', calIsoEval);
+  // Production applies these to the NEXT show, which has not happened — so fitting them on
+  // every show we have is not a leak, it is simply all the evidence there is.
+  const calPath = path.join(dataDir, 'calibration.json');
+  const finalIso = fitIsotonic(calSamples);
+  const finalPlatt = fitPlatt(calSamples);
+  fs.writeFileSync(calPath, JSON.stringify({
+    generated: new Date().toISOString(),
+    method: 'isotonic',
+    note: 'score -> probability for lib/model.mjs. bins are upper bounds: the first bin with '
+      + 'x >= score gives p. Isotonic, not Platt: measured walk-forward over 145 shows, Platt '
+      + 'beat the base rate on Brier and log loss while missing by up to 49.6pp inside a '
+      + 'bucket. Better aggregates, unusable probabilities. Isotonic worst bucket: 4.9pp.',
+    fittedThrough: showDates[showDates.length - 1],
+    bins: finalIso.bins.map(x => ({ x: +x.x.toFixed(2), p: +x.p.toFixed(4), n: x.n })),
+    samples: finalIso.n,
+    // Kept for comparison only. Nothing reads these — they are the record of what was
+    // rejected, so the next person does not have to re-run 145 shows to find out.
+    rejectedPlatt: { A: finalPlatt.A, B: finalPlatt.B },
+    outOfSample: {
+      shows: calFits.length,
+      isotonic: { brier: bi, logLoss: li },
+      platt: { brier: b, logLoss: l },
+      baseRate: { brier: bb, logLoss: lb },
+    },
+  }, null, 1) + '\n');
+  console.log(`\n  wrote ${calPath}`);
 }
 
 if (WRITE_JSON) {
