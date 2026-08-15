@@ -1709,9 +1709,10 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     pred.appendChild(el('h2', null, `Predicted setlist — ${esc(fmtDate(A.nextShow.date))} ${esc(A.nextShow.venue)} <span class="hint">(hover or tap a song for reasoning)</span>`));
     if (!lensIsDefault() && arm) pred.appendChild(lensBadge());
 
-    // Prediction entries carry name/slug/score/why and deliberately not `p` —
-    // assembleSetlist never sees a probability, which is what keeps the four `score > 0`
-    // pool gates safe. So the chance is looked up by slug here instead.
+    // Prediction entries carry name/slug/score/why and deliberately not `p` — assembleSetlist
+    // ranks on whatever quantity it is handed, so it is never handed a probability. The chance
+    // is looked up by slug here instead. (This used to say the omission protected the four
+    // `score > 0` pool gates; it does not — those are inert, see lib/model.mjs.)
     //
     // A miss is possible and must not render as blank: when a slot pool comes up empty
     // assembleSetlist falls back to the whole scored list, which can reach past the 120

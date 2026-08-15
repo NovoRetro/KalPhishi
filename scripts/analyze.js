@@ -254,13 +254,21 @@ const perShowEra = tourShows.map(d => {
 // show in the era window. Applied HERE, after buildModel has already returned, and
 // deliberately not inside the model:
 //
-//   assembleSetlist gates openerPool, closerPool, s2openPool and encorePool on `c.score > 0`.
-//   Score accumulates penalties from zero against a base of only freq*30, so a just-played
-//   song goes negative and those gates are what keep it out of the opener, closer and encore
-//   slots. A probability is never <= 0. Teaching the model about `p` at all is how somebody
-//   later swaps it for `score`, makes all four filters vacuous, and changes the predicted
-//   setlist while believing they changed only a label. Attaching it out here means the
-//   assembly logic cannot be affected — not by convention, but because it never sees it.
+//   Swapping `p` in for `score` would replace the quantity the whole assembly ranks on. The
+//   scored list is sorted by score and every slot is filled off the top of it, so a different
+//   quantity means a different setlist — not a relabelled one. Attaching `p` out here means
+//   the assembly cannot be affected: not by convention, but because it never sees it.
+//
+//   NOTE, corrected 2026-08-14. This comment used to justify itself differently — that the
+//   four `score > 0` gates in assembleSetlist would go "vacuous" against a probability, which
+//   is never <= 0, and silently change the setlist. That reasoning is measurably backwards.
+//   The gates are INERT in that direction: `pick()` walks each pool from the FRONT of a
+//   descending sort taking one or two entries, so a `> 0` filter can only ever delete from the
+//   BOTTOM. Deleting all four gates outright changes 0 of 174 shows, despite ~41 candidates a
+//   show scoring <= 0. They bind only in the other direction, by emptying a pool entirely and
+//   handing that slot to the ungated fallback — which needs scores pushed DOWN, not up. See
+//   the note beside the gates in lib/model.mjs. The conclusion here still holds; the reason
+//   given for it did not.
 //
 // Missing file is not an error: `p` simply does not appear. The site has run without it.
 let calibration = null;

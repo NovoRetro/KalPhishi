@@ -116,7 +116,8 @@ harder. 2026 is simultaneously the model's worst absolute year and its best rela
   table is printed and not just Brier.** The honest ceiling is ~29% — even the highest-scoring
   candidate plays about three times in ten.
 - **`p` is attached in `analyze.js` AFTER `buildModel` returns.** `lib/model.mjs` never sees a
-  probability, so the four `score > 0` pool gates cannot be affected. Do not move it inside.
+  probability, so nothing in the assembly can start ranking on one. Do not move it inside — but
+  see the Gotchas: the *reason* previously given for this was wrong.
 - **Setlist points** (`lib/scoring.mjs`): 1/call capped at 10, +2 exact placement, +5 openers,
   +5 Set 2 closer, +4 Set 1 closer, +2 per encore song, −1 per wrong guess past a 10/10/5 soft
   cap. Row points *derive* the score, so a breakdown cannot drift from the number beside it.
@@ -207,9 +208,44 @@ change in place, so they keep revalidating.
 
 ## In progress
 
-**Era-bias arms for the Nerd Zone.** Requested 2026-08-14: weight songs by how prevalent they
-were in a chosen Phish era, and offer each era as an arm. Design is not settled; nothing is
-built into the model yet.
+**Nothing.** The era lenses shipped — see below. What follows is the record of what they cost
+and what they proved, because two of the three findings generalise well beyond this feature.
+
+### Era what-if lenses — BUILT
+
+`era = 'off' | '1.0' | '2.0' | '3.0'` on `buildModel`, a centred log-lift beside the day and
+dueness terms. Three menu entries under their own "Or a what-if" heading, sorted below the
+approaches and flagged `whatIf`.
+
+| lens | recall | vs modelTopN | vs control |
+|---|---|---|---|
+| Sounds like 1.0 | 25.1% | −3.36pp, z −4.65 | −4.06pp |
+| Sounds like 2.0 | 27.9% | −0.60pp, z −0.94 | −1.29pp |
+| Sounds like 3.0 | 29.2% | +0.68pp, z 1.35 | **−0.02pp, z −0.05** |
+
+**There is no 4.0 and there must never be one.** `buildModel`'s leakage guard inspects the
+*rows* it is handed; an era table arrives as a *parameter*, so the guard structurally cannot see
+it. Safety comes from the data: 1.0/2.0/3.0 close in 2000, 2004 and 2020, all before the first
+graded target, so each table is a constant across the walk-forward — *safer* than the day curve,
+which refits per target. Era 4.0 overlaps every graded show; it would report inflated accuracy
+and pass the whole suite. `scripts/build-eras.js` refuses to write any era touching the window
+and a test asserts it.
+
+**Three findings worth more than the feature:**
+
+- **The third test for a new scoring term.** `lib/shrinkage.mjs` gives two (an affine transform
+  of an existing quantity cannot reorder; a tail-only change cannot buy recall). Add: **does it
+  beat the same term with its new data deleted?** Era 3.0 passes both existing tests and fails
+  this one at z −0.05 — its entire gain is the log *shape*, not the era table. The control is
+  `modelLogFreqTopN`: same machinery, era rates replaced by the model's own in-window rate.
+  Measured and printed, never published, because nobody can select it.
+- **Reordering decisively is not reordering correctly.** Era 1.0 moves the top of the list hard
+  — 48/174 shows tie, against shrinkage's 104 — and still loses 3.4pp. That is the opposite of
+  shrinkage's failure and a distinct one.
+- **A free +0.70pp is sitting there.** The control arm — centred log of the model's own recent
+  play rate — beats `modelTopN` by +0.70pp at **z 2.46**, which is real by this repo's own bar
+  and better than the era lens it exists to debunk. It is not built into anything. Worth taking
+  seriously as an actual model change, tuned and held out properly.
 
 **Done so far — the data exists now, which it did not before.** `scripts/fetch-eras.js` pulls
 all-time setlists; `data/setlists-<year>.json` covers **every year 1983–2026** (44 files, 79MB,
@@ -305,9 +341,10 @@ shrinkage because the songs it reordered never reach the top 17.
 - **Logistic regression on the existing per-song features.** Still the biggest untried idea. Fit
   **inside** the walk-forward, refitting per target. **It must beat `modelTopN` at 28.5%, not
   `model` at 27.7%** — beating the shipping arm while losing to "delete the slot code" would not
-  be a win. **The `score > 0` trap applies with full force**: four pools in `assembleSetlist`
-  gate on it, and a fitted model emitting probabilities has no negatives, so those gates go
-  vacuous and the predicted setlist changes silently.
+  be a win. The real constraint is **not** the `score > 0` gates — those are inert, see Gotchas
+  — it is that a probability is a different quantity from a score, and the whole assembly ranks
+  on whatever it is handed. Swapping one for the other changes the setlist because the ordering
+  changes, not because any filter goes vacuous.
 - **Exponentially-decayed recency instead of the hard trailing-30 window.** Lower confidence than
   it looked: it mostly re-weights the tail, which is what just failed.
 - **Deferred:** bingo scoring rework, the `obscenity` profanity filter, rehoming the era window /
@@ -381,7 +418,7 @@ drifted 80 lines by the time anyone read it.
 | Path | Role |
 |---|---|
 | `reach.md` | The campaign: six messages, timing, how to aim them. Operator doc, not published. |
-| `lib/model.mjs` | The prediction model, pure. Leakage guard at the top of `buildModel`. The `score > 0` pool gates are near the bottom. Options: `recency`, `freqEstimator`, `dueness`. |
+| `lib/model.mjs` | The prediction model, pure. Leakage guard at the top of `buildModel`. The `score > 0` pool gates are near the bottom. Options: `recency`, `freqEstimator`, `dueness`, `era`. The note beside the pool gates explains why they are inert. |
 | `lib/hazard.mjs` | Relative-time dueness curve — elapsed days over the song's *own* median gap. Header carries the full measured verdict and the held-out confound. |
 | `lib/shrinkage.mjs` | **Measured and rejected**, kept as the record. Explains why common-denominator shrinkage cannot reorder anything, and why the per-window version that can still does not help. |
 | `lib/dayrepeat.mjs` | The *absolute* day curve. Different quantity from hazard.mjs — both apply. |
@@ -436,6 +473,20 @@ drifted 80 lines by the time anyone read it.
 ## Gotchas
 
 ### Measurement traps — these cost real time this session
+
+- **The `score > 0` gates are INERT, and this doc said the opposite for months.** Measured over
+  174 shows: deleting all four gates in `assembleSetlist` changes the predicted setlist on
+  **zero** shows, despite ~41 candidates a show scoring ≤ 0. `scored` is sorted descending and
+  `pick()` walks each pool from the FRONT taking one or two entries, so a `> 0` filter can only
+  delete from the BOTTOM of a list nothing was going to reach. The old warning — "a term with
+  no negatives makes the gates vacuous and the setlist changes silently" — is backwards, and
+  two separate experiments were shaped around avoiding it.
+  **They bind in one direction only:** a term that pushes scores far enough NEGATIVE empties a
+  pool, the `pool.length ? pool : scored` fallback fires, and that slot is filled from the whole
+  list. Shifting every score down by 10 moves 10/174 shows; by 20, 121/174 and about a point of
+  recall. So the real rule for a new scoring term is *do not drag the distribution negative* —
+  which is why the era lens is centred on the pool mean. Full note beside the gates in
+  `lib/model.mjs`.
 
 - **A held-out split is not a control when the effect is time-varying.** The standard protocol
   (tune through 2024, confirm on the 78 after) printed `CONFIRMED, z 2.25` for fitted dueness.
