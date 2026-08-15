@@ -130,6 +130,32 @@ test('only the arms sharing the shipping scores may show a Chance', () => {
     'the client must blank p for an arm the calibration was not fitted for');
 });
 
+test('the Our Prediction button is named for what it will actually fill from', () => {
+  // Fixed at "Our Prediction" it was a promise the menu could not keep: with an approach
+  // chosen it hands over that approach's setlist while still calling it ours, and the only
+  // warning was a chip on a different row.
+  const predictor = read('web/predictor.js');
+  assert.match(predictor, /const ourPredictionLabel = \(\) =>/, 'the label must be computed');
+  assert.match(predictor, /lensIsDefault\(\) \? '🛟 Our Prediction'/, 'the default name must be preserved');
+  // Called, never captured — render() re-runs on every lens change, and a captured string
+  // would freeze on whichever approach was selected when the card was first built.
+  const menus = [...predictor.matchAll(/actionsMenu\(\[\s*(?:\/\/[^\n]*\n\s*)*\[([^,]+),/g)];
+  assert.equal(menus.length, 2, 'both games build an Actions menu');
+  for (const m of menus) {
+    assert.match(m[1], /ourPredictionLabel\(\)/,
+      'Our Prediction must be the FIRST entry in the menu, and must call the label fn');
+  }
+  assert.doesNotMatch(predictor, /\['🛟 Our Prediction',/, 'no hardcoded label may remain');
+});
+
+test('the Nerd Zone says where the choice shows up in the games', () => {
+  // The picker is on the Data tab; the button it renames is two taps into a menu on another
+  // tab. Without the pointer, choosing an approach looks like it did nothing at all.
+  assert.match(html, /nz-where/, 'the call-out must exist');
+  assert.match(html, /Actions/, 'it must name the menu');
+  assert.match(html, /Our Prediction/, 'it must name the button');
+});
+
 test('the Nerd Zone tab name matches the card it reveals', () => {
   // Pill-to-card mapping is by exact string identity. A typo on either side produces a tab
   // that silently shows nothing at all.
