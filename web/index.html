@@ -7,15 +7,45 @@
 <style>
   :root {
     color-scheme: light;
-    --page: #f9f9f7; --surface: #fcfcfb; --card-bg: rgba(252,252,251,0.90);
-    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
-    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    /* --card-bg is OPAQUE in both themes, and that is the fix for the single worst
+       legibility problem this page had. The hall runs 760px down the page, well past the
+       tab row and behind the top of the game card, so a translucent card let saturated
+       moving beams through the text. Nothing that could be done to the ink would win that:
+       the ink was already #fff in dark and the background underneath it was changing colour
+       twice a second. The light still falls on the app around and between the cards, which
+       is the effect the hall was for — it just no longer falls THROUGH the words. */
+    --page: #f9f9f7; --surface: #fcfcfb; --card-bg: #ffffff;
+    /* --muted was one value shared by both themes, which cannot be right: the same grey
+       cannot sit correctly on #f9f9f7 and on #0d0d0d. On light it measured 3.3:1 and it is
+       used at 11-12px on the set labels, the "0 of 10" counters, table headers and the empty
+       bingo cells — all of it under the 4.5:1 AA floor for text that size. Retuned per theme;
+       the ratios are asserted in test/assets.test.mjs so they cannot drift back. */
+    --ink: #0b0b0b; --ink-2: #4a4945; --muted: #6b6a65;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.14);
     --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a;
     --miss: #c9384a; /* results only — the palette had no red, and orange reads as a warning */
     /* Lock mode's border. Same value as --miss today, deliberately a separate name: --miss
        is fenced to results, and a locked square is not a wrong answer. Naming them apart
        means either can be retuned without dragging the other with it. */
     --lock: #c9384a;
+    /* The locked square's FILL. Lock state moved off the border channel entirely
+       (2026-08-15): the mobile bustout tiers took borders over, and a locked mega-bustout
+       under the old scheme was two near-identical reds fighting for one border. Locks now
+       say themselves the way `checked` does — a background wash — so a square can be locked
+       AND busted and both read. */
+    --lock-wash: rgba(201,56,74,0.16);
+    /* Bustout's rarest tier. A third name for the same idea as --miss/--lock — none of them
+       share a variable, all three are free to retune independently — but this one was a
+       bare hardcoded hex on the .p-bust.mega badge until the mobile bingo border needed the
+       identical colour and a second hardcoded copy was how token drift starts. */
+    --bust-mega: #e34948;
+    /* The outlined label chips — OPENER, CLOSER, ENCORE. These were --series-2 orange,
+       which in dark mode is a chart colour doing a badge's job and reads as mud on the
+       card. Green, per the 2026-08-15 direction, and bright in dark on purpose: an
+       outline chip is coloured text, so it has to clear the same contrast bar text does —
+       light stays deep enough for AA on white, dark goes to mint because #199e70-class
+       greens vanish on #151514. */
+    --chip: #128a60;
     --accent-wash: rgba(42,120,214,0.10);
     /* Beam palette for the light rig — see the .stage block. Deliberately outside the
        chart series above: those encode data and must stay stable and readable, these are
@@ -24,17 +54,44 @@
     --beam-1: #8b5cf6; --beam-2: #a855f7; --beam-3: #6d4fd6;
     --beam-4: #2ee6a8; --beam-5: #38bdf8; --beam-6: #ddd0ff;
   }
+  /* ---- Dark, declared TWICE on purpose, and the two blocks must stay identical.
+     The theme control has three states. "Auto" stamps nothing on <html> and is the default,
+     so only prefers-color-scheme separates light from dark — that is the first block. An
+     explicit choice stamps data-theme, and an explicit "dark" has to win on a machine whose
+     OS is set to light, which no media query can do — that is the second block. The
+     :not([data-theme="light"]) guard on the first is what lets an explicit "light" win back
+     on a dark OS.
+     A single rule cannot serve both: one lives inside a media query and the other must not,
+     and CSS has no way to share a body across that boundary. So they are duplicated, and
+     test/assets.test.mjs asserts the two blocks declare exactly the same tokens with exactly
+     the same values — the drift this invites is silent and only shows up on one OS. */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --page: #0d0d0d; --surface: #1a1a19; --card-bg: rgba(26,26,25,0.58);
-      --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
-      --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+      --page: #0d0d0d; --surface: #1a1a19; --card-bg: #151514;
+      --ink: #ffffff; --ink-2: #d5d4c9; --muted: #a8a69d;
+      --grid: #34342f; --baseline: #45453f; --border: rgba(255,255,255,0.16);
       --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
       --miss: #e2596b;
       --lock: #e2596b;
+      --lock-wash: rgba(226,89,107,0.22);
+      --bust-mega: #e66767;
+      --chip: #2ee6a8;
       --accent-wash: rgba(57,135,229,0.15);
     }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --card-bg: #151514;
+    --ink: #ffffff; --ink-2: #d5d4c9; --muted: #a8a69d;
+    --grid: #34342f; --baseline: #45453f; --border: rgba(255,255,255,0.16);
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+    --miss: #e2596b;
+    --lock: #e2596b;
+    --lock-wash: rgba(226,89,107,0.22);
+    --bust-mega: #e66767;
+    --chip: #2ee6a8;
+    --accent-wash: rgba(57,135,229,0.15);
   }
   * { box-sizing: border-box; margin: 0; }
   body {
@@ -182,8 +239,25 @@
   .btn-play-ico { font-size: 11px; }
   /* On a phone the centred title fills the width, so an absolute block would land on top
      of it. Drops into the flow below the tagline instead. */
+  /* On a phone the centred title fills the width, so an absolute block would land on top
+     of it. Drops into the flow below the tagline instead.
+     The rest of this block is the mobile-first pass: at 375px the header was spending 300
+     CSS px — well over a third of the viewport — before the game began, so a visitor landed
+     on a title, a joke and a date stamp and had to scroll to reach the thing they came for.
+     Everything here is the same content, smaller, and the hall is cut to end at the tab row
+     rather than running 760px down behind the card. Desktop is untouched: it has the height
+     to spend and the rig is the first impression there. */
   @media (max-width: 560px) {
-    .stage-actions { position: static; align-items: center; margin-top: 16px; }
+    .stage-actions { position: static; align-items: center; margin-top: 10px; }
+    .stage { padding: 16px 14px 18px; }
+    .stage h1 { font-size: 22px; }
+    /* min-height still reserves the wrap, so rotating from a short tagline to a long one
+       does not shove the page down — it just reserves two lines now instead of three. */
+    .stage .tagline { font-size: 13px; margin-top: 6px; min-height: 2.4em; max-width: 300px; }
+    .hall { height: 420px; }
+    .tabs { margin-top: 10px; }
+    .tab { padding: 8px 10px; }
+    body { padding: 12px; }
   }
 
   /* ---- Play a Show ---- */
@@ -257,11 +331,12 @@
   .cols-2 { grid-template-columns: 1fr 1fr; }
   .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
   @media (max-width: 900px) { .cols-2, .cols-3 { grid-template-columns: 1fr; } }
-  /* Translucent, so the beams still falling on this part of the page read through the card
-     instead of stopping dead at its edge. Below the hall there is nothing behind a card
-     but the page, so those look exactly as they did. Light mode is held much closer to
-     opaque on purpose: its body text is near-black, and letting the hall through far
-     enough to see would take the card down with it. */
+  /* Opaque. This was translucent so the beams still falling on this part of the page would
+     read through the card instead of stopping dead at its edge, and that is a real effect —
+     but the top card is the game, the hall runs 760px down the page, and the cost was every
+     word of both games sitting on moving saturated light. The light still lands on the page
+     around the cards, in the margins and the gaps between them, which is where it reads as
+     light falling on the app rather than as a wash over the text. */
   .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; overflow-x: auto; }
   .card.card-overflow { overflow: visible; }
   .card h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); margin-bottom: 10px; }
@@ -483,19 +558,24 @@
   @media (max-width: 900px) { .p-sets { grid-template-columns: 1fr; } }
   .p-songrow { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--grid); }
   .p-songmain { display: flex; flex-direction: column; gap: 1px; }
+  /* The badge column, ranged right against the ×. margin-left:auto claims the row's free
+     space; the × behind it must then give up its own auto margin or flexbox splits the
+     space between the two and strands the badges mid-row. Rows without badges keep the ×'s
+     auto margin, which is why it is not simply removed from .p-x. */
+  .p-rowbadges { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .p-rowbadges + .p-x { margin-left: 0; }
   .p-songmeta { color: var(--muted); font-size: 11px; }
   .p-bust { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; border-radius: 4px; padding: 1px 4px; color: #fff; vertical-align: 1px; }
   .p-bust.minor { background: var(--series-3); }
   .p-bust.major { background: var(--series-2); }
-  .p-bust.mega { background: #e34948; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .p-bust.mega { background: #e66767; } }
+  .p-bust.mega { background: var(--bust-mega); }
   /* touch-action: none so a drag on the handle doesn't scroll the page instead. */
   .p-drag { cursor: grab; color: var(--muted); user-select: none; font-size: 11px; letter-spacing: -1px; padding: 0 2px; touch-action: none; }
   .p-drag:hover { color: var(--ink); }
   .p-songrow.dragging { opacity: 0.45; }
   .p-songrow.drop-above { box-shadow: 0 -2px 0 var(--series-1); }
   .p-songrow.drop-below { box-shadow: 0 2px 0 var(--series-1); }
-  .p-stress { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--series-2); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; }
+  .p-stress { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--chip); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; }
   .p-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; margin-left: auto; }
   .p-x:hover { color: var(--ink); }
   /* justify-content, not margin:auto — the columns cap at 130px each, so on a wide card the
@@ -525,13 +605,42 @@
      it means something, so it reads at full strength. */
   .p-cell .p-lock { position: absolute; top: 1px; left: 3px; background: none; border: none; cursor: inherit; font-size: 11px; opacity: 0.85; padding: 1px; }
   .p-cell.locked .p-lock { opacity: 1; }
-  .p-cell.locked { border-color: var(--series-2); box-shadow: inset 0 0 0 1px var(--series-2); }
+  .p-cell.locked { background: var(--lock-wash); }
   /* Lock mode carries no icons at all. Twenty-four padlocks on a 5x5 grid competed with the
-     song titles for the same few pixels — the border says locked on its own, and it says it
-     from across the card rather than one cell at a time. Red, and its own token: --miss is
-     fenced to results, and a locked square is not a wrong answer. */
-  .p-cell.p-lockpick.locked { border-color: var(--lock); box-shadow: inset 0 0 0 2px var(--lock); }
-  .p-cell.p-lockpick:hover { background: var(--accent-wash); border-color: var(--lock); }
+     song titles for the same few pixels — the FILL says locked on its own, and it says it
+     from across the card rather than one cell at a time. A wash, not a border, since
+     2026-08-15: the mobile bustout tiers own the border channel, and lock red on a border
+     was indistinguishable from a mega-bustout ring one square over. Red, and its own token:
+     --miss is fenced to results, and a locked square is not a wrong answer. In lock mode
+     the fill is the ONLY signal — no glyph is drawn there — so the picker's pressed state
+     runs the same wash twice (a full-bleed inset shadow stacks its alpha on the
+     background's) to land visibly deeper than a locked square at rest, without minting a
+     second token for one state. */
+  .p-cell.p-lockpick.locked { background: var(--lock-wash); box-shadow: inset 0 0 0 999px var(--lock-wash); }
+  .p-cell.p-lockpick:hover { background: var(--accent-wash); }
+  /* Bustout tier, phone only. At 90-130px a desktop cell has room for the "MEGA BUSTOUT"
+     pill; at the sub-70px squares five columns leave on a 375px phone it wrapped over half
+     the square and buried the song name under its own badge (see the mobile screenshot
+     that prompted this — three lines of badge above one line of title). The border already
+     carries state on this exact element (checked/locked/swap all live here), so the tier
+     joins that channel instead of costing text space: same three colours as the badge,
+     moved from a fill to a ring.
+     :not() rather than a source-order dependency, on purpose — this file already tracks
+     one CSS ordering rule (the two dark token blocks) and a second, differently-shaped one
+     living a few hundred lines away in the same stylesheet is exactly the kind of rule a
+     future edit reorders by accident. Explicit beats implicit: a cell that is ALSO checked
+     or mid-swap shows that state's border, never a fight between two. `.locked` is NOT in
+     the guard list — locks moved to a background wash, so a locked bustout shows both:
+     red fill, tier ring. */
+  @media (max-width: 560px) {
+    .p-cell .p-bust { display: none; }
+    .p-cell.bust-minor:not(.checked):not(.p-swapfrom):not(.p-swaptarget) {
+      border-color: var(--series-3); }
+    .p-cell.bust-major:not(.checked):not(.p-swapfrom):not(.p-swaptarget) {
+      border-color: var(--series-2); }
+    .p-cell.bust-mega:not(.checked):not(.p-swapfrom):not(.p-swaptarget) {
+      border-color: var(--bust-mega); box-shadow: inset 0 0 0 1px var(--bust-mega); }
+  }
   .p-lockhint { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--series-2);
     border-radius: 8px; background: var(--accent-wash); font-size: 13px; line-height: 1.45; }
   /* Scoring rules panel. Width-bounded so the tables stay scannable on a wide screen —
@@ -576,6 +685,14 @@
      status you pass on the way into the game. */
   .p-headrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .p-headrow h2 { margin: 0; }
+  /* On a phone the game's own name is one thumb-width under the tab that is already
+     showing it selected — hide the h2 and give the row back to the lock pill and the
+     status, which are the parts that say something new. Games only (see render()):
+     History and Profile have no tab and keep their heading everywhere. */
+  @media (max-width: 560px) {
+    .p-headrow-game h2 { display: none; }
+    .p-headrow-game { justify-content: flex-start; }
+  }
   /* Sits with the heading rather than centred between it and the countdown, which is
      where space-between would otherwise strand a third child. */
   .p-headnote { font-size: 13px; color: var(--ink-2); margin-right: auto; }
@@ -622,6 +739,19 @@
   .p-saverow { display: flex; justify-content: center; }
   .p-cap { font-size: 11px; color: var(--muted); text-align: right; padding: 4px 2px 0; }
   .p-cap-over { color: var(--series-2); font-weight: 600; }
+  /* Set headers are toggles. Baseline-aligned flex so the caret, the SET 1 label and the
+     count read as one line; the count is pushed right, mirroring where the old counter
+     row sat before it moved up here. The whole width is the target — a caret alone is a
+     miss on a phone. */
+  .p-sethead { display: flex; align-items: baseline; gap: 6px; width: 100%;
+    background: none; border: none; padding: 6px 0 2px; cursor: pointer;
+    font: inherit; text-align: left; color: var(--ink); }
+  .p-sethead .setlabel { margin: 0; }
+  .p-sethead .p-caret { color: var(--muted); font-size: 11px; display: inline-block;
+    transition: transform 140ms ease; }
+  .p-setcount { margin-left: auto; font-size: 12px; color: var(--ink-2);
+    font-variant-numeric: tabular-nums; }
+  .p-setcount.p-cap-over { color: var(--series-2); }
   .p-btn-alt { background: var(--surface); color: var(--ink); border: 1px solid var(--baseline); font-weight: 500; }
   .p-cellname { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
   /* Phones: let the 5 bingo columns divide the available width instead of holding a
@@ -629,8 +759,12 @@
      after the base .p-grid/.p-cell rules — same specificity, so source order decides.
      Also enlarges the drag handle, which is a finger target here rather than a cursor one. */
   @media (max-width: 560px) {
-    .p-grid { grid-template-columns: 16px repeat(5, minmax(0, 1fr)); gap: 3px; }
-    .p-cell { font-size: 9.5px; padding: 2px; border-radius: 6px; line-height: 1.15; }
+    /* No row labels on a phone — the top P·H·I·S·H already names the game, and the left
+       column repeated it five times at the price of ~4px of song title per square. Their
+       width goes back to the squares, whose font steps up with it. */
+    .p-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; }
+    .p-rowhead, .p-corner { display: none; }
+    .p-cell { font-size: 10.5px; padding: 2px; border-radius: 6px; line-height: 1.2; }
     .p-cell.free { font-size: 32px; }
     .p-cellname { -webkit-line-clamp: 4; }
     /* Full opacity, not the desktop hover-reveal design: touch has no hover to reveal
@@ -648,6 +782,14 @@
     .p-head, .p-corner { font-size: 11px; }
     .p-drag { font-size: 15px; padding: 6px 8px; }
     .p-songrow { padding: 5px 0; }
+    /* The "last: date · venue · N shows ago" line under each picked song. At this width it
+       set in 11px grey across two wrapped lines per row and made a ten-song set read as a
+       wall. Hidden, not shrunk: the same facts are printed in the search suggestions at
+       the moment they inform a choice — on a song already picked they are trivia. Desktop
+       keeps the line; it has the width to give it one quiet row. */
+    .p-songmeta { display: none; }
+    /* The set toggles are primary navigation here — finger-sized like the tabs above. */
+    .p-sethead { min-height: 44px; align-items: center; }
     /* The section tabs and mode buttons are the primary navigation on a phone and were
        39px tall — under the 44px a fingertip reliably hits. Widened here only, so the
        desktop bar keeps its tighter proportions. */
@@ -673,6 +815,20 @@
        so the roomier padding survives everywhere it is not fighting for width. Height is
        untouched, so the 44px targets stand. */
     .p-row .p-btn { padding: 12px 12px; }
+    /* The control row NEVER wraps. The padding trim above bought the common case back, but
+       any label an em longer — a lens note, a different save label — re-orphaned the ⋮ onto
+       its own line. Wrapping is the wrong failure for this row: it is Save, the roll and the
+       menu, and a menu on a line by itself reads as a fourth control. So the row holds one
+       line and the two TEXT buttons give up width instead, ellipsizing in the extreme.
+       min-width: 0 is what actually permits that — a flex item's default min-width is
+       max-content, and without zeroing it the buttons refuse to shrink and the row
+       overflows the card instead. Scoped to .p-controls (the two game rows), NOT all
+       .p-row: the sign-in form is a .p-row and stacks its fields on purpose. */
+    .p-controls { flex-wrap: nowrap; }
+    .p-controls .p-btn { min-width: 0; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; }
+    /* The ⋮ is the one thing that must not shrink — it is already at the 44px minimum. */
+    .p-controls .p-actions { flex-shrink: 0; }
     /* Same rule, same reason. It is shorter than 44px in the tab row on desktop on purpose
        — a 44px pill next to 36px text tabs reads as a banner that fell into the row — but a
        fingertip does not care why. */
@@ -878,6 +1034,13 @@
   .menu-form { padding: 8px 6px; display: flex; flex-direction: column; gap: 8px; }
   .menu-form .ta-input { max-width: none; }
   .menu-note { font-size: 11px; color: var(--muted); padding: 0 6px; }
+  /* Theme pills. A row, not a list of three .menu-items: it is one setting with three
+     values, and three full-width rows would triple the height of a control most people
+     touch once. Separated above by the same hairline the identity block uses, so it reads
+     as the panel's settings footer rather than another destination. */
+  .menu-theme { display: flex; align-items: center; gap: 6px; padding: 10px 6px 6px;
+    border-top: 1px solid var(--grid); margin-top: 8px; }
+  .menu-theme .menu-note { padding: 0; margin-right: auto; }
   .friend-row, .invite-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     padding: 7px 6px; border-bottom: 1px solid var(--grid); font-size: 12px; }
   .friend-row > span:first-child { flex: 1; }
@@ -1222,10 +1385,16 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
     panel.innerHTML = '';
     const { user, actions } = state;
 
+    // Data rides both states of the menu: it is reference material, it asks for no account,
+    // and a signed-out visitor is exactly who arrives wanting to see the predicted setlist.
+    const dataItem = () => item('📊 Data', () => { close(); window.KalphishiGoData?.(); });
+
     if (!user) {
       panel.appendChild(el('div', 'menu-note', 'Not signed in.'));
-      panel.appendChild(item('Sign in', () => { close(); actions?.openLogin('login'); }));
       panel.appendChild(item('Create account', () => { close(); actions?.openLogin('register'); }));
+      panel.appendChild(item('Sign in', () => { close(); actions?.openLogin('login'); }));
+      panel.appendChild(dataItem());
+      panel.appendChild(themeRow());
       return;
     }
 
@@ -1539,9 +1708,50 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
     // taking a top-level slot ahead of the social loop.
     panel.appendChild(item('My History', () => { close(); actions?.goTo('history'); }));
     panel.appendChild(item('Friends', () => drawContent('friends')));
+    // Data sits after the social loop and before the reference reading: it is somewhere
+    // you go, not something you read here, but it is still reached less often than the
+    // people you are playing against. It moved here from the tab row — the row is the
+    // game surface, and on a phone Data was costing a third of it.
+    panel.appendChild(dataItem());
     panel.appendChild(item('How scoring works', () => drawContent('scoring')));
+    panel.appendChild(themeRow());
     panel.appendChild(item('Sign out', async () => { close(); await actions?.signOut(); }, 'danger'));
   }
+
+  // ---- theme ----
+  // Three states, and "Auto" is a real one, not the absence of a choice: it means "follow
+  // the OS", and most people never need anything else. An explicit choice writes
+  // data-theme onto <html>, which the CSS is built around — :root[data-theme="dark"]
+  // duplicates the dark tokens outside the media query precisely so that an explicit dark
+  // can win on a light OS (see the comment on the token blocks). localStorage rather than
+  // the profile: the theme belongs to the device, not the account — the phone on the lawn
+  // and the desktop at home want different answers, and a signed-out visitor gets to keep
+  // their choice too.
+  const THEME_KEY = 'kalphishi-theme';
+  const themeGet = () => { try { return localStorage.getItem(THEME_KEY); } catch { return null; } };
+  function applyTheme(t) {
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    else delete document.documentElement.dataset.theme;
+  }
+  function themeRow() {
+    const row = el('div', 'menu-theme');
+    row.appendChild(el('span', 'menu-note', 'Theme'));
+    const cur = themeGet() || 'auto';
+    for (const [val, label] of [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']]) {
+      const b = el('button', 'p-mode' + (cur === val ? ' active' : ''), label);
+      b.addEventListener('click', () => {
+        try {
+          if (val === 'auto') localStorage.removeItem(THEME_KEY);
+          else localStorage.setItem(THEME_KEY, val);
+        } catch { /* private mode — applies for this visit, forgets on the next */ }
+        applyTheme(val);
+        drawContent(); // redraw so the active pill moves
+      });
+      row.appendChild(b);
+    }
+    return row;
+  }
+  applyTheme(themeGet());
 
   window.KalphishiMenu = {
     update(user, actions) {
@@ -2821,9 +3031,12 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       b.addEventListener('click', () => { activeTab = name; menuMode = null; renderTabs(); });
       tabBar.appendChild(b);
     }
-    const dataBtn = el('button', 'tab' + (activeTab === 'Data' ? ' active' : ''), 'Data');
-    dataBtn.addEventListener('click', () => { activeTab = 'Data'; menuMode = null; renderTabs(); });
-    tabBar.appendChild(dataBtn);
+    // Data is not in this row any more — it opens from the ☰ menu, beside My History and
+    // Friends. The row is the game surface, and Data is reference material: on a phone the
+    // slot it held was a third of the one row that has to hold the games, spent on the
+    // destination visitors reach for least. The view itself is unchanged — activeTab still
+    // takes 'Data', the sub-tab pills still render under the row — only the way in moved.
+    // window.KalphishiGoData (below) is the way the menu reaches it.
 
     // Pinned to the far right of the row by margin-left:auto in the CSS, so it reads as
     // separated from the four that are views rather than a fifth one. Re-appended rather
@@ -2865,6 +3078,18 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   // Rotating a phone crosses the breakpoint without a reload, and the labels are baked in
   // at render time rather than by CSS, so the row has to be rebuilt when it changes.
   narrowTabs.addEventListener('change', renderTabs);
+
+  // The menu's way into Data. The account menu is its own IIFE and closed over its own
+  // state, so this is the one handle the dashboard offers it. Scrolls to the tab bar, not
+  // the content: the sub-tab pills are the map of where you just arrived, and landing below
+  // them strands a phone reader in the middle of a card with no way of knowing which one.
+  window.KalphishiGoData = subtab => {
+    activeTab = 'Data';
+    if (subtab && DATA_TABS.includes(subtab)) activeDataTab = subtab;
+    menuMode = null;
+    renderTabs();
+    tabBar.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
 
   // Clicking a card's own <h2> collapses it. Delegated rather than bound directly,
   // because the predictor card rebuilds its heading on every render — a listener
@@ -3152,7 +3377,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h2>The data did not load</h2>'
-    + '<div class="hint">The setlist analysis could not be fetched, so the Data tab is empty. '
+    + '<div class="hint">The setlist analysis could not be fetched, so the Data pages are empty. '
     + 'A reload usually fixes it. The games are unaffected — your saved predictions are on the '
     + 'server, not in this file.</div>';
   app.appendChild(card);
