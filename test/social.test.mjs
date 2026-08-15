@@ -175,3 +175,47 @@ test('the arm labels are named for players, keys unchanged', () => {
       `${key} must be labelled "${label}" — the key stays, the label is for people`);
   }
 });
+
+// ---- Phase 3: reveal night ----
+
+test('the reveal is gated on the lock and adds no server surface', () => {
+  // The whole design: Phase 0's seal is the only server rule, and the reveal is a client
+  // read of the same route everything else reads. If this ever grows its own endpoint,
+  // there are two visibility rules to keep consistent instead of one.
+  assert.match(predictor, /if \(L\.locked\) await renderReveal\(wrap, members\)/,
+    'the reveal must render only once the show is locked');
+  const reveal = predictor.match(/async function renderReveal\([\s\S]*?\n  \}/);
+  assert.ok(reveal, 'renderReveal not found');
+  assert.match(reveal[0], /api\(`\/api\/predictions\?showdate=/,
+    'the reveal must read the predictions route, not a new one');
+  assert.match(reveal[0], /p\.payload\)/,
+    'sealed rows carry no payload and must drop out of every count');
+});
+
+test('consensus needs at least two callers and half the crew', () => {
+  const reveal = predictor.match(/async function renderReveal\([\s\S]*?\n  \}/)[0];
+  assert.match(reveal, /Math\.max\(2, Math\.ceil\(callers\.length \/ 2\)\)/,
+    'a consensus of one person agreeing with themselves is just their pick twice');
+  assert.match(reveal, /callers\.length >= 2/,
+    'nothing comparative renders for a crew of one caller');
+});
+
+test('the share card is built from SVG in-document, nothing fetched', () => {
+  const share = predictor.match(/async function shareRevealCard\([\s\S]*?\n  \}/);
+  assert.ok(share, 'shareRevealCard not found');
+  assert.match(share[0], /data:image\/svg\+xml/, 'the SVG must travel as a data URI');
+  // The xmlns is exempt: it is a namespace IDENTIFIER the parser never dereferences,
+  // not a URL anything loads.
+  assert.doesNotMatch(share[0], /fetch\(|https?:\/\/(?!www\.w3\.org)/,
+    'the card must be self-contained — no fetched fonts, images or libraries');
+  // The fallback chain, in the order of fewest taps to the group chat.
+  const order = ['navigator.canShare', 'navigator.clipboard', 'a.download'];
+  let last = -1;
+  for (const step of order) {
+    const at = share[0].indexOf(step);
+    assert.ok(at > last, `${step} must come after ${order[order.indexOf(step) - 1] || 'the start'}`);
+    last = at;
+  }
+  // Every user-supplied string that reaches the SVG is escaped — a crew name is free text.
+  assert.match(share[0], /escXml\(crewName\)/, 'the crew name must be XML-escaped');
+});

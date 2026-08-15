@@ -2151,7 +2151,7 @@ function initPredictor(mount, A, opts = {}) {
     const L = lockInfo();
     const strip = el('div', 'crew-strip');
     const stripLine = L.locked
-      ? `<b>${inFor} of ${members.length}</b> made the lock — envelopes open at reveal night`
+      ? `<b>${inFor} of ${members.length}</b> made the lock — envelopes are open`
       : `<b>${inFor} of ${members.length}</b> in for ${esc(day)}`
         + (L.known ? ` · locks in <b>${untilText(L.at - Date.now())}</b>` : '');
     strip.appendChild(el('div', 'crew-strip-txt', stripLine));
@@ -2161,6 +2161,14 @@ function initPredictor(mount, A, opts = {}) {
     bar.appendChild(fill);
     strip.appendChild(bar);
     wrap.appendChild(strip);
+
+    // ---- reveal night (SOCIAL-PLAN.md, Phase 3). At the lock the page flips: everyone's
+    // calls, compared. Reads the same predictions route everything else reads — Phase 0
+    // opens crewmates' payloads at the lock, so there is deliberately NO new server
+    // surface here; a sealed row simply has no payload and drops out of every count.
+    // Consensus and overlap are computed here in the client over at most a few hundred
+    // slugs, which is the whole reason the seal could stay the only server rule.
+    if (L.locked) await renderReveal(wrap, members);
 
     // ---- the two boards. Never merged; the tab pair mirrors the game tabs above and the
     // board itself is the standings panel pinned to this crew.
@@ -2200,6 +2208,208 @@ function initPredictor(mount, A, opts = {}) {
     }
     wrap.appendChild(el('div', 'hint', '● setlist · ● bingo — saved for the open show. Tap a name for their record.'));
     wrap.appendChild(profilePanel);
+  }
+
+  // ---------- reveal night ----------
+  //
+  // Three moments, all driven by the lock state the server computes: sealed chips before
+  // (the roster's job), this comparison at the lock, and the scored recap once the cron
+  // grades the show. A member's "calls" are the union of their setlist songs and bingo
+  // squares — the two games never merge as SCORES, but a call is a call when the question
+  // is "who believed in this song".
+  async function renderReveal(wrap, members) {
+    let preds = [];
+    try { preds = await api(`/api/predictions?showdate=${encodeURIComponent(showdate)}`); }
+    catch { return; } // the boards and roster below still render
+    const memberByHandle = new Map(members.map(m => [m.handle, m]));
+    // Crew rows with payloads only. The route returns every predictor for the date;
+    // strangers are not in the crew, and a sealed row (no payload key) counts nobody.
+    const open = preds.filter(p => memberByHandle.has(p.userHandle) && p.payload);
+    if (!open.length) return;
+
+    // handle -> Set of called slugs; slug -> display name; slug -> Set of hit statuses.
+    const calls = new Map();
+    const nameOf = new Map();
+    const hitSlugs = new Set(); // from scored results — empty until the cron grades
+    for (const p of open) {
+      const set = calls.get(p.userHandle) || new Set();
+      const add = s => { if (s && s.slug) { set.add(s.slug); if (!nameOf.has(s.slug)) nameOf.set(s.slug, s.name); } };
+      if (p.type === 'setlist') for (const k of ['set1', 'set2', 'encore']) (p.payload[k] || []).forEach(add);
+      else (p.payload.grid || []).filter(Boolean).forEach(add);
+      calls.set(p.userHandle, set);
+      if (p.result) {
+        if (p.type === 'setlist' && p.result.rows) {
+          for (const k of ['set1', 'set2', 'encore']) {
+            for (const r of p.result.rows[k] || []) if (r.status !== 'miss') hitSlugs.add(r.slug);
+          }
+        } else if (p.type === 'bingo' && p.result.checked && p.payload.grid) {
+          p.result.checked.forEach((hit, i) => { if (hit && p.payload.grid[i]) hitSlugs.add(p.payload.grid[i].slug); });
+        }
+      }
+    }
+    const callers = [...calls.keys()];
+    const scored = open.filter(p => p.result);
+
+    const card = el('div', 'crew-reveal');
+    card.appendChild(el('div', 'setlabel', scored.length ? `The reveal — scored` : 'The reveal'));
+
+    // ---- the chalk: what half or more of the crew called. Two callers minimum — a
+    // "consensus" of one person agreeing with themselves is just their pick twice.
+    const counts = new Map();
+    for (const set of calls.values()) for (const slug of set) counts.set(slug, (counts.get(slug) || 0) + 1);
+    if (callers.length >= 2) {
+      const threshold = Math.max(2, Math.ceil(callers.length / 2));
+      const chalk = [...counts].filter(([, n]) => n >= threshold)
+        .sort((a, b) => b[1] - a[1] || nameOf.get(a[0]).localeCompare(nameOf.get(b[0])))
+        .slice(0, 10);
+      if (chalk.length) {
+        card.appendChild(el('div', 'crew-reveal-h', 'The chalk'));
+        for (const [slug, n] of chalk) {
+          card.appendChild(el('div', 'crew-reveal-row',
+            `<span>${hitSlugs.has(slug) ? '✅ ' : ''}${esc(nameOf.get(slug))}</span>`
+            + `<span class="menu-stats">${n} of ${callers.length}</span>`));
+        }
+      }
+    }
+
+    // ---- sole calls: the bragging-rights rows. Post-scoring, a sole call that HIT leads
+    // the list with the trophy — that is the whole reason anyone scrolls here after.
+    const soles = [...counts].filter(([, n]) => n === 1)
+      .map(([slug]) => ({ slug, who: callers.find(h => calls.get(h).has(slug)), hit: hitSlugs.has(slug) }))
+      .sort((a, b) => (b.hit - a.hit) || nameOf.get(a.slug).localeCompare(nameOf.get(b.slug)))
+      .slice(0, 12);
+    if (soles.length && callers.length >= 2) {
+      card.appendChild(el('div', 'crew-reveal-h', 'Sole calls'));
+      for (const s of soles) {
+        card.appendChild(el('div', 'crew-reveal-row',
+          `<span>${s.hit ? '🏆 ' : ''}${esc(nameOf.get(s.slug))}</span>`
+          + `<span class="menu-stats">only @${esc(s.who)}${s.hit ? ' — and it played' : ''}</span>`));
+      }
+    }
+
+    // ---- your overlap, only when you are one of the callers.
+    if (user && calls.has(user.handle)) {
+      const mine = calls.get(user.handle);
+      const rows = callers.filter(h => h !== user.handle)
+        .map(h => ({ h, n: [...calls.get(h)].filter(s => mine.has(s)).length }))
+        .sort((a, b) => b.n - a.n);
+      if (rows.length) {
+        card.appendChild(el('div', 'crew-reveal-h', 'Your overlap'));
+        for (const r of rows) {
+          card.appendChild(el('div', 'crew-reveal-row',
+            `<span>@${esc(r.h)}</span><span class="menu-stats">${r.n} shared call${r.n === 1 ? '' : 's'}</span>`));
+        }
+      }
+    }
+
+    // ---- the recap, once the cron has graded. Per game because the scales never merge:
+    // setlist points and bingo hits each name their own top scorer, and the averages are
+    // labelled with the game they average.
+    if (scored.length) {
+      card.appendChild(el('div', 'crew-reveal-h', 'How it went'));
+      const sl = scored.filter(p => p.type === 'setlist');
+      const bg = scored.filter(p => p.type === 'bingo');
+      if (sl.length) {
+        const top = sl.reduce((a, b) => (b.result.score > a.result.score ? b : a));
+        const avg = (sl.reduce((t, p) => t + p.result.score, 0) / sl.length).toFixed(1);
+        card.appendChild(el('div', 'crew-reveal-row',
+          `<span>🏆 Setlist: <b>@${esc(top.userHandle)}</b> — ${top.result.score} pts</span>`
+          + `<span class="menu-stats">crew avg ${avg}</span>`));
+      }
+      if (bg.length) {
+        const top = bg.reduce((a, b) => (b.result.hitCount > a.result.hitCount ? b : a));
+        card.appendChild(el('div', 'crew-reveal-row',
+          `<span>🏆 Bingo: <b>@${esc(top.userHandle)}</b> — ${top.result.hitCount}/24${top.result.bingo ? ' · BINGO 🍩' : ''}</span>`
+          + `<span class="menu-stats">${bg.length} card${bg.length === 1 ? '' : 's'}</span>`));
+      }
+      card.appendChild(el('div', 'hint', 'Tap a name in the roster below for their full scored card.'));
+    }
+
+    // ---- the share card. The group chat lives off-app by design (reach.md), so this
+    // hands it something worth pasting.
+    const share = el('button', 'p-btn crew-share', '📤 Share the card');
+    share.addEventListener('click', () => shareRevealCard(members, { calls, counts, callers, nameOf, hitSlugs, scored }));
+    card.appendChild(share);
+    wrap.appendChild(card);
+  }
+
+  // A pure-SVG summary rendered to PNG — no canvas library, no dependency, nothing
+  // fetched. The chain is share-with-files → clipboard → download, tried in that order
+  // because that is the order of "lands in the group chat with the fewest taps".
+  // SVG→PNG goes through an <img> holding a data: URI drawn onto a canvas; every piece of
+  // that is same-document, so no CORS taint. iOS Safari is the platform to re-verify if
+  // this misbehaves — the plan flagged it, and the fallback chain is the mitigation.
+  async function shareRevealCard(members, R) {
+    const crewName = (document.querySelector('.crew-name b')?.textContent || 'The crew');
+    const date = fmtDate(showdate);
+    const lines = [];
+    if (R.scored.length) {
+      const sl = R.scored.filter(p => p.type === 'setlist');
+      const bg = R.scored.filter(p => p.type === 'bingo');
+      if (sl.length) {
+        const top = sl.reduce((a, b) => (b.result.score > a.result.score ? b : a));
+        lines.push(`Setlist: @${top.userHandle} · ${top.result.score} pts`);
+      }
+      if (bg.length) {
+        const top = bg.reduce((a, b) => (b.result.hitCount > a.result.hitCount ? b : a));
+        lines.push(`Bingo: @${top.userHandle} · ${top.result.hitCount}/24${top.result.bingo ? ' · BINGO' : ''}`);
+      }
+      const soleHit = [...R.counts].find(([slug, n]) => n === 1 && R.hitSlugs.has(slug));
+      if (soleHit) {
+        const who = R.callers.find(h => R.calls.get(h).has(soleHit[0]));
+        lines.push(`Sole call that hit: ${R.nameOf.get(soleHit[0])} — only @${who}`);
+      }
+    } else {
+      const threshold = Math.max(2, Math.ceil(R.callers.length / 2));
+      const chalk = [...R.counts].filter(([, n]) => n >= threshold).sort((a, b) => b[1] - a[1]).slice(0, 4);
+      for (const [slug, n] of chalk) lines.push(`${R.nameOf.get(slug)} — ${n} of ${R.callers.length} called it`);
+      if (!lines.length) lines.push(`${R.callers.length} sealed picks are open — come look`);
+    }
+    const escXml = s => String(s).replace(/[<>&"']/g, c => `&#${c.charCodeAt(0)};`);
+    const W = 700, H = 130 + lines.length * 34;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+      <rect width="100%" height="100%" fill="#0d0d0d"/>
+      <rect x="0" y="0" width="100%" height="6" fill="#a855f7"/>
+      <text x="28" y="52" fill="#ffffff" font-family="system-ui,sans-serif" font-size="26" font-weight="600">${escXml(crewName)}</text>
+      <text x="28" y="80" fill="#a8a69d" font-family="system-ui,sans-serif" font-size="15">${escXml(date)} · Bathtub Bets${R.scored.length ? ' · scored' : ' · the reveal'}</text>
+      ${lines.map((l, i) => `<text x="28" y="${118 + i * 34}" fill="#d5d4c9" font-family="system-ui,sans-serif" font-size="18">${escXml(l)}</text>`).join('')}
+    </svg>`;
+    let canvas;
+    try {
+      const img = new Image();
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      await new Promise((ok, bad) => { img.onload = ok; img.onerror = bad; });
+      canvas = document.createElement('canvas');
+      canvas.width = W * 2; canvas.height = H * 2; // 2x for retina chats
+      canvas.getContext('2d').drawImage(img, 0, 0, W * 2, H * 2);
+    } catch {
+      flash('Could not build the share card here.', true);
+      return;
+    }
+    // Delivery is a CHAIN, and every link fails independently into the next — the first
+    // cut of this wrapped all three in one try, so a clipboard permission prompt the
+    // browser declined didn't fall through to the download, it aborted the whole thing
+    // and reported failure while holding a perfectly good PNG.
+    const blob = await new Promise(ok => canvas.toBlob(ok, 'image/png'));
+    if (blob) {
+      const file = new File([blob], 'crew-reveal.png', { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: crewName }); return; }
+        catch (e) { if (e?.name === 'AbortError') return; /* sheet closed — a choice */ }
+      }
+      if (navigator.clipboard?.write && window.ClipboardItem) {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          flash('Card copied — paste it in the chat.');
+          return;
+        } catch { /* permission denied — the download below still delivers */ }
+      }
+    }
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'crew-reveal.png';
+    a.click();
+    flash('Card downloaded.');
   }
 
   function flash(msg, isErr) {

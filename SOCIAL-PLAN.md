@@ -1,9 +1,11 @@
 # Crew Night — the social UX plan
 
-**Status: Phases 0 and 1 implemented** (branch `crew-phase-0-1`, 2026-08-15) — the
-predictions API is sealed and every member can open the roster with per-game "in for"
-dots. Phases 2–4 remain as planned below. Written 2026-08-15, after the mobile MVP merge
-(#56). This is the design for making groups a place rather than a drawer, letting friends
+**Status: Phases 0–3 implemented** (2026-08-15, #57/#58 merged, Phase 3 on
+`crew-phase-3`) — the predictions API is sealed; every member opens the roster and the
+Crew page; at the lock the room flips to the reveal (chalk, sole calls, overlap, then
+the scored recap) with the SVG share card. Approach labels were renamed for players
+along the way (House Model / Straight Ranking / Native Model / Classic Recency). Phase 4
+remains a menu to draw from. Written 2026-08-15, after the mobile MVP merge (#56). This is the design for making groups a place rather than a drawer, letting friends
 see each other's picks at the right moment, and giving a thirty-person beta something to
 talk about between shows. It is written against the code as it stands today; routes and
 tables named below were verified against `src/worker.mjs` and `migrations/` on the date
