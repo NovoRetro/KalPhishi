@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-15T00:54:12.027Z",
+ "generated": "2026-08-15T16:03:11.382Z",
  "asOf": "2026-08-01",
  "nextShow": {
   "date": "2026-09-04",
@@ -11106,7 +11106,7 @@
   "arms": [
    {
     "key": "model",
-    "label": "Day curve",
+    "label": "House Model",
     "blurb": "The shipping model: rotation, recency by calendar day, venue history, then slot-aware assembly.",
     "hasSlots": true,
     "usesCalibration": true,
@@ -11148,7 +11148,7 @@
    },
    {
     "key": "modelTopN",
-    "label": "No slot logic",
+    "label": "Straight Ranking",
     "blurb": "The same scores, taken straight off the top of the list without assigning sets.",
     "hasSlots": false,
     "usesCalibration": true,
@@ -11189,8 +11189,8 @@
    },
    {
     "key": "modelDuenessTopN",
-    "label": "Fitted dueness",
-    "blurb": "Overdue measured against each song's own cadence in days, from a curve fitted to what actually happened, replacing the hand-picked rule. No slot logic.",
+    "label": "Native Model",
+    "blurb": "Overdue measured against each song's own cadence in days, from a curve fitted to what actually happened, replacing the hand-picked rule. No slot assignment.",
     "hasSlots": false,
     "usesCalibration": false,
     "precision": 0.30865449628127123,
@@ -11236,7 +11236,7 @@
    },
    {
     "key": "modelShowGap",
-    "label": "Show-gap recency",
+    "label": "Classic Recency",
     "blurb": "The model as it was before the day curve — recency counted in shows rather than days.",
     "hasSlots": true,
     "usesCalibration": false,

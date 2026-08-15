@@ -104,17 +104,21 @@ test('the group listing counts participation only when asked', () => {
   assert.doesNotMatch(c, /payload/, 'a count of who is in, never of what they picked');
 });
 
-// ---- Phase 1: the UI ----
+// ---- Phases 1-2: the UI ----
 
-test('every member can open the roster, not just the owner', () => {
+test('every member can open the crew page, not just the owner', () => {
   // The original complaint: members could not see who was in their own group, because
-  // the only member list lived inside the owner's Add picker.
-  assert.match(index, /async function drawMembers\(/, 'the roster view is gone');
-  assert.match(index, /open\.addEventListener\('click', \(\) => drawMembers\(g, friends\)\)/,
-    'the group name must be the way in');
-  const members = index.match(/async function drawMembers\([\s\S]*?\n      \}/);
-  assert.doesNotMatch(members[0], /isOwner &&[\s\S]*?drawMembers/,
-    'nothing about opening the roster may be owner-gated');
+  // the only member list lived inside the owner's Add picker. Phase 1 answered it with a
+  // drawer roster; Phase 2 promoted that roster into the Crew page, and the group's name
+  // in the drawer is the way in for everyone.
+  assert.match(index, /open\.addEventListener\('click', \(\) => \{ close\(\); actions\?\.goToCrew\?\.\(g\.id\); \}\)/,
+    'the group name must open the crew page');
+  assert.match(predictor, /async function renderCrew\(/, 'the crew page renderer is gone');
+  const crew = predictor.match(/async function renderCrew\([\s\S]*?\n  \}/);
+  assert.doesNotMatch(crew[0], /isOwner[\s\S]{0,80}?return/,
+    'nothing about seeing the room may be owner-gated — owner-ness only adds tools');
+  // The roster inside the room must stay facts-about-participation, never content.
+  assert.doesNotMatch(stripComments(crew[0]), /payload/, 'the room shows who is in, not what they picked');
 });
 
 test('the roster dots come from the predictor’s idea of the open show', () => {
@@ -124,4 +128,50 @@ test('the roster dots come from the predictor’s idea of the open show', () => 
     'the menu must ask rather than compute its own date');
   // The weekday label derives from the show's date, never from today's.
   assert.match(index, /new Date\(showdate \+ 'T12:00:00'\)/);
+});
+
+// ---- Phase 2: the room's server surface ----
+
+test('rename is owner-scoped in the query itself', () => {
+  const c = stripComments(handlerFor(`p.startsWith('/api/groups/') && !p.includes('/members')`, 'PATCH'));
+  // Scoped UPDATE, same shape as the DELETE: renaming someone else's group is a silent
+  // no-op rather than a confirmation that the id exists.
+  assert.match(c, /UPDATE friend_groups SET name = \?1 WHERE id = \?2 AND owner_id = \?3/);
+  // Same cap as create — a second, looser validator for the same column is how limits rot.
+  assert.match(c, /slice\(0, 40\)/);
+});
+
+test('the crew boards are the existing leaderboard, pinned', () => {
+  // The room must not grow its own ranking machinery — one scorer, one board renderer.
+  assert.match(predictor, /renderLeaderboard\(crewBoardGame, boardHost, `group:\$\{crewId\}`\)/,
+    'the crew page must reuse renderLeaderboard with a fixed group scope');
+  assert.match(predictor, /if \(!fixedScope\) \{/,
+    'a pinned board must not offer the scope picker — a way to leave the room while standing in it');
+});
+
+// ---- the provenance tag ----
+
+test('the applied-prediction tag requires the board to still match the fill', () => {
+  // The tag says "this board IS that approach's call". It appears when Our Prediction
+  // fills a board and disappears the moment an edit deviates — checked by snapshot
+  // comparison on every render, so nothing has to remember to remove it.
+  assert.match(predictor, /appliedFill = \{ mode: 'setlist', label: fillLabel\(\), snap: setlistSnap\(build\) \}/);
+  assert.match(predictor, /appliedFill = \{ mode: 'bingo', label: fillLabel\(\), snap: gridSnap\(grid\) \}/);
+  assert.match(predictor, /const live = mode === 'setlist' \? setlistSnap\(build\) : gridSnap\(grid\);/,
+    'the tag must be gated on a live comparison, not on a flag an edit could forget to clear');
+  assert.match(predictor, /if \(live === appliedFill\.snap\)/);
+  // The old behaviour — wearing the tag merely because a lens was selected — must not return.
+  assert.doesNotMatch(predictor, /&& !lensIsDefault\(\)\) \{\s*\n\s*const arm = lensArm\(\);\s*\n\s*const chip/,
+    'the tag is provenance, not a settings indicator');
+});
+
+test('the arm labels are named for players, keys unchanged', () => {
+  const analyze = readFileSync(join(root, 'scripts/analyze.js'), 'utf8');
+  for (const [key, label] of [
+    ['model', 'House Model'], ['modelTopN', 'Straight Ranking'],
+    ['modelDuenessTopN', 'Native Model'], ['modelShowGap', 'Classic Recency'],
+  ]) {
+    assert.match(analyze, new RegExp(`key: '${key}', label: '${label}'`),
+      `${key} must be labelled "${label}" — the key stays, the label is for people`);
+  }
 });
