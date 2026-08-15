@@ -340,7 +340,27 @@
      the table already ranks, and a coloured badge would read as a second ranking. */
   .nz-whatif { font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase;
     color: var(--muted); border: 1px dashed var(--border); border-radius: 4px; padding: 0 4px; }
-  .nz-whatif-note { margin: 2px 0 6px; max-width: min(100%, 82ch); }
+  /* The playground. Its own tint so the one interactive zone on the card is findable at a
+     glance among four sections of reference material. */
+  .nz-play-intro { margin: 2px 0 10px; max-width: min(100%, 82ch); font-size: 13px;
+    line-height: 1.55; color: var(--ink-2); }
+  .nz-play-intro p { margin: 0 0 8px; }
+  .nz-play-intro p:last-child { margin-bottom: 0; }
+  /* Where the choice actually shows up in the games. Called out because the picker is on the
+     Data tab and the button it renames is two taps away inside a menu on another tab — without
+     this, choosing an approach looks like it did nothing. */
+  .nz-where { padding: 8px 10px; border-left: 3px solid var(--series-1);
+    background: var(--accent-wash); border-radius: 0 6px 6px 0; color: var(--ink); }
+  .nz-group-note { margin: 2px 0 6px; max-width: min(100%, 82ch); }
+  .nz-current { margin: 4px 0 14px; padding: 8px 10px; border-radius: 8px; font-size: 13px;
+    background: var(--accent-wash); border: 1px solid var(--border); }
+  .nz-cur-label { color: var(--ink-2); }
+  /* Nested one level in, so the scoreboard reads as part of the playground rather than as a
+     sibling of it. No top rule for the same reason. */
+  /* Both classes, because .nz-sec is declared later in this sheet and would otherwise win the
+     border on source order alone — same specificity, and it lost silently. */
+  .nz-sec.nz-sec-nested { border-top: none; margin-top: 10px; }
+  .nz-sec-nested > summary { font-size: 13px; color: var(--series-1); }
   .nz-notes { margin-top: 12px; padding: 10px 12px; border-left: 3px solid var(--series-2);
     background: var(--accent-wash); border-radius: 0 8px 8px 0; max-width: min(100%, 82ch); }
   .nz-notes p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; }
@@ -2160,15 +2180,23 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   nerd.dataset.section = 'Nerd Zone';
   nerd.appendChild(el('h2', null, 'Nerd zone <span class="hint">— how the prediction is made, and what happens if you make it differently.</span>'));
 
-  // The explainer is collapsible and starts OPEN — it is what the tab is for, and somebody
-  // who has read it once should be able to fold it away to reach the picker without scrolling
-  // past four paragraphs they already know.
-  const intro = el('details', 'nz-sec nz-sec-first');
-  intro.open = true;
-  intro.appendChild(el('summary', null, 'How the prediction is made'));
-  const introBody = el('div', 'nz-secbody');
-  intro.appendChild(introBody);
-  nerd.appendChild(intro);
+  // One collapsible section. Shared by the explainer, the model playground and each diagnostic
+  // so they all behave identically — <details>/<summary> for the accessibility and find-in-page
+  // behaviour a div with a click handler silently gives up. Returns the body to append into.
+  const makeSection = (host, title, { open = false, cls = '' } = {}) => {
+    const d = el('details', ('nz-sec ' + cls).trim());
+    d.open = open;
+    d.appendChild(el('summary', null, title));
+    const body = el('div', 'nz-secbody');
+    d.appendChild(body);
+    host.appendChild(d);
+    return body;
+  };
+
+  // The explainer is collapsible and starts CLOSED. It was open, but with a playground section
+  // below it that is the thing people actually came to touch, four paragraphs of preamble is
+  // what stands between them and it. The heading says what is inside.
+  const introBody = makeSection(nerd, 'How the prediction is made', { cls: 'nz-sec-first' });
 
   introBody.appendChild(el('div', 'nz-prose',
     '<p><b>Two slices.</b> Horizontally, what this tour has been playing and how long it has '
@@ -2191,19 +2219,44 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     + 'cannot come from having seen the answer.</p>'));
 
   if (A.lenses && A.lenses.arms.length) {
-    nerd.appendChild(el('div', 'setlabel', 'Pick an approach'));
+    // ---- the playground ----
+    //
+    // Open by default: it is the only part of this card anybody can interact with, and the
+    // rest of the tab is reference material around it.
+    const play = makeSection(nerd, `🎛 Let's play with models!`, { open: true });
+    play.appendChild(el('div', 'nz-play-intro',
+      '<p>Swap the model out and watch the night change. Whatever you pick re-ranks '
+      + '<b>Predicted Setlist</b> and <b>All candidates</b> here in Data.</p>'
+      + '<p class="nz-where"><b>Where you feel it:</b> in either game, open the <b>⋮ Actions</b> '
+      + 'menu and press the first item — <b>🛟 Our Prediction</b>. It fills your card from the '
+      + 'model, and it is <i>renamed to whatever you pick below</i>, so the button always says '
+      + 'which answer you are about to get.</p>'
+      + '<p>None of this can touch your points or the standings. A prediction is graded against '
+      + 'what the band actually played, never against the model that helped you fill it.</p>'));
+
+    // What is currently selected, and the way back. Previously a reader could only tell by
+    // hunting for the highlighted button, and the way back lived on a badge attached to some
+    // other card entirely.
+    const current = el('div', 'nz-current');
+    play.appendChild(current);
+
+    // Two groups, each with a one-line description rather than a bare label. The distinction
+    // between them is the whole framing — one set is trying to be right, the other is not —
+    // and "Pick an approach" / "Or a what-if" did not carry it on its own.
+    play.appendChild(el('div', 'setlabel', 'Approaches'));
+    play.appendChild(el('div', 'hint nz-group-note',
+      'Real attempts to predict better. Each was run against every past show in the window.'));
     const picker = el('div', 'p-modes nz-picker');
-    nerd.appendChild(picker);
-    // Their own row, under their own label and preamble. Sat among the approaches these read
-    // as five more attempts to predict better, which is exactly what they are not.
-    const whatIfLabel = el('div', 'setlabel', 'Or a what-if');
-    const whatIfNote = el('div', 'hint nz-whatif-note',
-      'These do not try to predict better — each re-ranks tonight by how often a song turned up '
-      + 'in a past era, and the table above shows what that costs.');
+    play.appendChild(picker);
+
+    const whatIfLabel = el('div', 'setlabel', 'What-ifs');
+    const whatIfNote = el('div', 'hint nz-group-note',
+      'Not attempts to predict better — each re-ranks tonight by how often a song turned up in a '
+      + 'past era. Fun, and measurably less accurate; the scoreboard below says by how much.');
     const whatIfPicker = el('div', 'p-modes nz-picker');
-    nerd.append(whatIfLabel, whatIfNote, whatIfPicker);
+    play.append(whatIfLabel, whatIfNote, whatIfPicker);
     const blurb = el('div', 'hint nz-blurb');
-    nerd.appendChild(blurb);
+    play.appendChild(blurb);
 
     // Ordered by measured recall, so the menu itself reports the finding rather than
     // flattering the shipping default by putting it first.
@@ -2222,7 +2275,12 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     // point, and rounding to whole percent renders the two closest as the same number —
     // which turned the finding below into the sentence "28% against 28%".
     const pct1 = v => (v * 100).toFixed(1) + '%';
-    nerd.appendChild(tableOf(
+
+    // The scoreboard, folded inside the playground. It is the evidence behind every button
+    // above and it is six columns of it — unfolded, the numbers arrive before anybody has
+    // pressed anything, which is backwards for the one section built to be played with.
+    const board = makeSection(play, 'How each one scored', { cls: 'nz-sec-nested' });
+    board.appendChild(tableOf(
       ['Approach', 'Precision', 'Recall', 'Hits/show', 'vs baseline', 'Real?'],
       ordered.map(a => [
         `${esc(a.label)}${a.isDefault ? ' <span class="nz-ship">shipping</span>' : ''}`
@@ -2234,7 +2292,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
           : Math.abs(a.z) >= 2 ? '<b>yes</b>' : '<span class="chance-none">noise</span>',
       ]), [1, 2, 3, 4]));
 
-    nerd.appendChild(el('div', 'hint',
+    board.appendChild(el('div', 'hint',
       `Measured over ${A.lenses.measuredOver} shows. <b>vs baseline</b> is the recall gap `
       + `against <i>${esc(lensByKey.get(ref)?.label || ref)}</i>, the naive "play what they have `
       + 'been playing" approach. <b>Real?</b> asks whether that gap is bigger than two standard '
@@ -2312,15 +2370,18 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
         + 'does it beat the same term with its new data taken away?');
     }
 
-    if (notes.length) nerd.appendChild(el('div', 'nz-notes', notes.map(n => `<p>${n}</p>`).join('')));
+    if (notes.length) board.appendChild(el('div', 'nz-notes', notes.map(n => `<p>${n}</p>`).join('')));
 
-    nerd.appendChild(el('div', 'hint',
-      'Choosing an approach re-ranks <b>Predicted Setlist</b> and <b>All candidates</b>. It '
-      + 'does not touch the games — Our Prediction always fills from the shipping model — and '
-      + 'it cannot affect your points, which are graded against the real setlist and never '
-      + 'against the model. <b>Track record</b> stays on the shipping model too: it records '
-      + 'predictions that were actually published before a show, and no other approach here '
-      + 'has ever published one.'));
+    // CORRECTED 2026-08-15. This used to read "it does not touch the games — Our Prediction
+    // always fills from the shipping model", which stopped being true when a chosen approach
+    // was wired into Our Prediction and nobody updated the copy. test/lenses.test.mjs:168
+    // documents that the invariant changed deliberately; the sentence describing it did not.
+    // What is left here is the part that is still true and still load-bearing.
+    play.appendChild(el('div', 'hint',
+      '<b>Track record</b> stays pinned to the shipping model whatever you pick: it records '
+      + 'predictions that were actually published before a show, and no other approach here has '
+      + 'ever published one. Your own points are safe for a simpler reason — a prediction is '
+      + 'graded against what the band played, never against the model that helped you fill it.'));
 
     // Repainted rather than rebuilt, so the card keeps its scroll position on a change.
     function paintPicker() {
@@ -2340,6 +2401,16 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       for (const n of [whatIfLabel, whatIfNote, whatIfPicker]) n.style.display = has ? '' : 'none';
       const a = lensArm();
       blurb.innerHTML = a ? `${esc(a.blurb)}` : '';
+
+      // What is on, in words, with the way back beside it. The highlighted button already says
+      // this, but only to somebody looking at the row — and the reset used to live on a badge
+      // attached to whichever other card the lens had altered.
+      current.innerHTML = lensIsDefault()
+        ? `<span class="nz-cur-label">Playing:</span> <b>${esc(a ? a.label : 'Day curve')}</b> `
+          + '<span class="nz-ship">shipping</span>'
+        : `<span class="nz-cur-label">Playing:</span> <b>${esc(a ? a.label : '')}</b>`
+          + `${a && a.whatIf ? ' <span class="nz-whatif">what-if</span>' : ''}`
+          + ' <button class="lens-reset" type="button">back to the shipping model</button>';
     }
     paintPicker();
 
@@ -2384,22 +2455,12 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
         '<tr>' + headers.map((h, i) => `<th${i ? ' class="num"' : ''}>${h}</th>`).join('') + '</tr>'
         + rows.map(r => '<tr>' + r.map((c, i) => `<td${i ? ' class="num"' : ''}>${c}</td>`).join('') + '</tr>').join(''));
 
-      // One collapsible section. Returns the body to append into, so a caller reads the same
-      // as it did when these were flat divs.
-      //
-      // The FIRST section is open and the rest are closed: all four open makes a ~2900px card
-      // nobody scrolls, and all four closed makes a page that looks like it failed to load.
-      // One open shows what the triangles do without burying the rest.
-      let sectionCount = 0;
-      const section = title => {
-        const d = el('details', 'nz-sec');
-        if (sectionCount++ === 0) d.open = true;
-        d.appendChild(el('summary', null, esc(title)));
-        const body = el('div', 'nz-secbody');
-        d.appendChild(body);
-        diag.appendChild(d);
-        return body;
-      };
+      // All four start CLOSED. They were "first open, rest closed" when nothing else on the
+      // card was expanded and a page of bare headings would have read as a failure to load.
+      // The playground is now open above them, so the card already shows what a section looks
+      // like unfolded, and four question-shaped headings under a visible intro line read as a
+      // menu rather than as an empty page.
+      const section = title => makeSection(diag, esc(title));
       // Prose beside a visual on a wide screen, stacked on a narrow one. Returns both halves.
       const split = parent => {
         const wrap = el('div', 'nz-split');

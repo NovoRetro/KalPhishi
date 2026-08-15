@@ -22,6 +22,17 @@ function initPredictor(mount, A, opts = {}) {
   const lensArm = () => (A.lenses?.arms || []).find(a => a.key === lensKey()) || null;
   const lensIsDefault = () => { const a = lensArm(); return !a || !!a.isDefault; };
 
+  // The Actions entry that fills a card from the model, named for what it will ACTUALLY fill
+  // from. Left as a fixed "Our Prediction" it was a promise the menu could not keep: with an
+  // approach chosen the button hands over that approach's setlist while still calling it ours,
+  // and the only warning was a chip on a different row. Always "Our Prediction" at the default,
+  // because that is what the house model's answer is called everywhere else in the app.
+  //
+  // Evaluated per render rather than captured — render() runs on every lens change, because
+  // index.html calls predictor.refresh(), so a captured string would freeze on whichever
+  // approach happened to be selected when the card was first built.
+  const ourPredictionLabel = () => (lensIsDefault() ? '🛟 Our Prediction' : `🛟 ${lensArm().label}`);
+
   // Baseline rankings ship as bare slugs and can surface a song the model never ranked, so
   // names are resolved from every source that carries them.
   const lensNameBySlug = (() => {
@@ -1034,8 +1045,12 @@ function initPredictor(mount, A, opts = {}) {
       : [];
 
     controls.appendChild(actionsMenu([
+      // First in the menu. It is the only entry that produces a considered answer rather than
+      // a shuffle or a wipe, it is the one the Nerd Zone sends people here to find, and it is
+      // the one a first-timer is looking for — Randomize was above it purely by accident of
+      // the order these were written in.
+      [ourPredictionLabel(), fillSetlistFromModel],
       ['🎲 Randomize', randomizeSetlist],
-      ['🛟 Our Prediction', fillSetlistFromModel],
       // Reload sits directly ABOVE Clear. They are a destroy/undo pair either way, but in
       // this order the way back is read before the way to need it, and Clear stays the
       // last thing in the group — nearest the bottom, furthest from a stray press.
@@ -1511,8 +1526,9 @@ function initPredictor(mount, A, opts = {}) {
         : [];
 
       controls.appendChild(actionsMenu([
+        // First, matching the setlist builder — see the note there.
+        [ourPredictionLabel(), fillFromModel],
         ['🎲 Randomize', randomize],
-        ['🛟 Our Prediction', fillFromModel],
         // Directly under the two that overwrite the card, because it is the thing that
         // decides what they are allowed to touch. Bingo only — the setlist has no locks.
         [lockMode ? '✕ Leave lock mode' : '🔒 Lock mode',

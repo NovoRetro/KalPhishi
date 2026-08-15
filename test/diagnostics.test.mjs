@@ -77,17 +77,23 @@ test('sections are native <details>, not a hand-rolled accordion', () => {
   // <details>/<summary> is keyboard operable and screen-reader labelled for free, works with
   // no JS, and lets the browser's own find-in-page open a closed section to reveal a match.
   // A div with a click handler silently loses all four, and nothing in this repo would notice.
-  assert.match(html, /el\('details', 'nz-sec'\)/, 'sections must be <details>');
-  assert.match(html, /el\('summary', null/, 'each section needs a <summary>');
+  assert.match(html, /el\('details', \('nz-sec ' \+ cls\)\.trim\(\)\)/, 'sections must be <details>');
+  assert.match(html, /el\('summary', null, title\)/, 'each section needs a <summary>');
   assert.doesNotMatch(html, /nz-sec[^']*'\)[\s\S]{0,200}addEventListener\('click'/,
     'no click handler should be driving the disclosure');
+  // One helper builds every section, so they cannot drift apart in behaviour.
+  assert.match(html, /const makeSection = \(host, title/);
 });
 
-test('the first section is open, so the card never looks empty', () => {
-  // All four closed reads as a page that failed to load; all four open is the ~2900px card
-  // this replaced. One open shows what the triangles do.
-  assert.match(html, /sectionCount\+\+ === 0\) d\.open = true/);
-  assert.match(html, /intro\.open = true/, 'the explainer starts open too');
+test('exactly one section is open by default, and it is the interactive one', () => {
+  // A card of nothing but closed headings reads as a page that failed to load; everything
+  // open is the ~2900px card this replaced. The playground is the one part anybody can touch,
+  // so it is the one that starts unfolded — the rest is reference material behind its heading.
+  const opens = [...html.matchAll(/makeSection\([^)]*\{[^}]*open: true[^}]*\}/g)];
+  assert.equal(opens.length, 1, 'exactly one section may start open');
+  assert.match(opens[0][0], /play with models/, 'the open one must be the playground');
+  // The diagnostics helper passes no options at all, so they are all closed.
+  assert.match(html, /const section = title => makeSection\(diag, esc\(title\)\)/);
 });
 
 test('a summary is a real touch target', () => {
