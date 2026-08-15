@@ -1656,10 +1656,12 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
 
   // ---- lenses (see the Nerd Zone card below) ----
   //
-  // A lens re-ranks the Data views under one of the approaches scripts/backtest.js grades.
-  // It never reaches the games: Our Prediction always fills from the shipping model, so a
-  // lens cannot influence a saved prediction or a point. Track Record is likewise pinned —
-  // it records predictions actually published, and no other arm has ever published one.
+  // A lens re-ranks the Data views under one of the approaches scripts/backtest.js grades,
+  // and fills Our Prediction in both games — see web/predictor.js. It still cannot influence a
+  // saved prediction or a point, but for a different reason than this comment used to give:
+  // not because the games never see it, but because a prediction is graded against the real
+  // setlist and never against the model that helped fill it. Track Record is pinned separately
+  // — it records predictions actually published, and no other arm has ever published one.
   const LENS_DEFAULT = 'model';
   const lensArms = (A.lenses && A.lenses.arms) || [];
   const lensByKey = new Map(lensArms.map(a => [a.key, a]));
@@ -2575,9 +2577,15 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       nerd.appendChild(diag);
     }
   } else {
+    // This is a USER-FACING surface and this branch used to print "Run `npm run backtest`" —
+    // a shell command, on a phone, to somebody who came to guess a setlist. It fires whenever
+    // the visitor's cached analysis.json predates the lens payload, which is exactly what
+    // happens to anyone who had the site open before a deploy, so it is not rare enough to be
+    // treated as developer-only. Say what the reader can actually do about it.
     nerd.appendChild(el('div', 'hint',
-      'Approach comparison is unavailable — data/arms.json has not been generated. '
-      + 'Run <code>npm run backtest</code>.'));
+      'The approach comparison is not loading. If you had this page open earlier, a reload '
+      + 'should bring it back — it usually means your browser is holding an older copy of the '
+      + 'data.'));
   }
   app.appendChild(nerd);
 
@@ -3133,6 +3141,21 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     }
     return t;
   }
+}).catch(err => {
+  // Everything on the Data side hangs off this one fetch, and until now the chain had no
+  // catch at all: a dropped request or a truncated body on a phone left the whole page
+  // rendering nothing, with the reason visible only in a console nobody on a phone can open.
+  // A blank page reads as "the site is broken" and gets reported as that, if at all.
+  console.error('analysis.json failed to load', err);
+  const app = document.getElementById('app');
+  if (!app) return;
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h2>The data did not load</h2>'
+    + '<div class="hint">The setlist analysis could not be fetched, so the Data tab is empty. '
+    + 'A reload usually fixes it. The games are unaffected — your saved predictions are on the '
+    + 'server, not in this file.</div>';
+  app.appendChild(card);
 });
 </script>
 </body>

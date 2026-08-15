@@ -16,6 +16,30 @@ const predictor = read('web/predictor.js');
 const buildPublic = read('scripts/build-public.js');
 const relisten = read('web/relisten.js');
 
+test('the analysis.json fetch has a catch, so a failed load is not a blank page', () => {
+  // Every card on the Data side hangs off one fetch. Without a catch, a dropped request or a
+  // truncated body — a normal event on a phone — left the entire page rendering nothing, with
+  // the reason only in a console the affected reader cannot open. A blank page gets reported
+  // as "the site is broken", if it gets reported at all.
+  assert.match(html, /fetch\('\/data\/analysis\.json'\)/, 'the load moved — recheck this guard');
+  assert.match(html, /\}\)\.catch\(err => \{/, 'the fetch chain must terminate in a catch');
+  assert.match(html, /The data did not load/, 'the failure must render something a reader can act on');
+});
+
+test('no user-facing copy tells a visitor to run a shell command', () => {
+  // The Nerd Zone fallback used to print "Run `npm run backtest`". That branch fires whenever
+  // a visitor's cached analysis.json predates the lens payload — i.e. for anyone who had the
+  // site open across a deploy — so it is not a developer-only path, and it was being shown to
+  // people on phones who came to guess a setlist.
+  const rendered = html
+    .split('\n')
+    .filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l))   // comments may legitimately cite the old copy
+    .join('\n');
+  for (const cmd of ['npm run backtest', 'npm run build', 'node scripts/']) {
+    assert.ok(!rendered.includes(cmd), `user-facing copy must not instruct "${cmd}"`);
+  }
+});
+
 test('chart ticks stay uniform width', () => {
   // The era chart drew ticks with fmtDateShort, so "Jul 7" rendered 21.8px against 27.7px
   // for "Jul 22" and the short ones read as inset. Zero-padding the day only moved the
