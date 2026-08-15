@@ -359,3 +359,69 @@ test('the archive is not swept up by the data/ gitignore', () => {
 test('the track-record panel reads from history.json, not analysis.json', () => {
   assert.match(html, /fetch\('\/data\/history\.json'\)/);
 });
+
+test('the two dark token blocks are identical', () => {
+  // Dark is declared twice on purpose: once under prefers-color-scheme for the "Auto"
+  // theme state, once as :root[data-theme="dark"] so the explicit toggle can win on a
+  // light OS. CSS cannot share one body across that media-query boundary, so they are
+  // duplicated by hand — and the drift this invites is silent, showing up only on the OS
+  // whose block fell behind. Parse both, compare exactly.
+  const decls = block => Object.fromEntries(
+    block.split(';')
+      .map(d => d.replace(/\/\*[\s\S]*?\*\//g, '').trim())
+      .filter(Boolean)
+      .map(d => d.split(':').map(s => s.trim()))
+      .filter(kv => kv.length === 2));
+  const auto = html.match(
+    /@media \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme="light"\]\) \{([\s\S]*?)\}/);
+  const forced = html.match(/:root\[data-theme="dark"\] \{([\s\S]*?)\}/);
+  assert.ok(auto, 'the media-query dark block is gone');
+  assert.ok(forced, 'the data-theme dark block is gone');
+  assert.deepEqual(decls(auto[1]), decls(forced[1]),
+    'the Auto-dark and forced-dark token sets drifted apart');
+});
+
+test('secondary text clears WCAG AA on its backgrounds in both themes', () => {
+  // --muted was one grey shared by both themes and measured 3.3:1 on the light page — under
+  // the 4.5:1 floor for the 11-12px text it is used on (set labels, counters, table
+  // headers). Recomputed from the stylesheet on every run so a retune cannot drift back
+  // under the floor without this failing.
+  const lum = hex => {
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const ratio = (a, b) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+  const tokens = block => Object.fromEntries(
+    [...block.matchAll(/(--[\w-]+):\s*(#[0-9a-f]{6})/gi)].map(m => [m[1], m[2]]));
+  const light = tokens(html.match(/:root \{([\s\S]*?)\n  \}/)[1]);
+  const dark = tokens(html.match(/:root\[data-theme="dark"\] \{([\s\S]*?)\}/)[1]);
+  for (const [theme, t] of [['light', light], ['dark', dark]]) {
+    for (const bg of ['--page', '--surface', '--card-bg']) {
+      assert.ok(ratio(t['--muted'], t[bg]) >= 4.5,
+        `--muted on ${bg} is ${ratio(t['--muted'], t[bg]).toFixed(2)}:1 in ${theme} — needs 4.5`);
+      assert.ok(ratio(t['--ink-2'], t[bg]) >= 4.5,
+        `--ink-2 on ${bg} is ${ratio(t['--ink-2'], t[bg]).toFixed(2)}:1 in ${theme} — needs 4.5`);
+    }
+  }
+});
+
+test('the Data view is reachable from the menu now that the tab is gone', () => {
+  // Data left the tab row for the ☰ menu — the row is the game surface. Assert the whole
+  // path: the row no longer builds a Data tab, the dashboard exposes the hook, and the
+  // menu calls it in both signed-in and signed-out states (dataItem is appended twice).
+  assert.ok(!/dataBtn/.test(html), 'the Data tab button is back in the row');
+  assert.match(html, /window\.KalphishiGoData = subtab =>/, 'the menu needs this hook to reach Data');
+  assert.match(html, /const dataItem = \(\) => item\('📊 Data'/, 'the menu item is gone');
+  const uses = html.match(/panel\.appendChild\(dataItem\(\)\);/g) || [];
+  assert.equal(uses.length, 2, 'Data must be in the menu for signed-in AND signed-out visitors');
+});
+
+test('the wizard is off but intact', () => {
+  // Hidden, not deleted — MVP call, 2026-08-15. The flag gates at wizardActive, the one
+  // chokepoint, and wizardSeen must NOT be written while it is off: nobody should be
+  // marked as having seen an intro they were never shown.
+  assert.match(predictor, /const WIZARD_ENABLED = false;/, 'the wizard should be off for MVP');
+  assert.match(predictor, /WIZARD_ENABLED\s*&&\s*!!user/, 'the flag must gate wizardActive');
+  assert.match(predictor, /const WIZARD_STEPS = \[/, 'the wizard content must survive being off');
+});

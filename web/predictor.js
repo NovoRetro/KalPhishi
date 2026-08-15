@@ -238,9 +238,17 @@ function initPredictor(mount, A, opts = {}) {
     window.KalphishiAuthModal.onDismiss(() => { authPrompt = null; render(); });
   }
 
+  // First-time visitors land on Create account; anyone this browser has seen signed in
+  // lands on Sign in. The stored user is the tell — it survives sign-out on purpose (only
+  // a dead session clears it), so a tester on their own phone is never pushed toward
+  // registering twice, and someone brand new is never asked to sign in to an account they
+  // do not have. Wrong guesses cost one tap: both tabs sit at the top of the same panel.
+  const probablyHasAccount = () => {
+    try { return !!localStorage.getItem('kalphish-user'); } catch { return false; }
+  };
   function requireAuth(message, onAuthed) {
     if (user) return onAuthed();
-    authPrompt = { tab: 'login', message, onAuthed };
+    authPrompt = { tab: probablyHasAccount() ? 'login' : 'register', message, onAuthed };
     render();
   }
 
@@ -259,7 +267,12 @@ function initPredictor(mount, A, opts = {}) {
     // The countdown rides the heading row, pushed right and only as wide as its text.
     // As a full-width banner under the top bar it read as an alert; up here it is a
     // status the eye passes over on the way into the game.
-    const head = el('div', 'p-headrow');
+    // p-headrow-game marks the two modes whose name is already in the tab a thumb's width
+    // above — CSS hides that h2 on a phone, where a row saying what the row above said is
+    // a row of the game's space. History and Profile keep theirs at every width: they are
+    // reached from the menu, no tab names them, so the heading is their only label.
+    const head = el('div', 'p-headrow'
+      + (mode === 'bingo' || mode === 'setlist' ? ' p-headrow-game' : ''));
     head.appendChild(el('h2', null, HEADINGS[mode] || HEADINGS.setlist));
     // Names the approach whenever it is not the house model, because Our Prediction will
     // hand back something different from what the Data tab's default shows and a player who
@@ -270,7 +283,7 @@ function initPredictor(mount, A, opts = {}) {
       const chip = el('span', 'p-lensnote', `🛟 ${esc(arm.label)}`);
       chip.title = `Our Prediction will fill from "${arm.label}" instead of the house model. `
         + 'Your picks are still scored against the real setlist — this changes what is '
-        + 'offered, never how it counts. Change it in Data → Nerd Zone.';
+        + 'offered, never how it counts. Change it in ☰ → Data → Nerd Zone.';
       head.appendChild(chip);
     }
     const L = lockInfo();
@@ -285,7 +298,7 @@ function initPredictor(mount, A, opts = {}) {
         // and it is still yours to change.
         : L.locked
           ? 'Tap squares as they’re played.'
-          : 'Card saved — you can still change it until it locks.'));
+          : 'Saved — editable until the lock.'));
     }
     if (L.known && (mode === 'setlist' || mode === 'bingo')) {
       const clock = L.local ? `${L.local} local` : 'showtime';
@@ -394,16 +407,22 @@ function initPredictor(mount, A, opts = {}) {
       dismiss.addEventListener('click', () => { authPrompt = null; render(); });
       tabs.appendChild(dismiss);
       box.appendChild(tabs);
+      // One line each, and register's does not lecture about requirements — the server
+      // says exactly what is wrong if a password is short, at the moment it matters.
       box.appendChild(el('div', 'hint', tab === 'login'
-        ? 'Sign in to save predictions and build your track record.'
-        : 'Register with your email and a password (6+ characters for now).'));
+        ? 'Welcome back.'
+        : 'Email + password. That’s it.'));
       const email = el('input', 'ta-input');
       email.placeholder = legacy ? 'name' : 'email address';
       email.type = legacy ? 'text' : 'email';
       email.autocomplete = legacy ? 'username' : 'email';
       const pass = el('input', 'ta-input'); pass.placeholder = 'password'; pass.type = 'password';
       pass.autocomplete = tab === 'login' ? 'current-password' : 'new-password';
-      const disp = el('input', 'ta-input'); disp.placeholder = 'display name';
+      // Optional, and says so. The server derives a handle either way and falls back to it
+      // for the display name, and the name is editable in Profile — asking for it up front
+      // was one more field between a new player and the game, for a value most people type
+      // twice: once here and once when they change their mind about it.
+      const disp = el('input', 'ta-input'); disp.placeholder = 'display name (optional)';
       // Claim-a-legacy-account field: hidden for now (not needed for current testing),
       // but kept so the flow still exists — its value just never leaves ''.
       const claim = el('input', 'ta-input'); claim.placeholder = 'old name to claim (optional)';
@@ -472,6 +491,10 @@ function initPredictor(mount, A, opts = {}) {
   // Held out here for the same reason as swapFrom: render() rebuilds the control row, so
   // an open menu has to survive being redrawn.
   let actionsOpen = false;
+  // Which set columns are unfolded. Out here so folding survives the render every edit
+  // triggers — a fold that re-opened on the next added song would not be a fold. All open
+  // by default: folding is for getting past a set, not a state to discover the game in.
+  const setOpen = { set1: true, set2: true, encore: true };
 
   // One button in place of a row of four. Randomize, the model's card, Clear and the
   // rules are all things you reach for occasionally; spread across the row they competed
@@ -693,8 +716,24 @@ function initPredictor(mount, A, opts = {}) {
   // this, with the real button beside it.
   let wizardStep = 0;
   let wizardBusy = false;
+  // ---- OFF, deliberately, and everything below it is kept.
+  //
+  // The intro is a good tool aimed at the wrong moment: it lands on somebody who arrived to
+  // fill in a card and puts five steps between them and doing it. Turned off rather than
+  // deleted — WIZARD_STEPS, renderWizard, wizardSave and the `wizardSeen` profile flag are
+  // all still here and still correct, so this is one line to reverse.
+  //
+  // It gates at `wizardActive`, the single place anything asks whether the intro is showing,
+  // so nothing downstream needs to know. With it false, `render()` falls through to
+  // predictNudge() — the either/or at the top of render() — which is the strip that says the
+  // useful half of what the intro said, next to the button that acts on it.
+  //
+  // Note the flag is NOT set when this is off: nobody is marked as having seen an intro they
+  // were never shown, so turning it back on shows it to everyone who has not actually had it.
+  const WIZARD_ENABLED = false;
   const wizardActive = () =>
-    !!user && !user.profile?.wizardSeen && (mode === 'setlist' || mode === 'bingo');
+    WIZARD_ENABLED
+    && !!user && !user.profile?.wizardSeen && (mode === 'setlist' || mode === 'bingo');
 
   async function wizardSave(patch, after) {
     if (wizardBusy) return;
@@ -1001,14 +1040,15 @@ function initPredictor(mount, A, opts = {}) {
     // occasional things live and which is what lets this hold one line on a phone. Actions
     // stays deliberately the furthest thing from Save, so the destructive items inside it
     // are never adjacent to the button people press most.
-    const controls = el('div', 'p-row');
+    const controls = el('div', 'p-row p-controls');
     const songCount = build.set1.length + build.set2.length + build.encore.length;
 
     // Save only appears once there is something to save. Saving three empty lists is not a
     // thing anyone means to do, and Ask Diego? is the better answer to "how do I start".
     if (songCount > 0) {
-      const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
-      save.addEventListener('click', () => requireAuth('Sign in or create an account to save your setlist.', async () => {
+      const save = el('button', 'p-btn', user ? 'Bag it, Tag it'
+        : probablyHasAccount() ? 'Sign in to save' : 'Sign up to save');
+      save.addEventListener('click', () => requireAuth('Save your setlist:', async () => {
         try {
           await api('/api/predictions', 'POST', { showdate, type: 'setlist', payload: build });
           savedSetlist = { payload: JSON.parse(JSON.stringify(build)) };
@@ -1070,7 +1110,21 @@ function initPredictor(mount, A, opts = {}) {
     const wrap = el('div', 'p-sets');
     for (const [key, label] of [['set1', 'Set 1'], ['set2', 'Set 2'], ['encore', 'Encore']]) {
       const col = el('div', 'p-setcol');
-      col.appendChild(el('div', 'setlabel', label));
+      // The set label is a toggle now, with the count folded into it. On a phone the three
+      // sets stack, so a full Set 1 puts Set 2's typeahead ~10 rows down — folding a set is
+      // how you get past it without scrolling through it. The count lives in the header so
+      // a folded set still says how full it is; the over-cap warning line stays in the
+      // body, where the rows it is warning about are.
+      const isOpen = setOpen[key];
+      const head = el('button', 'p-sethead',
+        `<span class="p-caret"${isOpen ? ' style="transform: rotate(90deg)"' : ''}>▸</span>`
+        + `<span class="setlabel">${label}</span>`
+        + `<span class="p-setcount${build[key].length > SOFT_CAP[key] ? ' p-cap-over' : ''}">`
+        + `${build[key].length} of ${SOFT_CAP[key]}</span>`);
+      head.setAttribute('aria-expanded', String(isOpen));
+      head.addEventListener('click', () => { setOpen[key] = !isOpen; render(); });
+      col.appendChild(head);
+      if (!isOpen) { wrap.appendChild(col); continue; }
       const list = el('div', 'p-setlist');
       build[key].forEach((s, i) => {
         const stressor =
@@ -1083,8 +1137,14 @@ function initPredictor(mount, A, opts = {}) {
         const metaLine = m
           ? `<div class="p-songmeta">last: ${m.lastPlayed}${m.venue ? ' · ' + esc(m.venue) : ''} · ${m.gap} show${m.gap === 1 ? '' : 's'} ago</div>`
           : '';
+        // Badges sit at the row's right edge, beside the ×, not trailing the name. Inline
+        // they gave every row a different name-to-badge seam and the eye had to hunt for
+        // them; ranged right they form one scannable column, and the name column stays
+        // ragged-right the way a list of titles should read.
+        const badges = `${bustChip(s.slug)}${stressor ? `<span class="p-stress">${stressor}</span>` : ''}`;
         const row = el('div', 'p-songrow',
-          `<span class="p-songmain"><span>${esc(s.name)} ${bustChip(s.slug)}${stressor ? `<span class="p-stress">${stressor}</span>` : ''}</span>${metaLine}</span>`);
+          `<span class="p-songmain"><span>${esc(s.name)}</span>${metaLine}</span>`
+          + (badges.trim() ? `<span class="p-rowbadges">${badges}</span>` : ''));
         // Pointer Events rather than HTML5 drag-and-drop: touch devices never fire
         // dragstart/dragover/drop, so the old handlers made this desktop-only.
         const handle = el('span', 'p-drag', '⋮⋮');
@@ -1128,17 +1188,17 @@ function initPredictor(mount, A, opts = {}) {
         list.appendChild(row);
       });
       col.appendChild(list);
-      // Running count against the soft cap. The cap is not enforced — Phish plays 15-song
-      // sets — but past it a wrong guess costs a point, so it has to be visible before
-      // someone saves rather than as a surprise when the show is graded.
-      const cap = SOFT_CAP[key];
-      const n = build[key].length;
-      const over = n - cap;
-      const counter = el('div', over > 0 ? 'p-cap p-cap-over' : 'p-cap', over > 0
-        ? `${n} of ${cap} — ${over} past the cap, each costs 1 point if wrong`
-        : `${n} of ${cap}`);
-      if (over > 0) counter.title = `Songs beyond ${cap} only score if you call them right. Each wrong one deducts a point. Remove them and no deduction applies.`;
-      col.appendChild(counter);
+      // The count moved up into the set header, where it survives folding. What stays down
+      // here is only the warning: the cap is not enforced — Phish plays 15-song sets — but
+      // past it a wrong guess costs a point, and that has to be visible beside the rows it
+      // is about before someone saves, not as a surprise when the show is graded.
+      const over = build[key].length - SOFT_CAP[key];
+      if (over > 0) {
+        const warn = el('div', 'p-cap p-cap-over',
+          `${over} past the cap — each costs 1 point if wrong`);
+        warn.title = `Songs beyond ${SOFT_CAP[key]} only score if you call them right. Each wrong one deducts a point. Remove them and no deduction applies.`;
+        col.appendChild(warn);
+      }
       col.appendChild(typeahead(`add to ${label}…`, usedSlugs, s => { build[key].push(s); render(); }));
       wrap.appendChild(col);
     }
@@ -1146,7 +1206,7 @@ function initPredictor(mount, A, opts = {}) {
     // Kept, unlike the rest of the guidance: which entry counts as the opener and which
     // as the closer changes the score, and there is no way to work it out from the UI.
     mount.appendChild(el('div', 'hint',
-      'Openers and closers are whatever sits first and last in each list — drag ⋮⋮ to reorder.'));
+      'First = opener, last = closer. Drag ⋮⋮ to reorder.'));
   }
 
   // ---------- bingo ----------
@@ -1194,7 +1254,7 @@ function initPredictor(mount, A, opts = {}) {
     const usedSlugs = () => new Set(grid.filter((c, i) => c && i !== FREE).map(c => c.slug));
 
     // controls + cell picker live ABOVE the grid
-    const controls = el('div', 'p-row');
+    const controls = el('div', 'p-row p-controls');
     if (!scored) mount.appendChild(controls);
     // A scored card has no controls row to hang the Actions menu off, and that is precisely
     // when somebody wants to read how the scoring worked and where it put them — so both
@@ -1320,7 +1380,12 @@ function initPredictor(mount, A, opts = {}) {
     for (const c of PHISH) table.appendChild(el('div', 'p-head', c));
 
     for (let r = 0; r < 5; r++) {
-      table.appendChild(el('div', 'p-head', PHISH[r]));
+      // p-rowhead marks the left-edge labels apart from the top row's: on a phone they are
+      // hidden and their column's width goes to the squares — the top P·H·I·S·H already
+      // names the game, and the rows repeat it five times at the cost of ~4px of song title
+      // per square. Desktop keeps both axes; the grid is roomy there and the row labels
+      // help the eye track a line.
+      table.appendChild(el('div', 'p-head p-rowhead', PHISH[r]));
       for (let c = 0; c < 5; c++) {
         const i = r * 5 + c;
         let cell;
@@ -1333,7 +1398,12 @@ function initPredictor(mount, A, opts = {}) {
           cell.setAttribute('aria-label', 'Donut square, always counts toward a line');
         } else if (grid[i]) {
           const isChecked = checked ? checked[i] : false;
-          cell = el('div', 'p-cell filled' + (isChecked ? ' checked' : ''),
+          // The tier rides as a class on the cell itself, not just the badge inside it —
+          // see .p-cell.bust-* in the CSS. On a phone that class becomes a coloured border
+          // instead of the text pill, which is how the same information survives a cell
+          // too small to hold "MEGA BUSTOUT" without wrapping over half the square.
+          const tier = bustTier(grid[i].slug);
+          cell = el('div', 'p-cell filled' + (isChecked ? ' checked' : '') + (tier ? ` bust-${tier.cls}` : ''),
             `<span class="p-cellname">${esc(grid[i].name)}</span>${bustChip(grid[i].slug)}`);
           if (live) {
             cell.title = 'tap to check off';
@@ -1353,8 +1423,9 @@ function initPredictor(mount, A, opts = {}) {
               cell.classList.add('p-lockpick');
               cell.title = locks[i] ? 'locked — tap to unlock' : 'tap to lock this square';
               // No padlock is drawn here. On a 5×5 grid, 24 of them fought the song titles
-              // for the same few pixels; the red border carries it instead, and carries it
-              // across the whole card at a glance rather than one cell at a time.
+              // for the same few pixels; the red FILL carries it instead (a wash, not a
+              // border — the bustout tiers own the border channel on phones), and carries
+              // it across the whole card at a glance rather than one cell at a time.
               // aria-pressed is what keeps the state readable without the glyph.
               cell.setAttribute('aria-pressed', String(!!locks[i]));
               cell.addEventListener('click', () => { locks[i] = !locks[i]; render(); });
@@ -1460,9 +1531,10 @@ function initPredictor(mount, A, opts = {}) {
         // Same label whether or not a card is already saved: re-saving is the same act, and
         // now that a save no longer ends the editing phase it is one people will do more
         // than once. Matches the setlist builder's button exactly.
-        const save = el('button', 'p-btn', user ? 'Bag it, Tag it' : 'Sign in to save');
+        const save = el('button', 'p-btn', user ? 'Bag it, Tag it'
+          : probablyHasAccount() ? 'Sign in to save' : 'Sign up to save');
         save.addEventListener('click', () => {
-          requireAuth('Sign in or create an account to save your bingo card.', async () => {
+          requireAuth('Save your card:', async () => {
             try {
               await api('/api/predictions', 'POST', { showdate, type: 'bingo', payload: { grid } });
               await loadExisting();
