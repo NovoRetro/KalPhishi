@@ -222,6 +222,10 @@ function initPredictor(mount, A, opts = {}) {
     // home that belongs to neither. Handed over as a factory rather than a rendered node:
     // the menu can open and close repeatedly, and the constants are read at build time.
     scoringHelp: () => scoringHelp('all'),
+    // A getter, not a value, same reasoning as `lens` at the initPredictor call: the
+    // predictor owns which show is open and it can change after the menu is built. The
+    // menu uses it to aim the roster's "in for" dots at the show the games are on.
+    showdate: () => showdate,
   };
 
   // When set, sign-in/register renders in the header's modal (window.KalphishiAuthModal)
