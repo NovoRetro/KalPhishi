@@ -1673,7 +1673,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       const slug = typeof x === 'string' ? x : x.slug;
       const known = bySlug.get(slug);
       return {
-        ...(known || { slug, name: nameBySlug.get(slug) || slug, why: [], eraFreq: null, currentGap: null, medianInterval: null, tourPlays: null }),
+        ...(known || { slug, name: nameBySlug.get(slug) || slug, why: [], windowFreq: null, currentGap: null, medianInterval: null, tourPlays: null }),
         score: typeof x === 'string' ? null : x.score,
         // Never under a lens the calibration was not fitted for — see the Nerd Zone copy.
         p: lensArm()?.usesCalibration ? known?.p ?? null : null,
@@ -1805,10 +1805,10 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   due.appendChild(tableOf(
     // Header follows the target show rather than a hardcoded date, which went stale the
     // moment the prediction advanced.
-    ['Song', 'Last tour play', `Gap at ${fmtDateShort(A.nextShow.date)}`, 'Era freq', 'Cadence'],
+    ['Song', 'Last tour play', `Gap at ${fmtDateShort(A.nextShow.date)}`, 'Rotation', 'Cadence'],
     A.horizontal.dueBackUp.slice(0, 18).map(d => [
       `<span class="song">${esc(d.name)}</span>`, fmtDateShort(d.lastTourPlay),
-      num(d.gapAtNext), pct(d.eraFreq), num(d.medianInterval),
+      num(d.gapAtNext), pct(d.windowFreq), num(d.medianInterval),
     ]), [2, 3, 4]));
   h.appendChild(due);
 
@@ -2088,7 +2088,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     : `<span class="song">${esc(x.name)}</span>`);
 
   const candTable = tableOf(
-    ['#', 'Song', 'Chance', 'Score', 'Era freq', 'Shows since', 'Cadence', 'Tour plays', 'Why'],
+    ['#', 'Song', 'Chance', 'Score', 'Rotation', 'Shows since', 'Cadence', 'Tour plays', 'Why'],
     rows.slice(0, 60).map((x, i) => [
       num(i + 1),
       songCell(x),
@@ -2099,7 +2099,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       x.p == null ? '<span class="num chance chance-none">—</span>'
         : `<span class="num chance">${Math.round(x.p * 100)}%</span>`,
       x.score == null ? '<span class="num chance-none">—</span>' : `<span class="score">${x.score}</span>`,
-      pct(x.eraFreq), num(x.currentGap), num(x.medianInterval), num(x.tourPlays),
+      pct(x.windowFreq), num(x.currentGap), num(x.medianInterval), num(x.tourPlays),
       // Full text, clamped to one line by CSS — see .why-trunc. The reason travels in a
       // data attribute too, so the tip reads it without depending on what the clamp left
       // visible.

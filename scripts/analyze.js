@@ -181,11 +181,11 @@ const dueBackUp = [...tourSongs.values()]
     return {
       slug: t.slug, name: t.name, tourPlays: [...new Set(t.dates)].length,
       lastTourPlay: [...new Set(t.dates)].sort().pop(), gapAtNext,
-      eraFreq: +s.freq.toFixed(3), medianInterval: s.medianInterval,
+      windowFreq: +s.freq.toFixed(3), medianInterval: s.medianInterval,
     };
   })
-  .filter(x => x.gapAtNext >= Math.min(medianRepeatGap, 5) && x.eraFreq >= 0.1)
-  .sort((a, b) => b.gapAtNext - a.gapAtNext || b.eraFreq - a.eraFreq);
+  .filter(x => x.gapAtNext >= Math.min(medianRepeatGap, 5) && x.windowFreq >= 0.1)
+  .sort((a, b) => b.gapAtNext - a.gapAtNext || b.windowFreq - a.windowFreq);
 
 // tour-wide album share
 const albumTally = new Map();

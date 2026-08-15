@@ -16,8 +16,43 @@ const read = p => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n');
 const html = read('web/index.html');
 const analyze = read('scripts/analyze.js');
 const backtest = read('scripts/backtest.js');
+const analysis = JSON.parse(read('data/analysis.json'));
 
 const rowsFrom = spec => spec.flatMap(([date, slugs]) => slugs.map(slug => ({ showdate: date, slug })));
+
+test('every arm that does not reuse the shipping scores ships its own ranking', () => {
+  // The worst failure available to this feature, and nothing else catches it.
+  //
+  // web/index.html falls back to `A.candidates` when `lenses.rankings[lens]` is missing, and
+  // web/predictor.js does the same. So an arm listed in the menu with no ranking renders the
+  // SHIPPING model's songs under that arm's label, with that arm's measured accuracy printed
+  // beside them, and the "viewing under X" badge still showing. That is not a degradation —
+  // it is one arm's numbers fabricated against another arm's songs, and it looks entirely
+  // correct on screen.
+  //
+  // The coverage below this only asserts arms have NUMBERS. It never asserts they have SONGS.
+  //
+  // usesCalibration is the exact discriminator: it is true only for arms sharing the shipping
+  // model's score distribution, which are precisely the arms that may legitimately reuse
+  // `candidates` instead of shipping a ranking of their own.
+  const arms = analysis.lenses?.arms || [];
+  assert.ok(arms.length, 'no arms in analysis.json');
+  const rankings = analysis.lenses.rankings || {};
+  for (const a of arms) {
+    if (a.usesCalibration) {
+      assert.ok(!rankings[a.key], `${a.key} shares the shipping scores and should reuse candidates`);
+    } else {
+      assert.ok(rankings[a.key]?.length,
+        `${a.key} has its own scores but ships no ranking — it would silently render the shipping model's songs`);
+    }
+  }
+});
+
+test('the client fallback that makes a missing ranking dangerous is still the fallback', () => {
+  // If this ever becomes something that fails loudly, the test above can relax. Until then it
+  // is load-bearing, so it is asserted rather than assumed.
+  assert.match(html, /A\.lenses\?\.rankings\?\.\[lens\]/, 'the lookup moved — recheck the fallback');
+});
 
 test('trailing frequency ranks by play count, most first', () => {
   const rows = rowsFrom([

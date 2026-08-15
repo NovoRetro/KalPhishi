@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-14T22:58:45.194Z",
+ "generated": "2026-08-15T00:44:05.666Z",
  "asOf": "2026-08-01",
  "nextShow": {
   "date": "2026-09-04",
@@ -231,7 +231,7 @@
     "tourPlays": 1,
     "lastTourPlay": "2026-07-08",
     "gapAtNext": 17,
-    "eraFreq": 0.173,
+    "windowFreq": 0.173,
     "medianInterval": 5
    },
    {
@@ -240,7 +240,7 @@
     "tourPlays": 1,
     "lastTourPlay": "2026-07-12",
     "gapAtNext": 14,
-    "eraFreq": 0.182,
+    "windowFreq": 0.182,
     "medianInterval": 5
    },
    {
@@ -249,7 +249,7 @@
     "tourPlays": 1,
     "lastTourPlay": "2026-07-12",
     "gapAtNext": 14,
-    "eraFreq": 0.136,
+    "windowFreq": 0.136,
     "medianInterval": 5
    },
    {
@@ -258,7 +258,7 @@
     "tourPlays": 1,
     "lastTourPlay": "2026-07-14",
     "gapAtNext": 13,
-    "eraFreq": 0.145,
+    "windowFreq": 0.145,
     "medianInterval": 7
    },
    {
@@ -267,7 +267,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-18",
     "gapAtNext": 10,
-    "eraFreq": 0.103,
+    "windowFreq": 0.103,
     "medianInterval": 6
    },
    {
@@ -276,7 +276,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-19",
     "gapAtNext": 9,
-    "eraFreq": 0.192,
+    "windowFreq": 0.192,
     "medianInterval": 5
    },
    {
@@ -285,7 +285,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-19",
     "gapAtNext": 9,
-    "eraFreq": 0.182,
+    "windowFreq": 0.182,
     "medianInterval": 5
    },
    {
@@ -294,7 +294,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-19",
     "gapAtNext": 9,
-    "eraFreq": 0.131,
+    "windowFreq": 0.131,
     "medianInterval": 5
    },
    {
@@ -303,7 +303,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-21",
     "gapAtNext": 8,
-    "eraFreq": 0.196,
+    "windowFreq": 0.196,
     "medianInterval": 5
    },
    {
@@ -312,7 +312,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-21",
     "gapAtNext": 8,
-    "eraFreq": 0.121,
+    "windowFreq": 0.121,
     "medianInterval": 8
    },
    {
@@ -321,7 +321,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.14,
+    "windowFreq": 0.14,
     "medianInterval": 7
    },
    {
@@ -330,7 +330,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.136,
+    "windowFreq": 0.136,
     "medianInterval": 7
    },
    {
@@ -339,7 +339,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.121,
+    "windowFreq": 0.121,
     "medianInterval": 7
    },
    {
@@ -348,7 +348,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.121,
+    "windowFreq": 0.121,
     "medianInterval": 7
    },
    {
@@ -357,7 +357,7 @@
     "tourPlays": 3,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.112,
+    "windowFreq": 0.112,
     "medianInterval": 7
    },
    {
@@ -366,7 +366,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.107,
+    "windowFreq": 0.107,
     "medianInterval": 9
    },
    {
@@ -375,7 +375,7 @@
     "tourPlays": 3,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.187,
+    "windowFreq": 0.187,
     "medianInterval": 5
    },
    {
@@ -384,7 +384,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.178,
+    "windowFreq": 0.178,
     "medianInterval": 5
    },
    {
@@ -393,7 +393,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.173,
+    "windowFreq": 0.173,
     "medianInterval": 5.5
    },
    {
@@ -402,7 +402,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.168,
+    "windowFreq": 0.168,
     "medianInterval": 6
    },
    {
@@ -411,7 +411,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.14,
+    "windowFreq": 0.14,
     "medianInterval": 7
    },
    {
@@ -420,7 +420,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.136,
+    "windowFreq": 0.136,
     "medianInterval": 7
    },
    {
@@ -429,7 +429,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.107,
+    "windowFreq": 0.107,
     "medianInterval": 8
    },
    {
@@ -438,7 +438,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-25",
     "gapAtNext": 5,
-    "eraFreq": 0.192,
+    "windowFreq": 0.192,
     "medianInterval": 5
    },
    {
@@ -447,7 +447,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-25",
     "gapAtNext": 5,
-    "eraFreq": 0.182,
+    "windowFreq": 0.182,
     "medianInterval": 5
    },
    {
@@ -456,7 +456,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-25",
     "gapAtNext": 5,
-    "eraFreq": 0.131,
+    "windowFreq": 0.131,
     "medianInterval": 7
    },
    {
@@ -465,7 +465,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-25",
     "gapAtNext": 5,
-    "eraFreq": 0.112,
+    "windowFreq": 0.112,
     "medianInterval": 9
    },
    {
@@ -474,7 +474,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-25",
     "gapAtNext": 5,
-    "eraFreq": 0.107,
+    "windowFreq": 0.107,
     "medianInterval": 8.5
    }
   ],
@@ -7242,7 +7242,7 @@
     "47 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
-   "eraFreq": 0.192,
+   "windowFreq": 0.192,
    "currentGap": 8,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7272,7 +7272,7 @@
     "54 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.182,
+   "windowFreq": 0.182,
    "currentGap": 13,
    "medianInterval": 5,
    "tourPlays": 1,
@@ -7302,7 +7302,7 @@
     "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.145,
+   "windowFreq": 0.145,
    "currentGap": 12,
    "medianInterval": 7,
    "tourPlays": 1,
@@ -7332,7 +7332,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
-   "eraFreq": 0.178,
+   "windowFreq": 0.178,
    "currentGap": 5,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7362,7 +7362,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
-   "eraFreq": 0.173,
+   "windowFreq": 0.173,
    "currentGap": 5,
    "medianInterval": 5.5,
    "tourPlays": 2,
@@ -7392,7 +7392,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.192,
+   "windowFreq": 0.192,
    "currentGap": 4,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7422,7 +7422,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.182,
+   "windowFreq": 0.182,
    "currentGap": 4,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7452,7 +7452,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 9x before"
    ],
-   "eraFreq": 0.196,
+   "windowFreq": 0.196,
    "currentGap": 7,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7482,7 +7482,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 14x before"
    ],
-   "eraFreq": 0.22,
+   "windowFreq": 0.22,
    "currentGap": 0,
    "medianInterval": 4,
    "tourPlays": 4,
@@ -7512,7 +7512,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 14x before"
    ],
-   "eraFreq": 0.215,
+   "windowFreq": 0.215,
    "currentGap": 0,
    "medianInterval": 4,
    "tourPlays": 3,
@@ -7542,7 +7542,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.168,
+   "windowFreq": 0.168,
    "currentGap": 5,
    "medianInterval": 6,
    "tourPlays": 2,
@@ -7572,7 +7572,7 @@
     "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 9x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 12,
    "medianInterval": 8.5,
    "tourPlays": 1,
@@ -7602,7 +7602,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 13x before"
    ],
-   "eraFreq": 0.22,
+   "windowFreq": 0.22,
    "currentGap": 1,
    "medianInterval": 4,
    "tourPlays": 4,
@@ -7632,7 +7632,7 @@
     "47 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.182,
+   "windowFreq": 0.182,
    "currentGap": 8,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7663,7 +7663,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.187,
+   "windowFreq": 0.187,
    "currentGap": 5,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -7693,7 +7693,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
-   "eraFreq": 0.22,
+   "windowFreq": 0.22,
    "currentGap": 0,
    "medianInterval": 4,
    "tourPlays": 4,
@@ -7723,7 +7723,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
-   "eraFreq": 0.159,
+   "windowFreq": 0.159,
    "currentGap": 0,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -7752,7 +7752,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 5,
    "medianInterval": 8,
    "tourPlays": 2,
@@ -7782,7 +7782,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.192,
+   "windowFreq": 0.192,
    "currentGap": 0,
    "medianInterval": 5,
    "tourPlays": 4,
@@ -7812,7 +7812,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.178,
+   "windowFreq": 0.178,
    "currentGap": 0,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -7842,7 +7842,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.173,
+   "windowFreq": 0.173,
    "currentGap": 0,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -7872,7 +7872,7 @@
     "55 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 14,
    "medianInterval": 7,
    "tourPlays": 1,
@@ -7901,7 +7901,7 @@
     "58 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.173,
+   "windowFreq": 0.173,
    "currentGap": 16,
    "medianInterval": 5,
    "tourPlays": 1,
@@ -7931,7 +7931,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.201,
+   "windowFreq": 0.201,
    "currentGap": 1,
    "medianInterval": 5,
    "tourPlays": 4,
@@ -7960,7 +7960,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.159,
+   "windowFreq": 0.159,
    "currentGap": 3,
    "medianInterval": 6,
    "tourPlays": 2,
@@ -7990,7 +7990,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.192,
+   "windowFreq": 0.192,
    "currentGap": 1,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -8020,7 +8020,7 @@
     "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 12,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -8050,7 +8050,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.14,
+   "windowFreq": 0.14,
    "currentGap": 6,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8080,7 +8080,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.121,
+   "windowFreq": 0.121,
    "currentGap": 7,
    "medianInterval": 8,
    "tourPlays": 2,
@@ -8110,7 +8110,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 1,
    "medianInterval": 6,
    "tourPlays": 4,
@@ -8140,7 +8140,7 @@
     "56 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 15,
    "medianInterval": 8.5,
    "tourPlays": 1,
@@ -8169,7 +8169,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.112,
+   "windowFreq": 0.112,
    "currentGap": 4,
    "medianInterval": 9,
    "tourPlays": 2,
@@ -8199,7 +8199,7 @@
     "49 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 10,
    "medianInterval": 11,
    "tourPlays": 1,
@@ -8229,7 +8229,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 9x before"
    ],
-   "eraFreq": 0.187,
+   "windowFreq": 0.187,
    "currentGap": 1,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -8258,7 +8258,7 @@
     "47 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.07,
+   "windowFreq": 0.07,
    "currentGap": 8,
    "medianInterval": 11,
    "tourPlays": 1,
@@ -8287,7 +8287,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.131,
+   "windowFreq": 0.131,
    "currentGap": 4,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8317,7 +8317,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.121,
+   "windowFreq": 0.121,
    "currentGap": 6,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8347,7 +8347,7 @@
     "54 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.136,
+   "windowFreq": 0.136,
    "currentGap": 13,
    "medianInterval": 5,
    "tourPlays": 1,
@@ -8377,7 +8377,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 9x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 1,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -8406,7 +8406,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.15,
+   "windowFreq": 0.15,
    "currentGap": 1,
    "medianInterval": 6,
    "tourPlays": 2,
@@ -8435,7 +8435,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.112,
+   "windowFreq": 0.112,
    "currentGap": 3,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8465,7 +8465,7 @@
     "51 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.056,
+   "windowFreq": 0.056,
    "currentGap": 11,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -8494,7 +8494,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.023,
+   "windowFreq": 0.023,
    "currentGap": 6,
    "medianInterval": 43.5,
    "tourPlays": 1,
@@ -8524,7 +8524,7 @@
     "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.084,
+   "windowFreq": 0.084,
    "currentGap": 12,
    "medianInterval": 9,
    "tourPlays": 1,
@@ -8553,7 +8553,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 7,
    "medianInterval": 10.5,
    "tourPlays": 1,
@@ -8582,7 +8582,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.065,
+   "windowFreq": 0.065,
    "currentGap": 7,
    "medianInterval": 13,
    "tourPlays": 1,
@@ -8612,7 +8612,7 @@
     "56 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.051,
+   "windowFreq": 0.051,
    "currentGap": 15,
    "medianInterval": 11.5,
    "tourPlays": 1,
@@ -8642,7 +8642,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.173,
+   "windowFreq": 0.173,
    "currentGap": 0,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -8672,7 +8672,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.136,
+   "windowFreq": 0.136,
    "currentGap": 6,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8702,7 +8702,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.121,
+   "windowFreq": 0.121,
    "currentGap": 6,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8732,7 +8732,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 0,
    "medianInterval": 6.5,
    "tourPlays": 3,
@@ -8762,7 +8762,7 @@
     "47 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.131,
+   "windowFreq": 0.131,
    "currentGap": 8,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -8792,7 +8792,7 @@
     "55 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 14,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -8821,7 +8821,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.089,
+   "windowFreq": 0.089,
    "currentGap": 5,
    "medianInterval": 10,
    "tourPlays": 2,
@@ -8851,7 +8851,7 @@
     "54 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 13,
    "medianInterval": 8,
    "tourPlays": 1,
@@ -8881,7 +8881,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.201,
+   "windowFreq": 0.201,
    "currentGap": 1,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -8911,7 +8911,7 @@
     "51 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 11,
    "medianInterval": 9.5,
    "tourPlays": 1,
@@ -8940,7 +8940,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 3,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -8970,7 +8970,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.192,
+   "windowFreq": 0.192,
    "currentGap": 0,
    "medianInterval": 5,
    "tourPlays": 4,
@@ -9000,7 +9000,7 @@
     "56 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.089,
+   "windowFreq": 0.089,
    "currentGap": 15,
    "medianInterval": 7,
    "tourPlays": 1,
@@ -9030,7 +9030,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.187,
+   "windowFreq": 0.187,
    "currentGap": 0,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -9059,7 +9059,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.14,
+   "windowFreq": 0.14,
    "currentGap": 5,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -9089,7 +9089,7 @@
     "56 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 15,
    "medianInterval": 8,
    "tourPlays": 1,
@@ -9118,7 +9118,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.136,
+   "windowFreq": 0.136,
    "currentGap": 5,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -9148,7 +9148,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 0,
    "medianInterval": 7,
    "tourPlays": 3,
@@ -9177,7 +9177,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 1,
    "medianInterval": 6.5,
    "tourPlays": 2,
@@ -9207,7 +9207,7 @@
     "127 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.051,
+   "windowFreq": 0.051,
    "currentGap": 20,
    "medianInterval": 16.5,
    "tourPlays": 0,
@@ -9238,7 +9238,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.112,
+   "windowFreq": 0.112,
    "currentGap": 6,
    "medianInterval": 7,
    "tourPlays": 3,
@@ -9268,7 +9268,7 @@
     "140 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.07,
+   "windowFreq": 0.07,
    "currentGap": 25,
    "medianInterval": 13,
    "tourPlays": 0,
@@ -9297,7 +9297,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.107,
+   "windowFreq": 0.107,
    "currentGap": 4,
    "medianInterval": 8.5,
    "tourPlays": 2,
@@ -9326,7 +9326,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.023,
+   "windowFreq": 0.023,
    "currentGap": 6,
    "medianInterval": 43.5,
    "tourPlays": 1,
@@ -9356,7 +9356,7 @@
     "58 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.07,
+   "windowFreq": 0.07,
    "currentGap": 16,
    "medianInterval": 9,
    "tourPlays": 1,
@@ -9386,7 +9386,7 @@
     "503 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.019,
+   "windowFreq": 0.019,
    "currentGap": 72,
    "medianInterval": 29,
    "tourPlays": 0,
@@ -9416,7 +9416,7 @@
     "54 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 13,
    "medianInterval": 8,
    "tourPlays": 1,
@@ -9446,7 +9446,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.103,
+   "windowFreq": 0.103,
    "currentGap": 9,
    "medianInterval": 6,
    "tourPlays": 2,
@@ -9476,7 +9476,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.061,
+   "windowFreq": 0.061,
    "currentGap": 9,
    "medianInterval": 11,
    "tourPlays": 1,
@@ -9505,7 +9505,7 @@
     "49 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.051,
+   "windowFreq": 0.051,
    "currentGap": 10,
    "medianInterval": 13,
    "tourPlays": 1,
@@ -9535,7 +9535,7 @@
     "58 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 16,
    "medianInterval": 11,
    "tourPlays": 1,
@@ -9564,7 +9564,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.107,
+   "windowFreq": 0.107,
    "currentGap": 5,
    "medianInterval": 8,
    "tourPlays": 2,
@@ -9594,7 +9594,7 @@
     "51 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 11,
    "medianInterval": 11,
    "tourPlays": 1,
@@ -9624,7 +9624,7 @@
     "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.089,
+   "windowFreq": 0.089,
    "currentGap": 12,
    "medianInterval": 9,
    "tourPlays": 1,
@@ -9654,7 +9654,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.07,
+   "windowFreq": 0.07,
    "currentGap": 9,
    "medianInterval": 9,
    "tourPlays": 1,
@@ -9683,7 +9683,7 @@
     "133 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.112,
+   "windowFreq": 0.112,
    "currentGap": 22,
    "medianInterval": 7,
    "tourPlays": 0,
@@ -9712,7 +9712,7 @@
     "37 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 2,
    "medianInterval": 9,
    "tourPlays": 2,
@@ -9741,7 +9741,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.089,
+   "windowFreq": 0.089,
    "currentGap": 5,
    "medianInterval": 10.5,
    "tourPlays": 2,
@@ -9770,7 +9770,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.089,
+   "windowFreq": 0.089,
    "currentGap": 7,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -9800,7 +9800,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 9,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -9830,7 +9830,7 @@
     "406 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.028,
+   "windowFreq": 0.028,
    "currentGap": 45,
    "medianInterval": 20,
    "tourPlays": 0,
@@ -9859,7 +9859,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 5,
    "medianInterval": 10,
    "tourPlays": 2,
@@ -9888,7 +9888,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 3,
    "medianInterval": 12,
    "tourPlays": 2,
@@ -9918,7 +9918,7 @@
     "37 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 2,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -9948,7 +9948,7 @@
     "127 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 20,
    "medianInterval": 8,
    "tourPlays": 0,
@@ -9978,7 +9978,7 @@
     "736 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 88,
    "medianInterval": 44,
    "tourPlays": 0,
@@ -10008,7 +10008,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.178,
+   "windowFreq": 0.178,
    "currentGap": 1,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -10038,7 +10038,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.14,
+   "windowFreq": 0.14,
    "currentGap": 3,
    "medianInterval": 7,
    "tourPlays": 3,
@@ -10068,7 +10068,7 @@
     "615 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 81,
    "medianInterval": 42,
    "tourPlays": 0,
@@ -10098,7 +10098,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 9,
    "medianInterval": 8,
    "tourPlays": 2,
@@ -10127,7 +10127,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.15,
+   "windowFreq": 0.15,
    "currentGap": 1,
    "medianInterval": 6,
    "tourPlays": 2,
@@ -10157,7 +10157,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.084,
+   "windowFreq": 0.084,
    "currentGap": 9,
    "medianInterval": 9,
    "tourPlays": 1,
@@ -10186,7 +10186,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.028,
+   "windowFreq": 0.028,
    "currentGap": 6,
    "medianInterval": 38,
    "tourPlays": 1,
@@ -10215,7 +10215,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.107,
+   "windowFreq": 0.107,
    "currentGap": 6,
    "medianInterval": 9,
    "tourPlays": 2,
@@ -10244,7 +10244,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.023,
+   "windowFreq": 0.023,
    "currentGap": 7,
    "medianInterval": 30,
    "tourPlays": 1,
@@ -10273,7 +10273,7 @@
     "126 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.033,
+   "windowFreq": 0.033,
    "currentGap": 19,
    "medianInterval": 33,
    "tourPlays": 0,
@@ -10302,7 +10302,7 @@
     "37 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 2,
    "medianInterval": 8,
    "tourPlays": 2,
@@ -10331,7 +10331,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 4,
    "medianInterval": 10,
    "tourPlays": 2,
@@ -10360,7 +10360,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 5,
    "medianInterval": 10,
    "tourPlays": 2,
@@ -10390,7 +10390,7 @@
     "127 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.037,
+   "windowFreq": 0.037,
    "currentGap": 20,
    "medianInterval": 17,
    "tourPlays": 0,
@@ -10420,7 +10420,7 @@
     "613 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 79,
    "medianInterval": 62,
    "tourPlays": 0,
@@ -10450,7 +10450,7 @@
     "420 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.033,
+   "windowFreq": 0.033,
    "currentGap": 55,
    "medianInterval": 19.5,
    "tourPlays": 0,
@@ -10480,7 +10480,7 @@
     "612 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 78,
    "medianInterval": 47,
    "tourPlays": 0,
@@ -10509,7 +10509,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 3,
    "medianInterval": 10,
    "tourPlays": 2,
@@ -10538,7 +10538,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 4,
    "medianInterval": 12,
    "tourPlays": 2,
@@ -10567,7 +10567,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.07,
+   "windowFreq": 0.07,
    "currentGap": 6,
    "medianInterval": 11.5,
    "tourPlays": 2,
@@ -10597,7 +10597,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.187,
+   "windowFreq": 0.187,
    "currentGap": 0,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -10627,7 +10627,7 @@
     "759 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 97,
    "medianInterval": 32.5,
    "tourPlays": 0,
@@ -10657,7 +10657,7 @@
     "763 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 100,
    "medianInterval": 50.5,
    "tourPlays": 0,
@@ -10687,7 +10687,7 @@
     "762 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.009,
+   "windowFreq": 0.009,
    "currentGap": 99,
    "medianInterval": 38,
    "tourPlays": 0,
@@ -10717,7 +10717,7 @@
     "37 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.145,
+   "windowFreq": 0.145,
    "currentGap": 2,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -10747,7 +10747,7 @@
     "428 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.009,
+   "windowFreq": 0.009,
    "currentGap": 59,
    "medianInterval": 38,
    "tourPlays": 0,
@@ -10776,7 +10776,7 @@
     "51 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.051,
+   "windowFreq": 0.051,
    "currentGap": 11,
    "medianInterval": 20,
    "tourPlays": 1,
