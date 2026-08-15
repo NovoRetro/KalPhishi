@@ -105,6 +105,17 @@ function paired(armVals, refVals) {
 
 (async () => {
 const { prepareRows, buildModel, DUENESS_K } = await import('../lib/model.mjs');
+
+// Era tables for the what-if lenses. Written by scripts/build-eras.js, committed, and constant
+// across every target because all three eras closed before the first graded show.
+let eraTables = null;
+try {
+  eraTables = load('eras').eras;
+} catch { /* not built yet */ }
+if (!eraTables) {
+  console.error('data/eras.json missing — run `node scripts/build-eras.js`; era arms will be skipped');
+}
+const ERA_KEYS = eraTables ? Object.keys(eraTables) : [];
 const DUENESS_K_VALUES = TUNE_DUENESS ? [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20] : [DUENESS_K];
 const { fitPlatt, plattProb, fitIsotonic, isoProb, brier, logLoss, reliability } =
   await import('../lib/calibration.mjs');
@@ -171,6 +182,14 @@ const arms = {
   modelShrunkTopN: [], // the same, without the slot logic — isolates the estimator from it
   modelDueness: [],     // dueness from a fitted relative-time hazard, not the hand-picked band
   modelDuenessTopN: [], // the same, without the slot logic
+  modelEra10TopN: [],   // what-if lens: re-ranked by prevalence in 1983-2000
+  modelEra20TopN: [],   // what-if lens: 2002-2004
+  modelEra30TopN: [],   // what-if lens: 2009-2020
+  // THE CONTROL, and it is not optional. Same centred-log shape as the era arms with the era
+  // table deleted — it logs the model's OWN in-window rate instead. Without it a reader
+  // concludes any era gain came from era information; with it, era 3.0's apparent +0.6pp turns
+  // out to be the log shape alone and worth nothing. Measured, never published.
+  modelLogFreqTopN: [],
   freq: [],            // baseline A: most-played in the trailing window
   freqNoRepeat: [],    // baseline B: same, minus anything played in the last 3 days
 };
@@ -278,6 +297,42 @@ for (let i = 0; i < showDates.length; i++) {
   }
   const duenessMain = duenessModels.get(DUENESS_K);
 
+  // Era lenses. The table is a constant for every target — all three eras closed before the
+  // first graded show — so unlike the day and dueness curves there is nothing to refit here.
+  const eraModels = {};
+  for (const key of ERA_KEYS) {
+    eraModels[key] = buildModel({
+      rows: history,
+      target: { date: target, venue: meta.venue, venueid: meta.venueid },
+      tourName: meta.tourname,
+      venueSongCounts,
+      scheduleRows,
+      era: key,
+      eraRates: eraTables,
+    });
+  }
+  // The control: identical machinery, era table replaced by the model's own in-window rate.
+  // Built as a one-era table so it travels the exact same code path — a control that differs
+  // in shape as well as in data proves nothing about the data.
+  const inWindowRates = { rates: {}, absentRate: 0.5 / (priorDates.length + 1) };
+  {
+    const seen = new Map();
+    for (const r of history) {
+      if (!seen.has(r.slug)) seen.set(r.slug, new Set());
+      seen.get(r.slug).add(r.showdate);
+    }
+    for (const [slug, ds] of seen) inWindowRates.rates[slug] = (ds.size + 0.5) / (priorDates.length + 1);
+  }
+  const logFreqModel = buildModel({
+    rows: history,
+    target: { date: target, venue: meta.venue, venueid: meta.venueid },
+    tourName: meta.tourname,
+    venueSongCounts,
+    scheduleRows,
+    era: 'control',
+    eraRates: { control: inWindowRates },
+  });
+
   const g = {
     model: grade(predSlugs, actual),
     modelTopN: grade(topNSlugs, actual),
@@ -286,6 +341,11 @@ for (let i = 0; i < showDates.length; i++) {
       actual,
     ),
     modelDuenessTopN: grade(duenessMain.scored.slice(0, N).map(c => c.slug), actual),
+    // Graded top-N, so the arm measures the lens rather than the slot logic sitting on it.
+    modelEra10TopN: grade(eraModels['1.0'].scored.slice(0, N).map(c => c.slug), actual),
+    modelEra20TopN: grade(eraModels['2.0'].scored.slice(0, N).map(c => c.slug), actual),
+    modelEra30TopN: grade(eraModels['3.0'].scored.slice(0, N).map(c => c.slug), actual),
+    modelLogFreqTopN: grade(logFreqModel.scored.slice(0, N).map(c => c.slug), actual),
     modelShowGap: grade(
       [...showGap.prediction.set1, ...showGap.prediction.set2, ...showGap.prediction.encore].map(s => s.slug),
       actual,
@@ -413,6 +473,10 @@ const LABELS = {
   modelShrunkTopN: 'MODEL shrunk rate, no slot logic',
   modelDueness: 'MODEL fitted dueness (relative hazard)',
   modelDuenessTopN: 'MODEL fitted dueness, no slot logic',
+  modelEra10TopN: 'LENS era 1.0 (1983-2000)',
+  modelEra20TopN: 'LENS era 2.0 (2002-2004)',
+  modelEra30TopN: 'LENS era 3.0 (2009-2020)',
+  modelLogFreqTopN: 'CONTROL same shape, era table deleted',
   freq: `baseline: top-${N} by trailing-${TRAIL} frequency`,
   freqNoRepeat: `baseline: same, minus played <=3d ago`,
 };
@@ -427,7 +491,9 @@ if (EXPERIMENTS) {
 // variants are skipped, and naming them here would index into an undefined arm.
 if (TUNE_DUENESS) for (const k of DUENESS_K_VALUES) LABELS[`dueK${k}`] = `EXP fitted dueness k=${k}`;
 const ARM_ORDER = ['model', 'modelTopN', 'modelDueness', 'modelDuenessTopN',
-  'modelShrunk', 'modelShrunkTopN', 'modelShowGap', 'freqNoRepeat', 'freq',
+  'modelShrunk', 'modelShrunkTopN', 'modelShowGap',
+  'modelEra10TopN', 'modelEra20TopN', 'modelEra30TopN', 'modelLogFreqTopN',
+  'freqNoRepeat', 'freq',
   ...(TUNE_DUENESS ? DUENESS_K_VALUES.map(k => `dueK${k}`) : []),
   ...(EXPERIMENTS ? [
     ...(TUNE ? [] : ['dayHard', ...K_VALUES.map(k => `dayCurve${k}`)]),
@@ -695,11 +761,31 @@ if (calEval.length) {
   // published only if the site offers it, because arms.json exists to put measured numbers
   // beside a menu entry — figures for an option nobody can select are dead weight in a file
   // that gets baked into every page load.
-  const PUBLISHED_ARMS = ['model', 'modelTopN', 'modelDuenessTopN', 'modelShowGap', 'freq', 'freqNoRepeat'];
+  // modelLogFreqTopN is measured and printed but NOT published: it is a control, not something
+  // a reader can select, and an arm nobody can pick has no menu row for its numbers to sit in.
+  const PUBLISHED_ARMS = ['model', 'modelTopN', 'modelDuenessTopN', 'modelShowGap',
+    'modelEra10TopN', 'modelEra20TopN', 'modelEra30TopN', 'freq', 'freqNoRepeat'];
   // Arms that are one deliberate change away from another arm, so the honest comparison is
   // that pairing and not the baseline. Fitted dueness differs from modelTopN in exactly one
   // respect: where the dueness term comes from.
-  const NEAREST = { modelDuenessTopN: 'modelTopN' };
+  // Each era lens is modelTopN plus one term, so modelTopN is the honest comparison. Against
+  // the naive baseline they would all advertise a large positive delta — era 3.0 reads about
+  // +4.9pp there while its real edge is +0.6pp inside noise — which is precisely the
+  // misreading this field exists to prevent.
+  const NEAREST = {
+    modelDuenessTopN: 'modelTopN',
+    modelEra10TopN: 'modelTopN',
+    modelEra20TopN: 'modelTopN',
+    modelEra30TopN: 'modelTopN',
+  };
+  // Each era lens against the same machinery with the era table deleted. The control is never
+  // published as an arm — nobody can select it — but its comparison is, because it is the only
+  // thing that says whether the era data did any work.
+  const CONTROL = {
+    modelEra10TopN: 'modelLogFreqTopN',
+    modelEra20TopN: 'modelLogFreqTopN',
+    modelEra30TopN: 'modelLogFreqTopN',
+  };
   const refArm = 'freqNoRepeat';
   const armsOut = {};
   for (const k of PUBLISHED_ARMS) {
@@ -730,6 +816,18 @@ if (calEval.length) {
     if (near && arms[near] && arms[near].length) {
       const p = paired(arms[k].map(x => x.recall), arms[near].map(x => x.recall));
       rec.vsNearest = { arm: near, delta: p.delta, se: p.se, z: p.z };
+    }
+
+    // The third test, after lib/shrinkage.mjs's two: does the term beat the SAME term with its
+    // new data deleted? Era 3.0 passes both of those — it is not affine, and it moves the top
+    // of the list — and still fails this one at z -0.05, because its whole gain is the log
+    // shape of a rotation term rather than anything the era table knows. Published so the site
+    // can state that from data instead of from prose, and so the control cannot be quietly
+    // dropped later leaving the era numbers looking like a result.
+    const ctrl = CONTROL[k];
+    if (ctrl && arms[ctrl] && arms[ctrl].length) {
+      const p = paired(arms[k].map(x => x.recall), arms[ctrl].map(x => x.recall));
+      rec.vsControl = { arm: ctrl, delta: p.delta, se: p.se, z: p.z };
     }
 
     // Recall per calendar year. "It gains 5pp" and "it gains 5pp, all of it since 2025" are

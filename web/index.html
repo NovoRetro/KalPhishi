@@ -336,6 +336,11 @@
      ranking of its own next to columns that already rank. */
   .nz-ship { font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase;
     color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+  /* Marks a row that is not competing. Same shape as .nz-ship and deliberately no colour —
+     the table already ranks, and a coloured badge would read as a second ranking. */
+  .nz-whatif { font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--muted); border: 1px dashed var(--border); border-radius: 4px; padding: 0 4px; }
+  .nz-whatif-note { margin: 2px 0 6px; max-width: min(100%, 82ch); }
   .nz-notes { margin-top: 12px; padding: 10px 12px; border-left: 3px solid var(--series-2);
     background: var(--accent-wash); border-radius: 0 8px 8px 0; max-width: min(100%, 82ch); }
   .nz-notes p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; }
@@ -2188,12 +2193,29 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     nerd.appendChild(el('div', 'setlabel', 'Pick an approach'));
     const picker = el('div', 'p-modes nz-picker');
     nerd.appendChild(picker);
+    // Their own row, under their own label and preamble. Sat among the approaches these read
+    // as five more attempts to predict better, which is exactly what they are not.
+    const whatIfLabel = el('div', 'setlabel', 'Or a what-if');
+    const whatIfNote = el('div', 'hint nz-whatif-note',
+      'These do not try to predict better — each re-ranks tonight by how often a song turned up '
+      + 'in a past era, and the table above shows what that costs.');
+    const whatIfPicker = el('div', 'p-modes nz-picker');
+    nerd.append(whatIfLabel, whatIfNote, whatIfPicker);
     const blurb = el('div', 'hint nz-blurb');
     nerd.appendChild(blurb);
 
     // Ordered by measured recall, so the menu itself reports the finding rather than
     // flattering the shipping default by putting it first.
-    const ordered = [...A.lenses.arms].sort((x, y) => y.recall - x.recall);
+    //
+    // What-if lenses are sorted WITHIN their own group and always sit below the approaches,
+    // never interleaved. Sorted together, era 3.0 lands second on recall — above the shipping
+    // model — and the table would then read as "predicting tonight as though it were 2015
+    // works better", which is the one thing these numbers do not say: a control with the era
+    // data deleted scores identically, so the era table contributes nothing.
+    const byRecall = (x, y) => y.recall - x.recall;
+    const approaches = A.lenses.arms.filter(a => !a.whatIf).sort(byRecall);
+    const whatIfs = A.lenses.arms.filter(a => a.whatIf).sort(byRecall);
+    const ordered = [...approaches, ...whatIfs];
     const ref = A.lenses.reference;
     // One decimal, unlike pct() elsewhere. The gaps between these arms are around a single
     // point, and rounding to whole percent renders the two closest as the same number —
@@ -2202,7 +2224,8 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     nerd.appendChild(tableOf(
       ['Approach', 'Precision', 'Recall', 'Hits/show', 'vs baseline', 'Real?'],
       ordered.map(a => [
-        `${esc(a.label)}${a.isDefault ? ' <span class="nz-ship">shipping</span>' : ''}`,
+        `${esc(a.label)}${a.isDefault ? ' <span class="nz-ship">shipping</span>' : ''}`
+        + `${a.whatIf ? ' <span class="nz-whatif">what-if</span>' : ''}`,
         pct1(a.precision), pct1(a.recall), a.hitsPerShow.toFixed(2),
         a.key === ref ? '<span class="chance-none">baseline</span>'
           : `${a.deltaRecallVsBaseline >= 0 ? '+' : ''}${(a.deltaRecallVsBaseline * 100).toFixed(1)}pp`,
@@ -2271,6 +2294,23 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
         }
       }
     }
+    // The what-if rows carry a "vs baseline" figure that flatters them, because every approach
+    // on this page clears that bar. Era 3.0 in particular reads as a strong positive there and
+    // is nothing of the kind — so the control result is stated where the table is read, not
+    // left to the blurb somebody sees only after selecting it.
+    const era30 = lensByKey.get('modelEra30TopN');
+    if (era30 && era30.vsControl) {
+      const c = era30.vsControl;
+      notes.push('<b>The era lenses are not competing, and the closest one is not doing what it looks '
+        + `like it is doing.</b> <i>${esc(era30.label)}</i> scores level with the shipping model, which `
+        + 'invites the reading that predicting tonight as a 2015 show works. It does not: running the '
+        + 'same maths with the era table <i>deleted</i> — ranking on the model\'s own recent play rate '
+        + `instead — scores ${Math.abs(c.delta * 100) < 0.05 ? 'identically' : (c.delta * 100).toFixed(2) + 'pp apart'} `
+        + `(z ${c.z.toFixed(2)}). The gain is the shape of the maths, not anything the era knows. `
+        + 'That is the third test worth applying to any new term here, after the two in the notes above: '
+        + 'does it beat the same term with its new data taken away?');
+    }
+
     if (notes.length) nerd.appendChild(el('div', 'nz-notes', notes.map(n => `<p>${n}</p>`).join('')));
 
     nerd.appendChild(el('div', 'hint',
@@ -2283,12 +2323,20 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
 
     // Repainted rather than rebuilt, so the card keeps its scroll position on a change.
     function paintPicker() {
-      picker.innerHTML = '';
-      for (const a of ordered) {
-        const b = el('button', 'p-mode' + (a.key === lens ? ' active' : ''), esc(a.label));
-        b.addEventListener('click', () => setLens(a.key));
-        picker.appendChild(b);
-      }
+      const fill = (host, list) => {
+        host.innerHTML = '';
+        for (const a of list) {
+          const b = el('button', 'p-mode' + (a.key === lens ? ' active' : ''), esc(a.label));
+          b.addEventListener('click', () => setLens(a.key));
+          host.appendChild(b);
+        }
+      };
+      fill(picker, approaches);
+      fill(whatIfPicker, whatIfs);
+      // An older arms.json has no what-if arms at all; showing an empty row under a heading
+      // reads as a broken feature rather than an absent one.
+      const has = whatIfs.length > 0;
+      for (const n of [whatIfLabel, whatIfNote, whatIfPicker]) n.style.display = has ? '' : 'none';
       const a = lensArm();
       blurb.innerHTML = a ? `${esc(a.blurb)}` : '';
     }
