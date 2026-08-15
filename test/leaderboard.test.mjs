@@ -21,7 +21,7 @@ const predictor = read('web/predictor.js');
 const index = read('web/index.html');
 
 const history = predictor.match(/async function renderHistory\(\)[\s\S]*?\n  }\n/);
-const board = predictor.match(/async function renderLeaderboard\(game, wrap\)[\s\S]*?\n  }\n/);
+const board = predictor.match(/async function renderLeaderboard\(game, wrap, fixedScope\)[\s\S]*?\n  }\n/);
 
 test('the leaderboard is not a tail on My History', () => {
   assert.ok(board, 'renderLeaderboard not found');

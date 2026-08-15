@@ -1058,6 +1058,23 @@
   .grp-dots { display: inline-flex; gap: 5px; align-items: center; }
   .grp-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--chip); }
   .grp-dot.off { background: transparent; border: 1px solid var(--baseline); }
+  /* ---- the crew page (rendered by predictor.js in the game card) ---- */
+  .crew-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .crew-head .ta-input { max-width: 220px; }
+  .crew-name { font-size: 16px; flex: 1; }
+  .crew-strip { margin-bottom: 12px; }
+  .crew-strip-txt { font-size: 13px; color: var(--ink-2); margin-bottom: 5px; }
+  .crew-bar { height: 6px; border-radius: 99px; background: var(--grid); overflow: hidden; }
+  /* The gradient is the rig's violet handing over to the chip green — the one place the
+     stage palette touches a data readout, allowed because this bar measures excitement,
+     not accuracy. */
+  .crew-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--beam-2), var(--chip)); }
+  .crew-tabs { margin-bottom: 4px; }
+  .crew-member { display: flex; align-items: center; gap: 6px; }
+  .crew-member-right { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+  .m-chip-seal { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; color: var(--lock);
+    border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; white-space: nowrap; }
+  .crew-roster-label { margin-top: 16px; }
   .friend-remove { background: none; border: 1px solid var(--border); border-radius: 99px; color: var(--series-2);
     font: inherit; font-size: 11px; padding: 4px 10px; min-height: 32px; cursor: pointer; }
   .friend-remove:hover { background: var(--accent-wash); }
@@ -1600,16 +1617,18 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
           : '';
         if (!groups.length) groupHost.appendChild(el('div', 'menu-note', 'No groups yet.'));
         for (const g of groups) {
-          // The name is the way in — every member can open the roster, which is the
-          // whole point of Phase 1 (SOCIAL-PLAN.md): the members route was always
-          // readable by members, but only the owner's Add picker ever rendered it.
+          // The name is the way into the Crew page (SOCIAL-PLAN.md, Phase 2) — the drawer
+          // keeps management, the room gets everything you look at. Phase 1's in-drawer
+          // roster lived here for exactly one release before the room replaced it; the
+          // route it read is the same one the Crew page reads, so nothing was lost and
+          // every member can still open it.
           const row = el('div', 'friend-row');
           const open = el('button', 'grp-open',
             `<b>${esc(g.name)}</b> <span class="menu-stats">${g.memberCount} member${g.memberCount === 1 ? '' : 's'}` +
             `${g.inCount != null ? ` · ${g.inCount} in for ${day}` : ''}` +
             `${g.isOwner ? '' : ' · joined'}</span>`);
-          open.title = 'See who’s in this group';
-          open.addEventListener('click', () => drawMembers(g, friends));
+          open.title = 'Open this crew’s page';
+          open.addEventListener('click', () => { close(); actions?.goToCrew?.(g.id); });
           row.appendChild(open);
           // Owners manage; everyone else can only leave.
           if (g.isOwner) {
@@ -1662,50 +1681,6 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
         nameInput.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); });
         groupHost.appendChild(nameInput);
         groupHost.appendChild(create);
-      }
-
-      // The roster, for EVERY member — the view Phase 1 exists for. Read-only on
-      // purpose: management (add, remove, delete) stays where it already lives, so this
-      // view never needs to know who is allowed to do what beyond one Manage button.
-      // The dots are the "in for Friday" booleans from the members route — participation,
-      // never content, so nothing here conflicts with the sealed predictions API.
-      async function drawMembers(g, friends) {
-        groupHost.innerHTML = '';
-        groupHost.appendChild(el('div', 'setlabel', esc(g.name)));
-        const showdate = state.actions?.showdate?.();
-        const path = `/api/groups/${encodeURIComponent(g.id)}/members`
-          + (showdate ? `?showdate=${encodeURIComponent(showdate)}` : '');
-        let members = [];
-        try { members = (await mfetch(path, 'GET')).members; }
-        catch (e) { groupHost.appendChild(el('div', 'menu-note', e.message)); return; }
-        const day = showdate
-          ? new Date(showdate + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' })
-          : '';
-        for (const mem of members) {
-          const row = el('div', 'friend-row',
-            `<span><span class="p-avatar">${esc(mem.profile.avatar || '🎣')}</span> <b>${esc(mem.name)}</b> ` +
-            `<span class="menu-stats">@${esc(mem.handle)}${mem.isOwner ? ' 👑' : ''}</span></span>`);
-          if (showdate) {
-            const dots = el('span', 'grp-dots',
-              `<span class="grp-dot${mem.setlist ? '' : ' off'}" title="setlist ${mem.setlist ? 'saved' : 'not saved'}"></span>` +
-              `<span class="grp-dot${mem.bingo ? '' : ' off'}" title="bingo ${mem.bingo ? 'saved' : 'not saved'}"></span>`);
-            row.appendChild(dots);
-          }
-          groupHost.appendChild(row);
-        }
-        if (showdate) {
-          const inCount = members.filter(mem => mem.setlist || mem.bingo).length;
-          groupHost.appendChild(el('div', 'menu-note',
-            `● setlist · ● bingo — ${inCount} of ${members.length} in for ${esc(day)}`));
-        }
-        if (g.isOwner) {
-          const manage = el('button', 'p-btn p-btn-alt', 'Manage members');
-          manage.addEventListener('click', () => drawAddPicker(g, friends));
-          groupHost.appendChild(manage);
-        }
-        const back = el('button', 'p-btn p-btn-alt', '← Back to groups');
-        back.addEventListener('click', () => drawGroups());
-        groupHost.appendChild(back);
       }
 
       // Only friends are offered — groups are subsets of your friend list, so there is
@@ -1833,6 +1808,9 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
       state = { user, actions };
       if (isOpen()) drawContent();
     },
+    // The Crew page's link back to the toolbox: its owner ⋮ opens the drawer's Friends
+    // view (invites, add, remove) rather than duplicating those flows in the room.
+    openFriends() { open(); drawContent('friends'); },
   };
 })();
 
@@ -1966,7 +1944,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     const a = lensArm();
     return el('div', 'lens-badge',
       `Viewing under <b>${esc(a.label)}</b> — not the shipping model. `
-      + `<button class="lens-reset" type="button">Back to Day curve</button>`);
+      + `<button class="lens-reset" type="button">Back to House Model</button>`);
   }
 
   // Baseline rankings ship as bare slugs, and a baseline can surface a song the model never
@@ -2066,14 +2044,14 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       pred.appendChild(el('div', 'hint',
         'This approach ranks songs but does not assign them to sets — the slot logic belongs '
         + 'to the model arms, so there is no opener, closer or encore here. That gap is itself '
-        + 'the measurement: compare its accuracy against Day curve in the Nerd Zone.'));
+        + 'the measurement: compare its accuracy against House Model in the Nerd Zone.'));
     }
   }
 
   // Both read by renderTabs, and both reachable from initPredictor's onModeChange before
   // the tab code below runs — see the note at the initPredictor call.
   let predictor = null;
-  let menuMode = null; // 'history' | 'profile' while the account menu owns the view
+  let menuMode = null; // 'history' | 'profile' | 'crew' while the account menu owns the view
 
   // ---- user predictor. Not filed under a data section: it IS the two game tabs, and the
   // tab bar shows or hides it directly.
@@ -2096,7 +2074,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   predictor = initPredictor(up, A, {
     // History and profile are reached from the account menu, which does not go through
     // the tab bar — so the page hears about them and shows the card with no game selected.
-    onModeChange: m => { menuMode = (m === 'history' || m === 'profile') ? m : null; renderTabs(); },
+    onModeChange: m => { menuMode = (m === 'history' || m === 'profile' || m === 'crew') ? m : null; renderTabs(); },
     // A fresh tagline greets whoever just arrived, whether that's a login or a new
     // account — both are "someone showing up", and the fade makes the swap read as
     // deliberate rather than the page glitching under them.
@@ -2610,7 +2588,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     if (due && due.vsNearest) {
       const vn = due.vsNearest;
       const near = lensByKey.get(vn.arm);
-      notes.push(`<b>Fitted dueness tops this table, and it tops it by less than it looks.</b> `
+      notes.push(`<b>Native Model tops this table, and it tops it by less than it looks.</b> `
         + `Against the naive baseline it gains ${(due.deltaRecallVsBaseline * 100).toFixed(1)}pp, the most here. `
         + `But it differs from <i>${esc(near?.label || vn.arm)}</i> in exactly one respect — where the `
         + `dueness rule comes from — and measured straight against it the gain is `
@@ -2693,7 +2671,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
       // this, but only to somebody looking at the row — and the reset used to live on a badge
       // attached to whichever other card the lens had altered.
       current.innerHTML = lensIsDefault()
-        ? `<span class="nz-cur-label">Playing:</span> <b>${esc(a ? a.label : 'Day curve')}</b> `
+        ? `<span class="nz-cur-label">Playing:</span> <b>${esc(a ? a.label : 'House Model')}</b> `
           + '<span class="nz-ship">shipping</span>'
         : `<span class="nz-cur-label">Playing:</span> <b>${esc(a ? a.label : '')}</b>`
           + `${a && a.whatIf ? ' <span class="nz-whatif">what-if</span>' : ''}`

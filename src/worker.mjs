@@ -465,6 +465,23 @@ async function api(request, env, ctx, { p, m, q, url }) {
     return json({ group: { id, name: clean, memberCount: 1, created: now, isOwner: true } });
   }
 
+  // Rename. Owner-only, like every other write to the group itself; the same 40-char cap
+  // as create, because a rename that could exceed what create allows would be a second,
+  // looser validator for the same column. Scoped UPDATE for the same reason the DELETE
+  // is: renaming someone else's group is a silent no-op rather than a confirmation that
+  // the id exists. Wanted by the Crew page's owner tools (SOCIAL-PLAN.md, Phase 2).
+  if (p.startsWith('/api/groups/') && !p.includes('/members') && m === 'PATCH') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const gid = decodeURIComponent(p.split('/').pop());
+    const { name } = await body(request);
+    const clean = String(name ?? '').trim().slice(0, 40);
+    if (!clean) return err(400, 'group name required');
+    await env.DB.prepare('UPDATE friend_groups SET name = ?1 WHERE id = ?2 AND owner_id = ?3')
+      .bind(clean, gid, user.id).run();
+    return json({ ok: true, name: clean });
+  }
+
   if (p.startsWith('/api/groups/') && p.endsWith('/members') && m === 'GET') {
     const user = await currentUser(request, env);
     if (!user) return err(401, 'not signed in');

@@ -78,6 +78,21 @@ function initPredictor(mount, A, opts = {}) {
   let user = null; // resolved from the session cookie via /api/me
   let mode = 'setlist';
   let showdate = A.nextShow.date;
+  // Which crew the crew page is showing. Set by the menu through goToCrew; meaningless
+  // in any other mode.
+  let crewId = null;
+  let crewBoardGame = 'setlist'; // which of the two boards the crew page is on
+  let crewRenaming = false;      // owner's inline rename, survives the re-render it triggers
+  // The applied-prediction tag. Set when Our Prediction fills a board under whatever
+  // approach is selected, and shown only while the board still IS that prediction —
+  // compared against a snapshot on every render, so the first edit takes the tag off
+  // without anything having to remember to remove it. The tag is a statement of
+  // provenance ("this board is the Native Model's call"), and a board with your own
+  // fingerprints on it is yours, not the model's.
+  let appliedFill = null; // { mode: 'setlist' | 'bingo', label, snap }
+  const setlistSnap = b => ['set1', 'set2', 'encore'].map(k => b[k].map(s => s.slug).join(',')).join('|');
+  const gridSnap = g => g.map(c => (c ? c.slug : '')).join(',');
+  const fillLabel = () => lensArm()?.label || 'Our Prediction';
   // working state
   let build = { set1: [], set2: [], encore: [] };
   let grid = Array(25).fill(null);
@@ -212,6 +227,13 @@ function initPredictor(mount, A, opts = {}) {
 
   const menuActions = {
     goTo(m) { mode = m; actionsOpen = false; render(); notifyMode(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
+    // The way into a crew's page — from the drawer's group rows, and from anywhere else a
+    // crew's name appears later. Resets the inline rename so one crew's half-typed name
+    // never greets the next crew's owner.
+    goToCrew(gid) {
+      crewId = gid; crewRenaming = false; mode = 'crew'; actionsOpen = false;
+      render(); notifyMode(); mount.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    },
     async signOut() {
       await api('/api/logout', 'POST', {});
       user = null; authPrompt = null; attendedDates = new Set();
@@ -267,6 +289,9 @@ function initPredictor(mount, A, opts = {}) {
       setlist: 'Setlist Bets',
       history: 'My history',
       profile: 'Profile',
+      // The crew's NAME renders inside renderCrew, where it is data — this static label
+      // just says what kind of place you are in.
+      crew: 'Crew',
     };
     // The countdown rides the heading row, pushed right and only as wide as its text.
     // As a full-width banner under the top bar it read as an alert; up here it is a
@@ -278,17 +303,22 @@ function initPredictor(mount, A, opts = {}) {
     const head = el('div', 'p-headrow'
       + (mode === 'bingo' || mode === 'setlist' ? ' p-headrow-game' : ''));
     head.appendChild(el('h2', null, HEADINGS[mode] || HEADINGS.setlist));
-    // Names the approach whenever it is not the house model, because Our Prediction will
-    // hand back something different from what the Data tab's default shows and a player who
-    // set this days ago has no other way to know. It says what it affects, so nobody reads
-    // it as "my card is being scored differently" — it is not; scoring never sees this.
-    if ((mode === 'bingo' || mode === 'setlist') && !lensIsDefault()) {
-      const arm = lensArm();
-      const chip = el('span', 'p-lensnote', `🛟 ${esc(arm.label)}`);
-      chip.title = `Our Prediction will fill from "${arm.label}" instead of the house model. `
-        + 'Your picks are still scored against the real setlist — this changes what is '
-        + 'offered, never how it counts. Change it in ☰ → Data → Nerd Zone.';
-      head.appendChild(chip);
+    // The provenance tag (2026-08-15 direction). It used to name the selected approach
+    // whenever one was chosen, whether or not the board had anything to do with it — a
+    // statement about a setting, worn by a board. Now it appears only while the board IS
+    // that approach's prediction: set by the fill, checked against a snapshot here, and
+    // gone the moment an edit deviates — a board with your fingerprints on it is yours,
+    // not the model's. Nothing has to remember to remove it; the comparison happens on
+    // every render, and re-creating the exact prediction by hand honestly re-earns it.
+    if ((mode === 'bingo' || mode === 'setlist') && appliedFill && appliedFill.mode === mode) {
+      const live = mode === 'setlist' ? setlistSnap(build) : gridSnap(grid);
+      if (live === appliedFill.snap) {
+        const chip = el('span', 'p-lensnote', `🛟 ${esc(appliedFill.label)}`);
+        chip.title = `This board is exactly the "${appliedFill.label}" prediction. `
+          + 'Change anything and the tag comes off — from then on it’s your call. '
+          + 'Your picks are always scored against the real setlist either way.';
+        head.appendChild(chip);
+      }
     }
     const L = lockInfo();
     // The saved/scored state rides the heading row beside the game's name instead of
@@ -321,9 +351,10 @@ function initPredictor(mount, A, opts = {}) {
     if (!user && authPrompt) renderAuthPanel();
     else if (window.KalphishiAuthModal) window.KalphishiAuthModal.hide();
     if (user && user.needsEmail) return renderLinkEmail();
-    // Signing out of history or profile drops back to a game, and the page has to hear
-    // about it or its tab bar would still be showing neither game selected.
-    if (!user && (mode === 'history' || mode === 'profile')) { mode = 'setlist'; notifyMode(); }
+    // Signing out of history, profile or a crew drops back to a game, and the page has to
+    // hear about it or its tab bar would still be showing neither game selected. Crews are
+    // in the list because every crew read needs a session — membership is the permission.
+    if (!user && (mode === 'history' || mode === 'profile' || mode === 'crew')) { mode = 'setlist'; notifyMode(); }
     renderTopBar();
     // One or the other, never both: while the intro is up it is already saying what the
     // nudge would say, and stacking two strips above the board is two rows between arriving
@@ -334,6 +365,7 @@ function initPredictor(mount, A, opts = {}) {
     if (mode === 'setlist') renderSetlistBuilder();
     else if (mode === 'bingo') renderBingo();
     else if (mode === 'profile') renderProfile();
+    else if (mode === 'crew') renderCrew();
     else renderHistory();
 
     // Once the show starts, everything that edits or re-saves a prediction goes dead.
@@ -1035,6 +1067,7 @@ function initPredictor(mount, A, opts = {}) {
         set2: P.set2.map(s => ({ slug: s.slug, name: s.name })),
         encore: P.encore.map(s => ({ slug: s.slug, name: s.name })),
       };
+      appliedFill = { mode: 'setlist', label: fillLabel(), snap: setlistSnap(build) };
       render();
       if (!lensIsDefault()) flash(`Filled from ${lensArm().label}.`);
     };
@@ -1508,6 +1541,10 @@ function initPredictor(mount, A, opts = {}) {
           if (i === FREE || locks[i]) continue;
           grid[i] = seq[k++] || null;
         }
+        // Locked squares survive the fill, so a card with locks is already part yours —
+        // the snapshot records what the fill actually produced, and the tag stands until
+        // the board moves away from that.
+        appliedFill = { mode: 'bingo', label: fillLabel(), snap: gridSnap(grid) };
         render();
         if (!lensIsDefault()) flash(`Filled from ${lensArm().label}.`);
       };
@@ -1915,7 +1952,12 @@ function initPredictor(mount, A, opts = {}) {
   // registering is being shown the reason to.
   //
   // GAME is 'setlist' or 'bingo' — the mode the panel was opened from, not a user choice.
-  async function renderLeaderboard(game, wrap) {
+  // FIXEDSCOPE pins the board to one scope and drops the picker — the crew page's boards
+  // are the crew's by definition, and a picker there would be a way to leave the room
+  // while standing in it. Pinning goes through leaderboardScope rather than around it, so
+  // opening the in-game standings later lands on the crew you were just looking at.
+  async function renderLeaderboard(game, wrap, fixedScope) {
+    if (fixedScope) leaderboardScope = fixedScope;
     // The friend count comes along because an empty Friends board has two completely
     // different causes — nobody to compare against, or nobody graded yet — and only one of
     // them is something the reader can act on.
@@ -1963,10 +2005,12 @@ function initPredictor(mount, A, opts = {}) {
 
     async function drawBoard() {
       scopeRow.innerHTML = '';
-      for (const [key, label] of scopes) {
-        const b = el('button', 'p-mode' + (leaderboardScope === key ? ' active' : ''), esc(label));
-        b.addEventListener('click', () => { leaderboardScope = key; drawBoard(); });
-        scopeRow.appendChild(b);
+      if (!fixedScope) {
+        for (const [key, label] of scopes) {
+          const b = el('button', 'p-mode' + (leaderboardScope === key ? ' active' : ''), esc(label));
+          b.addEventListener('click', () => { leaderboardScope = key; drawBoard(); });
+          scopeRow.appendChild(b);
+        }
       }
       boardHost.innerHTML = '';
       let board;
@@ -2029,6 +2073,132 @@ function initPredictor(mount, A, opts = {}) {
       });
     }
     await drawBoard();
+    wrap.appendChild(profilePanel);
+  }
+
+  // ---------- the crew page ----------
+  //
+  // The room (SOCIAL-PLAN.md, Phase 2). Everything a group IS lives here — status strip,
+  // both boards, roster — while the drawer keeps management. Reached through goToCrew from
+  // the drawer's group rows; renders in the same card the games own, the way History and
+  // Profile do, so it needs no new mount and the tab bar correctly shows no game selected.
+  //
+  // Assembled from parts that already exist: the members route with its dots (Phase 1),
+  // the group-scoped leaderboard (pinned via renderLeaderboard's fixedScope), and the
+  // sealed-pick facts Phase 0 made safe to show. The only new server surface behind this
+  // page is the rename route.
+  async function renderCrew() {
+    const wrap = el('div');
+    mount.appendChild(wrap);
+    if (!crewId) { wrap.appendChild(el('div', 'hint', 'No crew selected — open one from ☰ → Friends.')); return; }
+    let groups = [], members = [];
+    try {
+      [groups, members] = await Promise.all([
+        api(`/api/groups?showdate=${encodeURIComponent(showdate)}`).then(j => j.groups),
+        api(`/api/groups/${encodeURIComponent(crewId)}/members?showdate=${encodeURIComponent(showdate)}`).then(j => j.members),
+      ]);
+    } catch (e) {
+      wrap.appendChild(el('div', 'hint', esc(e.message)));
+      return;
+    }
+    const g = groups.find(x => x.id === crewId);
+    if (!g) {
+      // Deleted, or you were removed, while a link to it was still on screen somewhere.
+      wrap.appendChild(el('div', 'hint', 'This crew is gone — deleted, or you were removed from it.'));
+      return;
+    }
+
+    // ---- name row. The owner's tools fold behind the same ⋮ the games use; renaming
+    // happens inline in this row rather than in a prompt() nothing else in the app uses.
+    const nameRow = el('div', 'crew-head');
+    if (crewRenaming && g.isOwner) {
+      const input = el('input', 'ta-input');
+      input.value = g.name;
+      input.maxLength = 40;
+      const save = el('button', 'p-btn', 'Save');
+      const cancel = el('button', 'p-btn p-btn-alt', 'Cancel');
+      save.addEventListener('click', async () => {
+        const name = input.value.trim();
+        if (!name) return;
+        save.disabled = true;
+        try {
+          await api(`/api/groups/${encodeURIComponent(crewId)}`, 'PATCH', { name });
+          crewRenaming = false;
+          render();
+        } catch (e) { save.disabled = false; flash(e.message, true); }
+      });
+      cancel.addEventListener('click', () => { crewRenaming = false; render(); });
+      input.addEventListener('keydown', ev => { if (ev.key === 'Enter') save.click(); });
+      nameRow.appendChild(input); nameRow.appendChild(save); nameRow.appendChild(cancel);
+    } else {
+      nameRow.appendChild(el('span', 'crew-name',
+        `<b>${esc(g.name)}</b> <span class="menu-stats">${g.memberCount} member${g.memberCount === 1 ? '' : 's'}</span>`));
+      if (g.isOwner) {
+        nameRow.appendChild(actionsMenu([
+          ['✏️ Rename crew', () => { crewRenaming = true; render(); }],
+          // Invites, adding and removing live in the drawer they always lived in — the
+          // room links to the toolbox rather than duplicating it.
+          ['👥 Invites & members', () => window.KalphishiMenu?.openFriends?.()],
+        ]));
+      }
+    }
+    wrap.appendChild(nameRow);
+
+    // ---- status strip: the emotional center pre-lock. Counts anyone with either game
+    // saved; the bar and the copy both flip when the show locks.
+    const inFor = members.filter(m => m.setlist || m.bingo).length;
+    const day = new Date(showdate + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' });
+    const L = lockInfo();
+    const strip = el('div', 'crew-strip');
+    const stripLine = L.locked
+      ? `<b>${inFor} of ${members.length}</b> made the lock — envelopes open at reveal night`
+      : `<b>${inFor} of ${members.length}</b> in for ${esc(day)}`
+        + (L.known ? ` · locks in <b>${untilText(L.at - Date.now())}</b>` : '');
+    strip.appendChild(el('div', 'crew-strip-txt', stripLine));
+    const bar = el('div', 'crew-bar');
+    const fill = el('i');
+    fill.style.width = `${members.length ? Math.round((inFor / members.length) * 100) : 0}%`;
+    bar.appendChild(fill);
+    strip.appendChild(bar);
+    wrap.appendChild(strip);
+
+    // ---- the two boards. Never merged; the tab pair mirrors the game tabs above and the
+    // board itself is the standings panel pinned to this crew.
+    const tabs = el('div', 'p-modes crew-tabs');
+    for (const [key, label] of [['setlist', 'Setlist pts'], ['bingo', 'Bingo']]) {
+      const b = el('button', 'p-mode' + (crewBoardGame === key ? ' active' : ''), label);
+      b.addEventListener('click', () => { crewBoardGame = key; render(); });
+      tabs.appendChild(b);
+    }
+    wrap.appendChild(tabs);
+    const boardHost = el('div');
+    wrap.appendChild(boardHost);
+    renderLeaderboard(crewBoardGame, boardHost, `group:${crewId}`);
+
+    // ---- roster. Same facts as the drawer's Phase 1 list, in the room they describe:
+    // dots for the open show, a sealed pill for anyone already in (their pick exists and
+    // nobody can see it until the lock — that is the Phase 0 guarantee, worn as a badge),
+    // and a tap opens the same public profile the boards open.
+    wrap.appendChild(el('div', 'setlabel crew-roster-label', 'The crew'));
+    const profilePanel = el('div');
+    for (const mem of members) {
+      const row = el('div', 'p-histrow crew-member',
+        `<span class="p-avatar">${esc(mem.profile.avatar || '🎣')}</span> <b>${esc(mem.name)}</b> ` +
+        `<span class="menu-stats">@${esc(mem.handle)}${mem.isOwner ? ' 👑' : ''}</span>`);
+      const right = el('span', 'crew-member-right');
+      if (!L.locked && (mem.setlist || mem.bingo)) {
+        const pill = el('span', 'm-chip-seal', 'sealed 🔒');
+        pill.title = 'They’re in — their pick exists, and nobody sees it until the show locks.';
+        right.appendChild(pill);
+      }
+      right.appendChild(el('span', 'grp-dots',
+        `<span class="grp-dot${mem.setlist ? '' : ' off'}" title="setlist ${mem.setlist ? 'saved' : 'not saved'}"></span>` +
+        `<span class="grp-dot${mem.bingo ? '' : ' off'}" title="bingo ${mem.bingo ? 'saved' : 'not saved'}"></span>`));
+      row.appendChild(right);
+      row.addEventListener('click', () => showPublicProfile(profilePanel, mem.handle));
+      wrap.appendChild(row);
+    }
+    wrap.appendChild(el('div', 'hint', '● setlist · ● bingo — saved for the open show. Tap a name for their record.'));
     wrap.appendChild(profilePanel);
   }
 

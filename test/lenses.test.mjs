@@ -139,12 +139,13 @@ test('the Our Prediction button is named for what it will actually fill from', (
   assert.match(predictor, /lensIsDefault\(\) \? '🛟 Our Prediction'/, 'the default name must be preserved');
   // Called, never captured — render() re-runs on every lens change, and a captured string
   // would freeze on whichever approach was selected when the card was first built.
+  // The crew page also builds an actionsMenu (its owner tools), so count the menus whose
+  // first entry is the label fn rather than every menu in the file — the invariant is
+  // that BOTH GAME menus lead with Our Prediction, not that no other menu exists.
   const menus = [...predictor.matchAll(/actionsMenu\(\[\s*(?:\/\/[^\n]*\n\s*)*\[([^,]+),/g)];
-  assert.equal(menus.length, 2, 'both games build an Actions menu');
-  for (const m of menus) {
-    assert.match(m[1], /ourPredictionLabel\(\)/,
-      'Our Prediction must be the FIRST entry in the menu, and must call the label fn');
-  }
+  const gameMenus = menus.filter(m => /ourPredictionLabel\(\)/.test(m[1]));
+  assert.equal(gameMenus.length, 2,
+    'both game menus must lead with Our Prediction, calling the label fn');
   assert.doesNotMatch(predictor, /\['🛟 Our Prediction',/, 'no hardcoded label may remain');
 });
 

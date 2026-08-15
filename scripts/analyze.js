@@ -308,16 +308,21 @@ if (!armStats) console.log('note: data/arms.json missing — run `npm run backte
 // model's score distribution; applying them to show-gap scores would be a mis-calibration
 // wearing a credible-looking percentage. Only the two arms that share those exact scores may
 // show a Chance.
+// Labels are what a player reads; keys are what the code joins on. Renamed for people
+// (2026-08-15 direction): the old labels named mechanisms — "Fitted dueness", "Show-gap
+// recency" — which is how the people who built them think of them and nobody else. The
+// keys deliberately did not move: they thread through arms.json, rankings and tests, and
+// a label is exactly the thing that is supposed to be re-nameable without a migration.
 const LENS_ARMS = [
-  { key: 'model', label: 'Day curve', blurb: 'The shipping model: rotation, recency by calendar day, venue history, then slot-aware assembly.', hasSlots: true, usesCalibration: true, isDefault: true },
-  { key: 'modelTopN', label: 'No slot logic', blurb: 'The same scores, taken straight off the top of the list without assigning sets.', hasSlots: false, usesCalibration: true },
+  { key: 'model', label: 'House Model', blurb: 'The shipping model: rotation, recency by calendar day, venue history, then slot-aware assembly.', hasSlots: true, usesCalibration: true, isDefault: true },
+  { key: 'modelTopN', label: 'Straight Ranking', blurb: 'The same scores, taken straight off the top of the list without assigning sets.', hasSlots: false, usesCalibration: true },
   // usesCalibration is FALSE and must stay false. The isotonic bins were fitted on the
   // shipping model's score distribution, and this arm replaces a scoring term outright, so
   // its scores are a different quantity — running them through those bins would print a
   // credible-looking percentage that means nothing. hasSlots is false because the measured
   // arm is the top-N one; the slot-assembled variant scores materially worse.
-  { key: 'modelDuenessTopN', label: 'Fitted dueness', blurb: 'Overdue measured against each song\'s own cadence in days, from a curve fitted to what actually happened, replacing the hand-picked rule. No slot logic.', hasSlots: false, usesCalibration: false },
-  { key: 'modelShowGap', label: 'Show-gap recency', blurb: 'The model as it was before the day curve — recency counted in shows rather than days.', hasSlots: true, usesCalibration: false },
+  { key: 'modelDuenessTopN', label: 'Native Model', blurb: 'Overdue measured against each song\'s own cadence in days, from a curve fitted to what actually happened, replacing the hand-picked rule. No slot assignment.', hasSlots: false, usesCalibration: false },
+  { key: 'modelShowGap', label: 'Classic Recency', blurb: 'The model as it was before the day curve — recency counted in shows rather than days.', hasSlots: true, usesCalibration: false },
   { key: 'freqNoRepeat', label: 'Recent, minus repeats', blurb: 'Naive baseline: most-played over the last 30 shows, minus anything played in the last 3 days.', hasSlots: false, usesCalibration: false },
   { key: 'freq', label: 'Most played lately', blurb: 'The simplest baseline there is: most-played over the last 30 shows, nothing else.', hasSlots: false, usesCalibration: false },
   // What-if lenses. `whatIf` is what lets the picker file them apart from the approaches: they
