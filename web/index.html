@@ -1075,6 +1075,18 @@
   .m-chip-seal { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; color: var(--lock);
     border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; white-space: nowrap; }
   .crew-roster-label { margin-top: 16px; }
+  /* Reveal night. Bordered in the beam colour like the old intro card was — it is the one
+     section of the room that is an EVENT rather than furniture, and it only exists while
+     the show is locked. */
+  .crew-reveal { margin: 14px 0; padding: 12px 14px; border: 1px solid var(--beam-2);
+    border-radius: 10px; background: var(--surface); }
+  .crew-reveal-h { font-size: 11px; font-weight: 650; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink-2); margin: 12px 0 4px; }
+  .crew-reveal-h:first-of-type { margin-top: 6px; }
+  .crew-reveal-row { display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--grid); font-size: 13px; }
+  .crew-reveal-row:last-of-type { border-bottom: 0; }
+  .crew-share { margin-top: 10px; }
   .friend-remove { background: none; border: 1px solid var(--border); border-radius: 99px; color: var(--series-2);
     font: inherit; font-size: 11px; padding: 4px 10px; min-height: 32px; cursor: pointer; }
   .friend-remove:hover { background: var(--accent-wash); }
