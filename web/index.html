@@ -1044,6 +1044,20 @@
   .friend-row, .invite-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     padding: 7px 6px; border-bottom: 1px solid var(--grid); font-size: 12px; }
   .friend-row > span:first-child { flex: 1; }
+  /* The group row's name-as-button. Takes the label span's flex:1 slot, styled as text
+     rather than a control — the row already carries two real buttons, and a third box
+     would read as three equal actions when this one is the destination. min-height keeps
+     it a legal touch target anyway. */
+  .grp-open { flex: 1; background: none; border: none; padding: 4px 0; margin: 0;
+    font: inherit; font-size: 12px; color: var(--ink); text-align: left; cursor: pointer;
+    min-height: 32px; }
+  .grp-open:hover b { text-decoration: underline; }
+  /* The roster's per-game dots: filled = saved a prediction for the open show. The pair
+     always renders (an all-dot row and a no-dot row must align), so absence is an outline
+     rather than a gap. */
+  .grp-dots { display: inline-flex; gap: 5px; align-items: center; }
+  .grp-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--chip); }
+  .grp-dot.off { background: transparent; border: 1px solid var(--baseline); }
   .friend-remove { background: none; border: 1px solid var(--border); border-radius: 99px; color: var(--series-2);
     font: inherit; font-size: 11px; padding: 4px 10px; min-height: 32px; cursor: pointer; }
   .friend-remove:hover { background: var(--accent-wash); }
@@ -1567,19 +1581,36 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
       async function drawGroups() {
         groupHost.innerHTML = '';
         groupHost.appendChild(el('div', 'setlabel', 'Groups'));
+        // The open show, from the predictor — it owns which show the games are on. The
+        // dots and counts are aimed at it; without it (predictor not ready) the listing
+        // still renders, just without the "in for" figures.
+        const showdate = state.actions?.showdate?.();
+        const groupsPath = '/api/groups' + (showdate ? `?showdate=${encodeURIComponent(showdate)}` : '');
         let groups = [], friends = [];
         try {
           [groups, friends] = await Promise.all([
-            mfetch('/api/groups', 'GET').then(j => j.groups),
+            mfetch(groupsPath, 'GET').then(j => j.groups),
             mfetch('/api/friends', 'GET').then(j => j.friends),
           ]);
         } catch (e) { groupHost.appendChild(el('div', 'menu-note', e.message)); return; }
 
+        // "Fri", from the show's own date — never from today's.
+        const day = showdate
+          ? new Date(showdate + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' })
+          : '';
         if (!groups.length) groupHost.appendChild(el('div', 'menu-note', 'No groups yet.'));
         for (const g of groups) {
-          const row = el('div', 'friend-row',
-            `<span><b>${esc(g.name)}</b> <span class="menu-stats">${g.memberCount} member${g.memberCount === 1 ? '' : 's'}` +
-            `${g.isOwner ? '' : ' · joined'}</span></span>`);
+          // The name is the way in — every member can open the roster, which is the
+          // whole point of Phase 1 (SOCIAL-PLAN.md): the members route was always
+          // readable by members, but only the owner's Add picker ever rendered it.
+          const row = el('div', 'friend-row');
+          const open = el('button', 'grp-open',
+            `<b>${esc(g.name)}</b> <span class="menu-stats">${g.memberCount} member${g.memberCount === 1 ? '' : 's'}` +
+            `${g.inCount != null ? ` · ${g.inCount} in for ${day}` : ''}` +
+            `${g.isOwner ? '' : ' · joined'}</span>`);
+          open.title = 'See who’s in this group';
+          open.addEventListener('click', () => drawMembers(g, friends));
+          row.appendChild(open);
           // Owners manage; everyone else can only leave.
           if (g.isOwner) {
             const add = el('button', 'friend-remove', '＋ Add');
@@ -1631,6 +1662,50 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
         nameInput.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); });
         groupHost.appendChild(nameInput);
         groupHost.appendChild(create);
+      }
+
+      // The roster, for EVERY member — the view Phase 1 exists for. Read-only on
+      // purpose: management (add, remove, delete) stays where it already lives, so this
+      // view never needs to know who is allowed to do what beyond one Manage button.
+      // The dots are the "in for Friday" booleans from the members route — participation,
+      // never content, so nothing here conflicts with the sealed predictions API.
+      async function drawMembers(g, friends) {
+        groupHost.innerHTML = '';
+        groupHost.appendChild(el('div', 'setlabel', esc(g.name)));
+        const showdate = state.actions?.showdate?.();
+        const path = `/api/groups/${encodeURIComponent(g.id)}/members`
+          + (showdate ? `?showdate=${encodeURIComponent(showdate)}` : '');
+        let members = [];
+        try { members = (await mfetch(path, 'GET')).members; }
+        catch (e) { groupHost.appendChild(el('div', 'menu-note', e.message)); return; }
+        const day = showdate
+          ? new Date(showdate + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' })
+          : '';
+        for (const mem of members) {
+          const row = el('div', 'friend-row',
+            `<span><span class="p-avatar">${esc(mem.profile.avatar || '🎣')}</span> <b>${esc(mem.name)}</b> ` +
+            `<span class="menu-stats">@${esc(mem.handle)}${mem.isOwner ? ' 👑' : ''}</span></span>`);
+          if (showdate) {
+            const dots = el('span', 'grp-dots',
+              `<span class="grp-dot${mem.setlist ? '' : ' off'}" title="setlist ${mem.setlist ? 'saved' : 'not saved'}"></span>` +
+              `<span class="grp-dot${mem.bingo ? '' : ' off'}" title="bingo ${mem.bingo ? 'saved' : 'not saved'}"></span>`);
+            row.appendChild(dots);
+          }
+          groupHost.appendChild(row);
+        }
+        if (showdate) {
+          const inCount = members.filter(mem => mem.setlist || mem.bingo).length;
+          groupHost.appendChild(el('div', 'menu-note',
+            `● setlist · ● bingo — ${inCount} of ${members.length} in for ${esc(day)}`));
+        }
+        if (g.isOwner) {
+          const manage = el('button', 'p-btn p-btn-alt', 'Manage members');
+          manage.addEventListener('click', () => drawAddPicker(g, friends));
+          groupHost.appendChild(manage);
+        }
+        const back = el('button', 'p-btn p-btn-alt', '← Back to groups');
+        back.addEventListener('click', () => drawGroups());
+        groupHost.appendChild(back);
       }
 
       // Only friends are offered — groups are subsets of your friend list, so there is

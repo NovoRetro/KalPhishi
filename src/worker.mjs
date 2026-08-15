@@ -310,7 +310,44 @@ async function api(request, env, ctx, { p, m, q, url }) {
          FROM predictions p JOIN users u ON u.id = p.user_id
         WHERE ${where.join(' AND ')} AND u.${NOT_BANNED}`
     ).bind(...binds).all();
-    return json(results.map(r => ({ ...rowToPrediction(r), userHandle: r.user_handle })));
+
+    // Sealed until the downbeat (SOCIAL-PLAN.md, Phase 0). This route used to hand full
+    // payloads to anyone before the lock — nothing in the UI read them, but the API was
+    // an open window onto every unlocked pick, and the moment picks are shareable that
+    // window is the game's integrity model. The rules, per row:
+    //   - your own predictions are always fully visible;
+    //   - anyone else's, while the show is still open, is the FACT of a prediction and
+    //     nothing more — the sealed shape carries no payload key at all, not a nulled one;
+    //   - once the show locks, payloads open to the predictor's friends and to anyone
+    //     sharing a group with them, which is what reveal night reads. Strangers stay
+    //     sealed — public accuracy lives on the leaderboards, in aggregate.
+    // The lock comes from the same lockState the save route enforces, never a hand-rolled
+    // date compare. A show missing from SHOWTIMES reads as NOT locked and therefore stays
+    // sealed to others — when the clock is unknowable this fails toward secrecy.
+    const me = await currentUser(request, env);
+    // One query for the whole visibility circle rather than a friendship check per row:
+    // the history query returns hundreds of rows for one predictor, and the showdate
+    // query returns one row each for many predictors — both collapse to a Set lookup.
+    let circle = new Set();
+    if (me && results.some(r => r.user_id !== me.id)) {
+      const { results: vis } = await env.DB.prepare(
+        `SELECT friend_id AS uid FROM friendships WHERE user_id = ?1
+         UNION
+         SELECT m2.user_id AS uid FROM friend_group_members m1
+           JOIN friend_group_members m2 ON m2.group_id = m1.group_id
+          WHERE m1.user_id = ?1`
+      ).bind(me.id).all();
+      circle = new Set(vis.map(v => v.uid));
+    }
+    return json(results.map(r => {
+      const own = !!me && r.user_id === me.id;
+      if (own) return { ...rowToPrediction(r), userHandle: r.user_handle };
+      const open = !lockState(r.showdate).locked;
+      if (open || !circle.has(r.user_id)) {
+        return { userHandle: r.user_handle, showdate: r.showdate, type: r.type, sealed: true };
+      }
+      return { ...rowToPrediction(r), userHandle: r.user_handle };
+    }));
   }
 
   if (p === '/api/predictions' && m === 'POST') {
@@ -382,17 +419,29 @@ async function api(request, env, ctx, { p, m, q, url }) {
     if (!user) return err(401, 'not signed in');
     // Groups you're in, whether you made them or were added — owner-ness is a flag on
     // the row rather than a separate list, so the UI can show both in one place.
+    // With ?showdate=, each group also carries inCount: how many members have saved ANY
+    // prediction for that show. A count of participation, never of content — it reveals
+    // less than the sealed shape on /api/predictions already does, and it is what lets
+    // the drawer say "7 members · 4 in for Fri" without a request per group.
+    const showdate = q.get('showdate');
+    const inSel = showdate
+      ? `, (SELECT COUNT(DISTINCT pr.user_id) FROM predictions pr
+             JOIN friend_group_members pm ON pm.user_id = pr.user_id AND pm.group_id = g.id
+            WHERE pr.showdate = ?2) AS inCount`
+      : '';
+    const binds = showdate ? [user.id, showdate] : [user.id];
     const { results } = await env.DB.prepare(
       `SELECT g.id, g.name, g.owner_id, g.created,
-              (SELECT COUNT(*) FROM friend_group_members WHERE group_id = g.id) AS memberCount
+              (SELECT COUNT(*) FROM friend_group_members WHERE group_id = g.id) AS memberCount${inSel}
          FROM friend_groups g
          JOIN friend_group_members mem ON mem.group_id = g.id AND mem.user_id = ?1
         ORDER BY g.created DESC`
-    ).bind(user.id).all();
+    ).bind(...binds).all();
     return json({
       groups: results.map(r => ({
         id: r.id, name: r.name, memberCount: r.memberCount,
         created: r.created, isOwner: r.owner_id === user.id,
+        ...(showdate ? { inCount: r.inCount } : {}),
       })),
     });
   }
@@ -426,17 +475,37 @@ async function api(request, env, ctx, { p, m, q, url }) {
     ).bind(gid, user.id).first();
     if (!mine) return err(404, 'no such group');
     const { results } = await env.DB.prepare(
-      `SELECT u.handle, u.name, u.profile, (g.owner_id = u.id) AS isOwner
+      `SELECT u.handle, u.name, u.profile, u.id AS uid, (g.owner_id = u.id) AS isOwner
          FROM friend_group_members mem
          JOIN users u ON u.id = mem.user_id
          JOIN friend_groups g ON g.id = mem.group_id
         WHERE mem.group_id = ?1
         ORDER BY isOwner DESC, mem.created ASC`
     ).bind(gid).all();
+    // With ?showdate=, each member carries { setlist, bingo } booleans for that show —
+    // the roster's "in for Friday" dots. Booleans derived here and only here: this route
+    // must never grow a payload column, or the roster becomes a way around the sealed
+    // shape on /api/predictions. SOCIAL-PLAN.md, Phase 1.
+    const showdate = q.get('showdate');
+    let inFor = new Map();
+    if (showdate) {
+      const { results: preds } = await env.DB.prepare(
+        `SELECT pr.user_id, pr.type FROM predictions pr
+           JOIN friend_group_members pm ON pm.user_id = pr.user_id
+          WHERE pm.group_id = ?1 AND pr.showdate = ?2`
+      ).bind(gid, showdate).all();
+      for (const pr of preds) {
+        const cur = inFor.get(pr.user_id) || { setlist: false, bingo: false };
+        if (pr.type === 'setlist') cur.setlist = true;
+        if (pr.type === 'bingo') cur.bingo = true;
+        inFor.set(pr.user_id, cur);
+      }
+    }
     return json({
       members: results.map(r => ({
         handle: r.handle, name: publicName(r),
         profile: JSON.parse(r.profile || '{}'), isOwner: !!r.isOwner,
+        ...(showdate ? (inFor.get(r.uid) || { setlist: false, bingo: false }) : {}),
       })),
     });
   }
