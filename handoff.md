@@ -13,15 +13,16 @@
 > `'kalphishi'` also stays in the reserved-handle list — a retired brand is exactly what
 > somebody would register to look official.
 
-**Written:** 2026-08-14, late (replaces the earlier 2026-08-14 version, which predates the
-reach listing, the Nerd Zone merge, the diagnostics, and both model experiments)
+**Written:** 2026-08-15, early (replaces the 2026-08-14 version, which predates the era
+lenses, the Nerd Zone layout work and the corrected gate documentation)
 
-> **Production is current and nothing is unmerged.** `main` is at `3c92d80`, everything on it
-> is deployed and green, **272 tests pass**, and **no migrations are pending**
+> **Production is current and nothing is unmerged.** `main` is at `daffbb9`, everything on it
+> is deployed and green, **294 tests pass**, and **no migrations are pending**
 > (`0008_invite_groups.sql` is applied to remote). The working tree is clean.
 >
-> The previous version of this doc opened by saying `nerd-zone` was code-complete and
-> unmerged. It is merged. There is no outstanding branch.
+> Five PRs merged since the last version: reach listing (#50), the Nerd Zone with its
+> diagnostics and a sixth arm (#51), era lenses plus the layout work (#52), the model
+> playground (#53), and two mobile-reported robustness fixes (#54).
 
 Still **closed beta** (~30 testers). The URL is public and registration is open, but this is
 not a public launch — say "in beta," never "launched."
@@ -51,7 +52,7 @@ available and it needs no code. If only one thing happens before the show, make 
 
 ## Done
 
-### This session (2026-08-14)
+### This session (2026-08-14 into 08-15)
 
 - **Reach listing** — `GET /api/admin/reach`, admin-gated like moderation and scoring. Defaults
   to the next show still open, resolved through `lockState` so it can never disagree with the
@@ -68,8 +69,11 @@ available and it needs no code. If only one thing happens before the show, make 
   and throwing away. See below.
 - **Bayesian shrinkage: measured and rejected.** Kept as the record of what was tried.
 - **Fitted dueness: measured, published as a sixth arm**, and it tops the table.
+- **Era what-if lenses (1.0/2.0/3.0)**, a Nerd Zone that uses its width and folds what it does
+  not need, Our Prediction renamed to the selected approach, and two robustness fixes reported
+  from a phone. See In progress for the findings that outlive the feature.
 
-### The diagnostics (Nerd Zone, below the approach picker)
+### The diagnostics (Nerd Zone, four collapsed sections below the playground)
 
 Measurements of the shipping model, **not** approaches. Nothing there re-ranks anything and
 there is nothing to select — a diagnostic leaking into `LENS_ARMS` would become selectable, and
@@ -91,6 +95,8 @@ harder. 2026 is simultaneously the model's worst absolute year and its best rela
 
 ### The arm menu, as it now stands
 
+Nine entries: six approaches, then three what-ifs sorted below them and never interleaved.
+
 | arm | precision | recall | hits/show | vs baseline |
 |---|---|---|---|---|
 | Fitted dueness | **30.9%** | **29.2%** | **5.25** | +5.01pp, z 4.47 |
@@ -99,6 +105,14 @@ harder. 2026 is simultaneously the model's worst absolute year and its best rela
 | Show-gap recency | 26.4% | 25.0% | 4.48 | +0.74pp, z 0.65 |
 | Recent, minus repeats | 25.7% | 24.2% | 4.37 | baseline |
 | Most played lately | 13.4% | 12.9% | 2.28 | −11.31pp |
+| *Sounds like 3.0* (what-if) | 30.8% | 29.2% | 5.24 | +4.9pp |
+| *Sounds like 2.0* (what-if) | 29.4% | 27.9% | 4.99 | +3.7pp |
+| *Sounds like 1.0* (what-if) | 26.6% | 25.1% | 4.52 | +0.9pp |
+
+**Do not read the what-if rows off the "vs baseline" column** — every model arm clears that bar,
+and era 3.0 reads +4.9pp there while its real edge over the arm a reader would otherwise pick is
++0.68pp inside noise, and its edge over a control with the era data deleted is −0.02pp. That is
+what `vsNearest` and `vsControl` are published for.
 
 ### Model and scoring
 
@@ -208,8 +222,30 @@ change in place, so they keep revalidating.
 
 ## In progress
 
-**Nothing.** The era lenses shipped — see below. What follows is the record of what they cost
-and what they proved, because two of the three findings generalise well beyond this feature.
+**Nothing.** Everything below is shipped and deployed. What follows is the record of what the
+era work cost and what it proved, because the findings generalise well beyond the feature.
+
+### The Nerd Zone as it now stands
+
+Seven collapsible sections, exactly one open by default:
+
+1. *How the prediction is made* — the explainer, **closed**. It was open until the playground
+   existed; four paragraphs of preamble in front of the one interactive thing is what stood
+   between a reader and it.
+2. **🎛 Let's play with models! — OPEN.** Both pickers (Approaches / What-ifs, each with a line
+   saying what it is), a `Playing: X` indicator with the way back beside it, a call-out saying
+   where the choice shows up in the games, and the scoreboard folded inside as *How each one
+   scored*.
+3–7. The four diagnostics, all closed.
+
+**Our Prediction is renamed to whatever approach is selected**, and is **first** in both games'
+Actions menus. Fixed at "Our Prediction" it was a promise the menu could not keep — with an
+approach chosen it hands over that approach's setlist while still calling it ours. Computed per
+render, never captured, because `render()` re-runs on every lens change.
+
+Layout: prose sets in **two columns above 920px** rather than being capped at 66ch, which had
+stranded it at 498px inside a 1179px card while the tables beside it spanned 1143px. Sections
+with a visual put prose beside it. The card went 2886px → ~1650px.
 
 ### Era what-if lenses — BUILT
 
@@ -472,6 +508,23 @@ drifted 80 lines by the time anyone read it.
 
 ## Gotchas
 
+### Copy and comments that were wrong, and how they got that way
+
+- **A stale sentence survived in THREE places for a whole feature cycle.** "It does not touch
+  the games — Our Prediction always fills from the shipping model" stopped being true the moment
+  a chosen approach was wired into Our Prediction. `test/lenses.test.mjs` was updated to record
+  that the invariant had deliberately changed; the user-facing copy and two comments describing
+  it were not. All three are corrected. **The lesson: when a test is edited to say "this
+  invariant changed on purpose", grep the prose for the old claim in the same commit** — the
+  test is the only thing that fails, and copy never does.
+- **A user-facing branch was printing `npm run backtest`.** It fires whenever a visitor's cached
+  `analysis.json` predates the lens payload, i.e. for anyone who had the site open across a
+  deploy — not a developer-only path, and it reached a tester on a phone. A test now asserts no
+  user-facing copy instructs a shell command.
+- **`fetch('/data/analysis.json')` had no `.catch()`.** Every Data card hangs off that one
+  request, so a dropped connection rendered the entire page blank with the reason only in a
+  console a phone reader cannot open. Now renders an explanatory card. Guarded by a test.
+
 ### Measurement traps — these cost real time this session
 
 - **The `score > 0` gates are INERT, and this doc said the opposite for months.** Measured over
@@ -572,13 +625,14 @@ drifted 80 lines by the time anyone read it.
 ## Branches
 
 ```
-main   3c92d80   ← production, current, deployed green, 272 tests
+main   daffbb9   ← production, current, deployed green, 294 tests
 ```
 
 Nothing is ahead of `main`. Branch from it for the next piece of work.
 
 Merged and deleted this session: `reach-targeting` (#50), `nerd-zone-diagnostics` (#51, which
-folded in `nerd-zone`).
+folded in `nerd-zone`), `nerd-zone-layout` (#52, which folded in `handoff-current`),
+`nerd-zone-play` (#53), `nerd-zone-resilience` (#54).
 
 Older leftovers still around (squash-merge residue, commits unreachable from `main`):
 `bingo-cell-icons`, `cache-policy`, `controls-and-taglines`, `drop-tagline`, `first-run-mobile`,
