@@ -155,6 +155,30 @@ const duenessModel = buildModel({
   scheduleRows,
   dueness: 'fitted',
 });
+
+// Era what-if lenses. The tables are constants — every era closed before the graded window —
+// so this is a plain re-score per era, not a refit. A missing file is not an error: the lenses
+// simply do not appear, the same way the whole Nerd Zone degrades without arms.json.
+let eraTables = null;
+try {
+  const raw = JSON.parse(fs.readFileSync(path.join(dataDir, 'eras.json'), 'utf8'));
+  if (raw && raw.eras) eraTables = raw.eras;
+} catch { /* not built yet */ }
+if (!eraTables) console.log('note: data/eras.json missing — run `node scripts/build-eras.js`; era lenses will not render.');
+
+const eraModels = {};
+for (const key of eraTables ? Object.keys(eraTables) : []) {
+  eraModels[key] = buildModel({
+    rows: priorRows,
+    target: NEXT_SHOW,
+    tourName: TOUR,
+    venueSongCounts,
+    scheduleRows,
+    era: key,
+    eraRates: eraTables,
+  });
+}
+
 const priorDates = [...new Set(priorRows.map(r => r.showdate))].sort();
 const base = trailingFrequency(setsByDate(priorRows), priorDates, NEXT_SHOW.date, { trail: 30 });
 
@@ -181,11 +205,11 @@ const dueBackUp = [...tourSongs.values()]
     return {
       slug: t.slug, name: t.name, tourPlays: [...new Set(t.dates)].length,
       lastTourPlay: [...new Set(t.dates)].sort().pop(), gapAtNext,
-      eraFreq: +s.freq.toFixed(3), medianInterval: s.medianInterval,
+      windowFreq: +s.freq.toFixed(3), medianInterval: s.medianInterval,
     };
   })
-  .filter(x => x.gapAtNext >= Math.min(medianRepeatGap, 5) && x.eraFreq >= 0.1)
-  .sort((a, b) => b.gapAtNext - a.gapAtNext || b.eraFreq - a.eraFreq);
+  .filter(x => x.gapAtNext >= Math.min(medianRepeatGap, 5) && x.windowFreq >= 0.1)
+  .sort((a, b) => b.gapAtNext - a.gapAtNext || b.windowFreq - a.windowFreq);
 
 // tour-wide album share
 const albumTally = new Map();
@@ -230,13 +254,21 @@ const perShowEra = tourShows.map(d => {
 // show in the era window. Applied HERE, after buildModel has already returned, and
 // deliberately not inside the model:
 //
-//   assembleSetlist gates openerPool, closerPool, s2openPool and encorePool on `c.score > 0`.
-//   Score accumulates penalties from zero against a base of only freq*30, so a just-played
-//   song goes negative and those gates are what keep it out of the opener, closer and encore
-//   slots. A probability is never <= 0. Teaching the model about `p` at all is how somebody
-//   later swaps it for `score`, makes all four filters vacuous, and changes the predicted
-//   setlist while believing they changed only a label. Attaching it out here means the
-//   assembly logic cannot be affected — not by convention, but because it never sees it.
+//   Swapping `p` in for `score` would replace the quantity the whole assembly ranks on. The
+//   scored list is sorted by score and every slot is filled off the top of it, so a different
+//   quantity means a different setlist — not a relabelled one. Attaching `p` out here means
+//   the assembly cannot be affected: not by convention, but because it never sees it.
+//
+//   NOTE, corrected 2026-08-14. This comment used to justify itself differently — that the
+//   four `score > 0` gates in assembleSetlist would go "vacuous" against a probability, which
+//   is never <= 0, and silently change the setlist. That reasoning is measurably backwards.
+//   The gates are INERT in that direction: `pick()` walks each pool from the FRONT of a
+//   descending sort taking one or two entries, so a `> 0` filter can only ever delete from the
+//   BOTTOM. Deleting all four gates outright changes 0 of 174 shows, despite ~41 candidates a
+//   show scoring <= 0. They bind only in the other direction, by emptying a pool entirely and
+//   handing that slot to the ungated fallback — which needs scores pushed DOWN, not up. See
+//   the note beside the gates in lib/model.mjs. The conclusion here still holds; the reason
+//   given for it did not.
 //
 // Missing file is not an error: `p` simply does not appear. The site has run without it.
 let calibration = null;
@@ -288,6 +320,19 @@ const LENS_ARMS = [
   { key: 'modelShowGap', label: 'Show-gap recency', blurb: 'The model as it was before the day curve — recency counted in shows rather than days.', hasSlots: true, usesCalibration: false },
   { key: 'freqNoRepeat', label: 'Recent, minus repeats', blurb: 'Naive baseline: most-played over the last 30 shows, minus anything played in the last 3 days.', hasSlots: false, usesCalibration: false },
   { key: 'freq', label: 'Most played lately', blurb: 'The simplest baseline there is: most-played over the last 30 shows, nothing else.', hasSlots: false, usesCalibration: false },
+  // What-if lenses. `whatIf` is what lets the picker file them apart from the approaches: they
+  // do not claim to predict better and two of the three measurably do not, so listing them as
+  // peers of the shipping model would misrepresent all five of the others.
+  //
+  // usesCalibration is false for the same reason it is false for fitted dueness — a new
+  // scoring term makes these a different quantity from the distribution the isotonic bins were
+  // fitted on. hasSlots is false because the measured arm is the top-N one.
+  //
+  // There is deliberately no 4.0. It overlaps the graded window, so it cannot be measured
+  // without leaking, and it is the era the model is already fitted on — see build-eras.js.
+  { key: 'modelEra10TopN', label: 'Sounds like 1.0', whatIf: true, blurb: 'Ranked by how often each song turned up in 1983–2000. It is here because it is interesting, not because it is accurate — it is the worst-scoring approach on this page, and that is the finding: the 1990s rotation is a poor guide to tonight.', hasSlots: false, usesCalibration: false },
+  { key: 'modelEra20TopN', label: 'Sounds like 2.0', whatIf: true, blurb: 'Ranked by prevalence in the 2002–2004 return. Measured over only 63 shows, so its rates are coarse and about a third of today\'s candidates never appeared in it at all — read it as flavour, not evidence.', hasSlots: false, usesCalibration: false },
+  { key: 'modelEra30TopN', label: 'Sounds like 3.0', whatIf: true, blurb: 'Ranked by prevalence in 2009–2020. The closest era to now, and it scores about level with the shipping model — but a control using the same maths with the era data deleted scores identically, so the era table is contributing nothing.', hasSlots: false, usesCalibration: false },
 ];
 
 const lenses = armStats ? {
@@ -306,6 +351,13 @@ const lenses = armStats ? {
   rankings: {
     modelShowGap: showGapModel.scored.slice(0, 120).map(c => ({ slug: c.slug, score: c.score })),
     modelDuenessTopN: duenessModel.scored.slice(0, 120).map(c => ({ slug: c.slug, score: c.score })),
+    // Every era lens has its own scores, so every one must ship its own ranking — an arm in
+    // the menu without one silently renders the SHIPPING model's songs under its label. A test
+    // in test/lenses.test.mjs enforces this for all arms; it is not left to this line.
+    ...Object.fromEntries(Object.entries(eraModels).map(([key, m]) => [
+      `modelEra${key.replace('.', '')}TopN`,
+      m.scored.slice(0, 120).map(c => ({ slug: c.slug, score: c.score })),
+    ])),
     freq: base.freq.slice(0, 120),
     freqNoRepeat: base.freqNoRepeat.slice(0, 120),
   },

@@ -32,6 +32,12 @@ data/*.json
 # baked into analysis.json.
 !data/arms.json
 
+# Per-era song prevalence for the Nerd Zone what-if lenses. Same reasoning again, and one more
+# besides: this one is derived from FORTY YEARS of setlists (1983-2021, ~79MB, all ignored),
+# so a fresh clone could not rebuild it without re-crawling the whole phish.net archive. The
+# eras have ended, so the file never legitimately changes.
+!data/eras.json
+
 # user accounts, password hashes, sessions, predictions — never publish
 data/db.json
 

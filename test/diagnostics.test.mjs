@@ -73,6 +73,45 @@ test('the diagnostics render below the picker, not inside it', () => {
   assert.match(css[0], /border-top/, 'the separating rule is what stops these reading as options');
 });
 
+test('sections are native <details>, not a hand-rolled accordion', () => {
+  // <details>/<summary> is keyboard operable and screen-reader labelled for free, works with
+  // no JS, and lets the browser's own find-in-page open a closed section to reveal a match.
+  // A div with a click handler silently loses all four, and nothing in this repo would notice.
+  assert.match(html, /el\('details', 'nz-sec'\)/, 'sections must be <details>');
+  assert.match(html, /el\('summary', null/, 'each section needs a <summary>');
+  assert.doesNotMatch(html, /nz-sec[^']*'\)[\s\S]{0,200}addEventListener\('click'/,
+    'no click handler should be driving the disclosure');
+});
+
+test('the first section is open, so the card never looks empty', () => {
+  // All four closed reads as a page that failed to load; all four open is the ~2900px card
+  // this replaced. One open shows what the triangles do.
+  assert.match(html, /sectionCount\+\+ === 0\) d\.open = true/);
+  assert.match(html, /intro\.open = true/, 'the explainer starts open too');
+});
+
+test('a summary is a real touch target', () => {
+  const css = html.match(/\.nz-sec > summary \{[^}]*\}/);
+  assert.ok(css, 'summary has no style');
+  assert.match(css[0], /min-height: 44px/, 'the disclosure row must be tappable');
+  assert.match(css[0], /cursor: pointer/);
+});
+
+test('the native disclosure marker is suppressed both ways', () => {
+  // Leaving either in place renders a second triangle beside the styled one, and which one
+  // shows up depends on the browser — so it looks fine locally and wrong for somebody else.
+  assert.match(html, /\.nz-sec > summary::marker \{ content: ''; \}/);
+  assert.match(html, /\.nz-sec > summary::-webkit-details-marker \{ display: none; \}/);
+});
+
+test('wide screens get columns, not longer lines', () => {
+  // A 1100px line is unreadable however much room there is. The prose keeps its measure and
+  // uses the width by splitting; the old hard 66ch cap stranded it at 42% of the card.
+  assert.match(html, /\.nz-prose \{ columns: 2/, 'prose must column, not stretch');
+  assert.match(html, /break-inside: avoid/, 'a paragraph split across the fold loses the reader');
+  assert.doesNotMatch(html, /\.nz-prose \{ max-width: 66ch; \}/, 'the hard cap is what was wrong');
+});
+
 test('the diagnostics survive an arms.json that predates them', () => {
   // An older committed artifact has arms but no diagnostics block. That should cost the
   // section, not throw and take the whole Nerd Zone card with it.

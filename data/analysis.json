@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-14T22:58:45.194Z",
+ "generated": "2026-08-15T00:54:12.027Z",
  "asOf": "2026-08-01",
  "nextShow": {
   "date": "2026-09-04",
@@ -231,7 +231,7 @@
     "tourPlays": 1,
     "lastTourPlay": "2026-07-08",
     "gapAtNext": 17,
-    "eraFreq": 0.173,
+    "windowFreq": 0.173,
     "medianInterval": 5
    },
    {
@@ -240,7 +240,7 @@
     "tourPlays": 1,
     "lastTourPlay": "2026-07-12",
     "gapAtNext": 14,
-    "eraFreq": 0.182,
+    "windowFreq": 0.182,
     "medianInterval": 5
    },
    {
@@ -249,7 +249,7 @@
     "tourPlays": 1,
     "lastTourPlay": "2026-07-12",
     "gapAtNext": 14,
-    "eraFreq": 0.136,
+    "windowFreq": 0.136,
     "medianInterval": 5
    },
    {
@@ -258,7 +258,7 @@
     "tourPlays": 1,
     "lastTourPlay": "2026-07-14",
     "gapAtNext": 13,
-    "eraFreq": 0.145,
+    "windowFreq": 0.145,
     "medianInterval": 7
    },
    {
@@ -267,7 +267,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-18",
     "gapAtNext": 10,
-    "eraFreq": 0.103,
+    "windowFreq": 0.103,
     "medianInterval": 6
    },
    {
@@ -276,7 +276,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-19",
     "gapAtNext": 9,
-    "eraFreq": 0.192,
+    "windowFreq": 0.192,
     "medianInterval": 5
    },
    {
@@ -285,7 +285,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-19",
     "gapAtNext": 9,
-    "eraFreq": 0.182,
+    "windowFreq": 0.182,
     "medianInterval": 5
    },
    {
@@ -294,7 +294,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-19",
     "gapAtNext": 9,
-    "eraFreq": 0.131,
+    "windowFreq": 0.131,
     "medianInterval": 5
    },
    {
@@ -303,7 +303,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-21",
     "gapAtNext": 8,
-    "eraFreq": 0.196,
+    "windowFreq": 0.196,
     "medianInterval": 5
    },
    {
@@ -312,7 +312,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-21",
     "gapAtNext": 8,
-    "eraFreq": 0.121,
+    "windowFreq": 0.121,
     "medianInterval": 8
    },
    {
@@ -321,7 +321,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.14,
+    "windowFreq": 0.14,
     "medianInterval": 7
    },
    {
@@ -330,7 +330,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.136,
+    "windowFreq": 0.136,
     "medianInterval": 7
    },
    {
@@ -339,7 +339,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.121,
+    "windowFreq": 0.121,
     "medianInterval": 7
    },
    {
@@ -348,7 +348,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.121,
+    "windowFreq": 0.121,
     "medianInterval": 7
    },
    {
@@ -357,7 +357,7 @@
     "tourPlays": 3,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.112,
+    "windowFreq": 0.112,
     "medianInterval": 7
    },
    {
@@ -366,7 +366,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-22",
     "gapAtNext": 7,
-    "eraFreq": 0.107,
+    "windowFreq": 0.107,
     "medianInterval": 9
    },
    {
@@ -375,7 +375,7 @@
     "tourPlays": 3,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.187,
+    "windowFreq": 0.187,
     "medianInterval": 5
    },
    {
@@ -384,7 +384,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.178,
+    "windowFreq": 0.178,
     "medianInterval": 5
    },
    {
@@ -393,7 +393,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.173,
+    "windowFreq": 0.173,
     "medianInterval": 5.5
    },
    {
@@ -402,7 +402,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.168,
+    "windowFreq": 0.168,
     "medianInterval": 6
    },
    {
@@ -411,7 +411,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.14,
+    "windowFreq": 0.14,
     "medianInterval": 7
    },
    {
@@ -420,7 +420,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.136,
+    "windowFreq": 0.136,
     "medianInterval": 7
    },
    {
@@ -429,7 +429,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-24",
     "gapAtNext": 6,
-    "eraFreq": 0.107,
+    "windowFreq": 0.107,
     "medianInterval": 8
    },
    {
@@ -438,7 +438,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-25",
     "gapAtNext": 5,
-    "eraFreq": 0.192,
+    "windowFreq": 0.192,
     "medianInterval": 5
    },
    {
@@ -447,7 +447,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-25",
     "gapAtNext": 5,
-    "eraFreq": 0.182,
+    "windowFreq": 0.182,
     "medianInterval": 5
    },
    {
@@ -456,7 +456,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-25",
     "gapAtNext": 5,
-    "eraFreq": 0.131,
+    "windowFreq": 0.131,
     "medianInterval": 7
    },
    {
@@ -465,7 +465,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-25",
     "gapAtNext": 5,
-    "eraFreq": 0.112,
+    "windowFreq": 0.112,
     "medianInterval": 9
    },
    {
@@ -474,7 +474,7 @@
     "tourPlays": 2,
     "lastTourPlay": "2026-07-25",
     "gapAtNext": 5,
-    "eraFreq": 0.107,
+    "windowFreq": 0.107,
     "medianInterval": 8.5
    }
   ],
@@ -7242,7 +7242,7 @@
     "47 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
-   "eraFreq": 0.192,
+   "windowFreq": 0.192,
    "currentGap": 8,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7272,7 +7272,7 @@
     "54 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.182,
+   "windowFreq": 0.182,
    "currentGap": 13,
    "medianInterval": 5,
    "tourPlays": 1,
@@ -7302,7 +7302,7 @@
     "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.145,
+   "windowFreq": 0.145,
    "currentGap": 12,
    "medianInterval": 7,
    "tourPlays": 1,
@@ -7332,7 +7332,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
-   "eraFreq": 0.178,
+   "windowFreq": 0.178,
    "currentGap": 5,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7362,7 +7362,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
-   "eraFreq": 0.173,
+   "windowFreq": 0.173,
    "currentGap": 5,
    "medianInterval": 5.5,
    "tourPlays": 2,
@@ -7392,7 +7392,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.192,
+   "windowFreq": 0.192,
    "currentGap": 4,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7422,7 +7422,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.182,
+   "windowFreq": 0.182,
    "currentGap": 4,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7452,7 +7452,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 9x before"
    ],
-   "eraFreq": 0.196,
+   "windowFreq": 0.196,
    "currentGap": 7,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7482,7 +7482,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 14x before"
    ],
-   "eraFreq": 0.22,
+   "windowFreq": 0.22,
    "currentGap": 0,
    "medianInterval": 4,
    "tourPlays": 4,
@@ -7512,7 +7512,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 14x before"
    ],
-   "eraFreq": 0.215,
+   "windowFreq": 0.215,
    "currentGap": 0,
    "medianInterval": 4,
    "tourPlays": 3,
@@ -7542,7 +7542,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.168,
+   "windowFreq": 0.168,
    "currentGap": 5,
    "medianInterval": 6,
    "tourPlays": 2,
@@ -7572,7 +7572,7 @@
     "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 9x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 12,
    "medianInterval": 8.5,
    "tourPlays": 1,
@@ -7602,7 +7602,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 13x before"
    ],
-   "eraFreq": 0.22,
+   "windowFreq": 0.22,
    "currentGap": 1,
    "medianInterval": 4,
    "tourPlays": 4,
@@ -7632,7 +7632,7 @@
     "47 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.182,
+   "windowFreq": 0.182,
    "currentGap": 8,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -7663,7 +7663,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.187,
+   "windowFreq": 0.187,
    "currentGap": 5,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -7693,7 +7693,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
-   "eraFreq": 0.22,
+   "windowFreq": 0.22,
    "currentGap": 0,
    "medianInterval": 4,
    "tourPlays": 4,
@@ -7723,7 +7723,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 12x before"
    ],
-   "eraFreq": 0.159,
+   "windowFreq": 0.159,
    "currentGap": 0,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -7752,7 +7752,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 5,
    "medianInterval": 8,
    "tourPlays": 2,
@@ -7782,7 +7782,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.192,
+   "windowFreq": 0.192,
    "currentGap": 0,
    "medianInterval": 5,
    "tourPlays": 4,
@@ -7812,7 +7812,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.178,
+   "windowFreq": 0.178,
    "currentGap": 0,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -7842,7 +7842,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 11x before"
    ],
-   "eraFreq": 0.173,
+   "windowFreq": 0.173,
    "currentGap": 0,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -7872,7 +7872,7 @@
     "55 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 14,
    "medianInterval": 7,
    "tourPlays": 1,
@@ -7901,7 +7901,7 @@
     "58 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.173,
+   "windowFreq": 0.173,
    "currentGap": 16,
    "medianInterval": 5,
    "tourPlays": 1,
@@ -7931,7 +7931,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.201,
+   "windowFreq": 0.201,
    "currentGap": 1,
    "medianInterval": 5,
    "tourPlays": 4,
@@ -7960,7 +7960,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.159,
+   "windowFreq": 0.159,
    "currentGap": 3,
    "medianInterval": 6,
    "tourPlays": 2,
@@ -7990,7 +7990,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.192,
+   "windowFreq": 0.192,
    "currentGap": 1,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -8020,7 +8020,7 @@
     "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 12,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -8050,7 +8050,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.14,
+   "windowFreq": 0.14,
    "currentGap": 6,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8080,7 +8080,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.121,
+   "windowFreq": 0.121,
    "currentGap": 7,
    "medianInterval": 8,
    "tourPlays": 2,
@@ -8110,7 +8110,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 10x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 1,
    "medianInterval": 6,
    "tourPlays": 4,
@@ -8140,7 +8140,7 @@
     "56 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 15,
    "medianInterval": 8.5,
    "tourPlays": 1,
@@ -8169,7 +8169,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.112,
+   "windowFreq": 0.112,
    "currentGap": 4,
    "medianInterval": 9,
    "tourPlays": 2,
@@ -8199,7 +8199,7 @@
     "49 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 10,
    "medianInterval": 11,
    "tourPlays": 1,
@@ -8229,7 +8229,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 9x before"
    ],
-   "eraFreq": 0.187,
+   "windowFreq": 0.187,
    "currentGap": 1,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -8258,7 +8258,7 @@
     "47 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.07,
+   "windowFreq": 0.07,
    "currentGap": 8,
    "medianInterval": 11,
    "tourPlays": 1,
@@ -8287,7 +8287,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.131,
+   "windowFreq": 0.131,
    "currentGap": 4,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8317,7 +8317,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.121,
+   "windowFreq": 0.121,
    "currentGap": 6,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8347,7 +8347,7 @@
     "54 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.136,
+   "windowFreq": 0.136,
    "currentGap": 13,
    "medianInterval": 5,
    "tourPlays": 1,
@@ -8377,7 +8377,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 9x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 1,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -8406,7 +8406,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.15,
+   "windowFreq": 0.15,
    "currentGap": 1,
    "medianInterval": 6,
    "tourPlays": 2,
@@ -8435,7 +8435,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.112,
+   "windowFreq": 0.112,
    "currentGap": 3,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8465,7 +8465,7 @@
     "51 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.056,
+   "windowFreq": 0.056,
    "currentGap": 11,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -8494,7 +8494,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.023,
+   "windowFreq": 0.023,
    "currentGap": 6,
    "medianInterval": 43.5,
    "tourPlays": 1,
@@ -8524,7 +8524,7 @@
     "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.084,
+   "windowFreq": 0.084,
    "currentGap": 12,
    "medianInterval": 9,
    "tourPlays": 1,
@@ -8553,7 +8553,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 7,
    "medianInterval": 10.5,
    "tourPlays": 1,
@@ -8582,7 +8582,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.065,
+   "windowFreq": 0.065,
    "currentGap": 7,
    "medianInterval": 13,
    "tourPlays": 1,
@@ -8612,7 +8612,7 @@
     "56 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.051,
+   "windowFreq": 0.051,
    "currentGap": 15,
    "medianInterval": 11.5,
    "tourPlays": 1,
@@ -8642,7 +8642,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.173,
+   "windowFreq": 0.173,
    "currentGap": 0,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -8672,7 +8672,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.136,
+   "windowFreq": 0.136,
    "currentGap": 6,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8702,7 +8702,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.121,
+   "windowFreq": 0.121,
    "currentGap": 6,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -8732,7 +8732,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 8x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 0,
    "medianInterval": 6.5,
    "tourPlays": 3,
@@ -8762,7 +8762,7 @@
     "47 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.131,
+   "windowFreq": 0.131,
    "currentGap": 8,
    "medianInterval": 5,
    "tourPlays": 2,
@@ -8792,7 +8792,7 @@
     "55 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 14,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -8821,7 +8821,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.089,
+   "windowFreq": 0.089,
    "currentGap": 5,
    "medianInterval": 10,
    "tourPlays": 2,
@@ -8851,7 +8851,7 @@
     "54 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 13,
    "medianInterval": 8,
    "tourPlays": 1,
@@ -8881,7 +8881,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.201,
+   "windowFreq": 0.201,
    "currentGap": 1,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -8911,7 +8911,7 @@
     "51 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 11,
    "medianInterval": 9.5,
    "tourPlays": 1,
@@ -8940,7 +8940,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 3,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -8970,7 +8970,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.192,
+   "windowFreq": 0.192,
    "currentGap": 0,
    "medianInterval": 5,
    "tourPlays": 4,
@@ -9000,7 +9000,7 @@
     "56 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.089,
+   "windowFreq": 0.089,
    "currentGap": 15,
    "medianInterval": 7,
    "tourPlays": 1,
@@ -9030,7 +9030,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.187,
+   "windowFreq": 0.187,
    "currentGap": 0,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -9059,7 +9059,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.14,
+   "windowFreq": 0.14,
    "currentGap": 5,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -9089,7 +9089,7 @@
     "56 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 15,
    "medianInterval": 8,
    "tourPlays": 1,
@@ -9118,7 +9118,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.136,
+   "windowFreq": 0.136,
    "currentGap": 5,
    "medianInterval": 7,
    "tourPlays": 2,
@@ -9148,7 +9148,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 7x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 0,
    "medianInterval": 7,
    "tourPlays": 3,
@@ -9177,7 +9177,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 1,
    "medianInterval": 6.5,
    "tourPlays": 2,
@@ -9207,7 +9207,7 @@
     "127 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.051,
+   "windowFreq": 0.051,
    "currentGap": 20,
    "medianInterval": 16.5,
    "tourPlays": 0,
@@ -9238,7 +9238,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.112,
+   "windowFreq": 0.112,
    "currentGap": 6,
    "medianInterval": 7,
    "tourPlays": 3,
@@ -9268,7 +9268,7 @@
     "140 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.07,
+   "windowFreq": 0.07,
    "currentGap": 25,
    "medianInterval": 13,
    "tourPlays": 0,
@@ -9297,7 +9297,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.107,
+   "windowFreq": 0.107,
    "currentGap": 4,
    "medianInterval": 8.5,
    "tourPlays": 2,
@@ -9326,7 +9326,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.023,
+   "windowFreq": 0.023,
    "currentGap": 6,
    "medianInterval": 43.5,
    "tourPlays": 1,
@@ -9356,7 +9356,7 @@
     "58 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.07,
+   "windowFreq": 0.07,
    "currentGap": 16,
    "medianInterval": 9,
    "tourPlays": 1,
@@ -9386,7 +9386,7 @@
     "503 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.019,
+   "windowFreq": 0.019,
    "currentGap": 72,
    "medianInterval": 29,
    "tourPlays": 0,
@@ -9416,7 +9416,7 @@
     "54 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 13,
    "medianInterval": 8,
    "tourPlays": 1,
@@ -9446,7 +9446,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.103,
+   "windowFreq": 0.103,
    "currentGap": 9,
    "medianInterval": 6,
    "tourPlays": 2,
@@ -9476,7 +9476,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.061,
+   "windowFreq": 0.061,
    "currentGap": 9,
    "medianInterval": 11,
    "tourPlays": 1,
@@ -9505,7 +9505,7 @@
     "49 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.051,
+   "windowFreq": 0.051,
    "currentGap": 10,
    "medianInterval": 13,
    "tourPlays": 1,
@@ -9535,7 +9535,7 @@
     "58 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 16,
    "medianInterval": 11,
    "tourPlays": 1,
@@ -9564,7 +9564,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.107,
+   "windowFreq": 0.107,
    "currentGap": 5,
    "medianInterval": 8,
    "tourPlays": 2,
@@ -9594,7 +9594,7 @@
     "51 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 11,
    "medianInterval": 11,
    "tourPlays": 1,
@@ -9624,7 +9624,7 @@
     "52 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.089,
+   "windowFreq": 0.089,
    "currentGap": 12,
    "medianInterval": 9,
    "tourPlays": 1,
@@ -9654,7 +9654,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.07,
+   "windowFreq": 0.07,
    "currentGap": 9,
    "medianInterval": 9,
    "tourPlays": 1,
@@ -9683,7 +9683,7 @@
     "133 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.112,
+   "windowFreq": 0.112,
    "currentGap": 22,
    "medianInterval": 7,
    "tourPlays": 0,
@@ -9712,7 +9712,7 @@
     "37 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 2,
    "medianInterval": 9,
    "tourPlays": 2,
@@ -9741,7 +9741,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.089,
+   "windowFreq": 0.089,
    "currentGap": 5,
    "medianInterval": 10.5,
    "tourPlays": 2,
@@ -9770,7 +9770,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.089,
+   "windowFreq": 0.089,
    "currentGap": 7,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -9800,7 +9800,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 9,
    "medianInterval": 10,
    "tourPlays": 1,
@@ -9830,7 +9830,7 @@
     "406 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.028,
+   "windowFreq": 0.028,
    "currentGap": 45,
    "medianInterval": 20,
    "tourPlays": 0,
@@ -9859,7 +9859,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 5,
    "medianInterval": 10,
    "tourPlays": 2,
@@ -9888,7 +9888,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 3,
    "medianInterval": 12,
    "tourPlays": 2,
@@ -9918,7 +9918,7 @@
     "37 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.154,
+   "windowFreq": 0.154,
    "currentGap": 2,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -9948,7 +9948,7 @@
     "127 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.098,
+   "windowFreq": 0.098,
    "currentGap": 20,
    "medianInterval": 8,
    "tourPlays": 0,
@@ -9978,7 +9978,7 @@
     "736 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 88,
    "medianInterval": 44,
    "tourPlays": 0,
@@ -10008,7 +10008,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.178,
+   "windowFreq": 0.178,
    "currentGap": 1,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -10038,7 +10038,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 5x before"
    ],
-   "eraFreq": 0.14,
+   "windowFreq": 0.14,
    "currentGap": 3,
    "medianInterval": 7,
    "tourPlays": 3,
@@ -10068,7 +10068,7 @@
     "615 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 81,
    "medianInterval": 42,
    "tourPlays": 0,
@@ -10098,7 +10098,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 9,
    "medianInterval": 8,
    "tourPlays": 2,
@@ -10127,7 +10127,7 @@
     "35 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.15,
+   "windowFreq": 0.15,
    "currentGap": 1,
    "medianInterval": 6,
    "tourPlays": 2,
@@ -10157,7 +10157,7 @@
     "48 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.084,
+   "windowFreq": 0.084,
    "currentGap": 9,
    "medianInterval": 9,
    "tourPlays": 1,
@@ -10186,7 +10186,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.028,
+   "windowFreq": 0.028,
    "currentGap": 6,
    "medianInterval": 38,
    "tourPlays": 1,
@@ -10215,7 +10215,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.107,
+   "windowFreq": 0.107,
    "currentGap": 6,
    "medianInterval": 9,
    "tourPlays": 2,
@@ -10244,7 +10244,7 @@
     "45 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.023,
+   "windowFreq": 0.023,
    "currentGap": 7,
    "medianInterval": 30,
    "tourPlays": 1,
@@ -10273,7 +10273,7 @@
     "126 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 6x before"
    ],
-   "eraFreq": 0.033,
+   "windowFreq": 0.033,
    "currentGap": 19,
    "medianInterval": 33,
    "tourPlays": 0,
@@ -10302,7 +10302,7 @@
     "37 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 2,
    "medianInterval": 8,
    "tourPlays": 2,
@@ -10331,7 +10331,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 4,
    "medianInterval": 10,
    "tourPlays": 2,
@@ -10360,7 +10360,7 @@
     "42 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.093,
+   "windowFreq": 0.093,
    "currentGap": 5,
    "medianInterval": 10,
    "tourPlays": 2,
@@ -10390,7 +10390,7 @@
     "127 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.037,
+   "windowFreq": 0.037,
    "currentGap": 20,
    "medianInterval": 17,
    "tourPlays": 0,
@@ -10420,7 +10420,7 @@
     "613 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 79,
    "medianInterval": 62,
    "tourPlays": 0,
@@ -10450,7 +10450,7 @@
     "420 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.033,
+   "windowFreq": 0.033,
    "currentGap": 55,
    "medianInterval": 19.5,
    "tourPlays": 0,
@@ -10480,7 +10480,7 @@
     "612 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 78,
    "medianInterval": 47,
    "tourPlays": 0,
@@ -10509,7 +10509,7 @@
     "39 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.079,
+   "windowFreq": 0.079,
    "currentGap": 3,
    "medianInterval": 10,
    "tourPlays": 2,
@@ -10538,7 +10538,7 @@
     "41 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.075,
+   "windowFreq": 0.075,
    "currentGap": 4,
    "medianInterval": 12,
    "tourPlays": 2,
@@ -10567,7 +10567,7 @@
     "44 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.07,
+   "windowFreq": 0.07,
    "currentGap": 6,
    "medianInterval": 11.5,
    "tourPlays": 2,
@@ -10597,7 +10597,7 @@
     "34 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.187,
+   "windowFreq": 0.187,
    "currentGap": 0,
    "medianInterval": 5,
    "tourPlays": 3,
@@ -10627,7 +10627,7 @@
     "759 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 97,
    "medianInterval": 32.5,
    "tourPlays": 0,
@@ -10657,7 +10657,7 @@
     "763 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.014,
+   "windowFreq": 0.014,
    "currentGap": 100,
    "medianInterval": 50.5,
    "tourPlays": 0,
@@ -10687,7 +10687,7 @@
     "762 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 1x before"
    ],
-   "eraFreq": 0.009,
+   "windowFreq": 0.009,
    "currentGap": 99,
    "medianInterval": 38,
    "tourPlays": 0,
@@ -10717,7 +10717,7 @@
     "37 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 4x before"
    ],
-   "eraFreq": 0.145,
+   "windowFreq": 0.145,
    "currentGap": 2,
    "medianInterval": 6,
    "tourPlays": 3,
@@ -10747,7 +10747,7 @@
     "428 days since last — outside the usual repeat window",
     "played at Dick's Sporting Goods Park 2x before"
    ],
-   "eraFreq": 0.009,
+   "windowFreq": 0.009,
    "currentGap": 59,
    "medianInterval": 38,
    "tourPlays": 0,
@@ -10776,7 +10776,7 @@
     "51 days since last — in the repeat window",
     "played at Dick's Sporting Goods Park 3x before"
    ],
-   "eraFreq": 0.051,
+   "windowFreq": 0.051,
    "currentGap": 11,
    "medianInterval": 20,
    "tourPlays": 1,
@@ -11350,6 +11350,168 @@
       "year": "2026",
       "shows": 31,
       "recall": 0.10956170897247496
+     }
+    ]
+   },
+   {
+    "key": "modelEra10TopN",
+    "label": "Sounds like 1.0",
+    "whatIf": true,
+    "blurb": "Ranked by how often each song turned up in 1983–2000. It is here because it is interesting, not because it is accurate — it is the worst-scoring approach on this page, and that is the finding: the 1990s rotation is a poor guide to tonight.",
+    "hasSlots": false,
+    "usesCalibration": false,
+    "precision": 0.2660581473968897,
+    "recall": 0.2513184006905832,
+    "hitsPerShow": 4.522988505747127,
+    "deltaRecallVsBaseline": 0.008959161907003374,
+    "se": 0.011394311180614665,
+    "z": 0.7862837660819505,
+    "winRate": 0.46551724137931033,
+    "vsNearest": {
+     "arm": "modelTopN",
+     "delta": -0.033644817999985005,
+     "se": 0.007231584909045492,
+     "z": -4.652481914151491
+    },
+    "vsControl": {
+     "arm": "modelLogFreqTopN",
+     "delta": -0.04061255037412548,
+     "se": 0.0068506399750914064,
+     "z": -5.928285608613317
+    },
+    "byYear": [
+     {
+      "year": "2022",
+      "shows": 6,
+      "recall": 0.29024158474934963
+     },
+     {
+      "year": "2023",
+      "shows": 49,
+      "recall": 0.2452186086766234
+     },
+     {
+      "year": "2024",
+      "shows": 41,
+      "recall": 0.2629291925899077
+     },
+     {
+      "year": "2025",
+      "shows": 47,
+      "recall": 0.2641600481177913
+     },
+     {
+      "year": "2026",
+      "shows": 31,
+      "recall": 0.21860068479962616
+     }
+    ]
+   },
+   {
+    "key": "modelEra20TopN",
+    "label": "Sounds like 2.0",
+    "whatIf": true,
+    "blurb": "Ranked by prevalence in the 2002–2004 return. Measured over only 63 shows, so its rates are coarse and about a third of today's candidates never appeared in it at all — read it as flavour, not evidence.",
+    "hasSlots": false,
+    "usesCalibration": false,
+    "precision": 0.29377958079783645,
+    "recall": 0.27900966047442666,
+    "hitsPerShow": 4.994252873563219,
+    "deltaRecallVsBaseline": 0.036650421690846896,
+    "se": 0.011177313280932624,
+    "z": 3.279001023740548,
+    "winRate": 0.5057471264367817,
+    "vsNearest": {
+     "arm": "modelTopN",
+     "delta": -0.0059535582161414765,
+     "se": 0.006312682889972004,
+     "z": -0.943110610798934
+    },
+    "vsControl": {
+     "arm": "modelLogFreqTopN",
+     "delta": -0.01292129059028197,
+     "se": 0.0057073883869654465,
+     "z": -2.2639585243211515
+    },
+    "byYear": [
+     {
+      "year": "2022",
+      "shows": 6,
+      "recall": 0.29024158474934963
+     },
+     {
+      "year": "2023",
+      "shows": 49,
+      "recall": 0.27912792287989735
+     },
+     {
+      "year": "2024",
+      "shows": 41,
+      "recall": 0.29160543630937363
+     },
+     {
+      "year": "2025",
+      "shows": 47,
+      "recall": 0.2863299562701776
+     },
+     {
+      "year": "2026",
+      "shows": 31,
+      "recall": 0.24889136643730664
+     }
+    ]
+   },
+   {
+    "key": "modelEra30TopN",
+    "label": "Sounds like 3.0",
+    "whatIf": true,
+    "blurb": "Ranked by prevalence in 2009–2020. The closest era to now, and it scores about level with the shipping model — but a control using the same maths with the era data deleted scores identically, so the era table is contributing nothing.",
+    "hasSlots": false,
+    "usesCalibration": false,
+    "precision": 0.30797836375929677,
+    "recall": 0.291744588198031,
+    "hitsPerShow": 5.235632183908046,
+    "deltaRecallVsBaseline": 0.04938534941445119,
+    "se": 0.011314668179614986,
+    "z": 4.364719197282874,
+    "winRate": 0.5172413793103449,
+    "vsNearest": {
+     "arm": "modelTopN",
+     "delta": 0.006781369507462824,
+     "se": 0.0050063729423194805,
+     "z": 1.3545474109887183
+    },
+    "vsControl": {
+     "arm": "modelLogFreqTopN",
+     "delta": -0.00018636286667765646,
+     "se": 0.004141387020178901,
+     "z": -0.04500010884508106
+    },
+    "byYear": [
+     {
+      "year": "2022",
+      "shows": 6,
+      "recall": 0.28180567643016463
+     },
+     {
+      "year": "2023",
+      "shows": 49,
+      "recall": 0.29177958729279263
+     },
+     {
+      "year": "2024",
+      "shows": 41,
+      "recall": 0.30930260796277814
+     },
+     {
+      "year": "2025",
+      "shows": 47,
+      "recall": 0.3064430954663812
+     },
+     {
+      "year": "2026",
+      "shows": 31,
+      "recall": 0.2481061966817984
      }
     ]
    }
@@ -12317,6 +12479,1452 @@
     {
      "slug": "hey-stranger",
      "score": 8.2
+    }
+   ],
+   "modelEra10TopN": [
+    {
+     "slug": "the-moma-dance",
+     "score": 52.7
+    },
+    {
+     "slug": "bathtub-gin",
+     "score": 52.2
+    },
+    {
+     "slug": "slave-to-the-traffic-light",
+     "score": 51.3
+    },
+    {
+     "slug": "piper",
+     "score": 50.3
+    },
+    {
+     "slug": "chalk-dust-torture",
+     "score": 48.4
+    },
+    {
+     "slug": "down-with-disease",
+     "score": 48.3
+    },
+    {
+     "slug": "wolfmans-brother",
+     "score": 46.8
+    },
+    {
+     "slug": "harry-hood",
+     "score": 45.2
+    },
+    {
+     "slug": "ghost",
+     "score": 43.8
+    },
+    {
+     "slug": "tube",
+     "score": 43.4
+    },
+    {
+     "slug": "also-sprach-zarathustra",
+     "score": 41.8
+    },
+    {
+     "slug": "tweezer",
+     "score": 39
+    },
+    {
+     "slug": "first-tube",
+     "score": 38.9
+    },
+    {
+     "slug": "46-days",
+     "score": 38.4
+    },
+    {
+     "slug": "tweezer-reprise",
+     "score": 37.6
+    },
+    {
+     "slug": "split-open-and-melt",
+     "score": 36.7
+    },
+    {
+     "slug": "run-like-an-antelope",
+     "score": 36.6
+    },
+    {
+     "slug": "cavern",
+     "score": 36.6
+    },
+    {
+     "slug": "character-zero",
+     "score": 36.5
+    },
+    {
+     "slug": "sand",
+     "score": 35.8
+    },
+    {
+     "slug": "david-bowie",
+     "score": 34.4
+    },
+    {
+     "slug": "free",
+     "score": 33.8
+    },
+    {
+     "slug": "theme-from-the-bottom",
+     "score": 33.8
+    },
+    {
+     "slug": "the-wedge",
+     "score": 33.7
+    },
+    {
+     "slug": "bouncing-around-the-room",
+     "score": 32.3
+    },
+    {
+     "slug": "reba",
+     "score": 32.1
+    },
+    {
+     "slug": "twist",
+     "score": 31.9
+    },
+    {
+     "slug": "weekapaug-groove",
+     "score": 31.9
+    },
+    {
+     "slug": "simple",
+     "score": 31.1
+    },
+    {
+     "slug": "possum",
+     "score": 30.8
+    },
+    {
+     "slug": "silent-in-the-morning",
+     "score": 30.8
+    },
+    {
+     "slug": "suzy-greenberg",
+     "score": 30.7
+    },
+    {
+     "slug": "roggae",
+     "score": 30.6
+    },
+    {
+     "slug": "blaze-on",
+     "score": 30.3
+    },
+    {
+     "slug": "carini",
+     "score": 30
+    },
+    {
+     "slug": "stash",
+     "score": 30
+    },
+    {
+     "slug": "mikes-song",
+     "score": 29.6
+    },
+    {
+     "slug": "halleys-comet",
+     "score": 28.8
+    },
+    {
+     "slug": "runaway-jim",
+     "score": 28.8
+    },
+    {
+     "slug": "back-on-the-train",
+     "score": 28.7
+    },
+    {
+     "slug": "maze",
+     "score": 28.7
+    },
+    {
+     "slug": "fluffhead",
+     "score": 28
+    },
+    {
+     "slug": "limb-by-limb",
+     "score": 27.9
+    },
+    {
+     "slug": "funky-bitch",
+     "score": 27.8
+    },
+    {
+     "slug": "birds-of-a-feather",
+     "score": 27.7
+    },
+    {
+     "slug": "rift",
+     "score": 27.5
+    },
+    {
+     "slug": "steam",
+     "score": 27.4
+    },
+    {
+     "slug": "divided-sky",
+     "score": 26.3
+    },
+    {
+     "slug": "the-horse",
+     "score": 25.7
+    },
+    {
+     "slug": "llama",
+     "score": 24.9
+    },
+    {
+     "slug": "poor-heart",
+     "score": 23.9
+    },
+    {
+     "slug": "golgi-apparatus",
+     "score": 23.8
+    },
+    {
+     "slug": "you-enjoy-myself",
+     "score": 23.5
+    },
+    {
+     "slug": "sparkle",
+     "score": 23.3
+    },
+    {
+     "slug": "whats-the-use",
+     "score": 23.1
+    },
+    {
+     "slug": "lawn-boy",
+     "score": 23.1
+    },
+    {
+     "slug": "sleeping-monkey",
+     "score": 22.7
+    },
+    {
+     "slug": "acdc-bag",
+     "score": 22.7
+    },
+    {
+     "slug": "the-lizards",
+     "score": 22.2
+    },
+    {
+     "slug": "light",
+     "score": 22.2
+    },
+    {
+     "slug": "sample-in-a-jar",
+     "score": 21.8
+    },
+    {
+     "slug": "the-oh-kee-pa-ceremony",
+     "score": 20.9
+    },
+    {
+     "slug": "gumbo",
+     "score": 20.8
+    },
+    {
+     "slug": "fee",
+     "score": 20.8
+    },
+    {
+     "slug": "prince-caspian",
+     "score": 20.6
+    },
+    {
+     "slug": "loving-cup",
+     "score": 20.6
+    },
+    {
+     "slug": "555",
+     "score": 20.2
+    },
+    {
+     "slug": "cities",
+     "score": 20.2
+    },
+    {
+     "slug": "the-squirming-coil",
+     "score": 20.1
+    },
+    {
+     "slug": "julius",
+     "score": 20.1
+    },
+    {
+     "slug": "mountains-in-the-mist",
+     "score": 19.7
+    },
+    {
+     "slug": "wilson",
+     "score": 19.6
+    },
+    {
+     "slug": "boogie-on-reggae-woman",
+     "score": 19.4
+    },
+    {
+     "slug": "ya-mar",
+     "score": 19.2
+    },
+    {
+     "slug": "meatstick",
+     "score": 18.7
+    },
+    {
+     "slug": "nicu",
+     "score": 18.6
+    },
+    {
+     "slug": "hold-your-head-up",
+     "score": 18.3
+    },
+    {
+     "slug": "walls-of-the-cave",
+     "score": 18.1
+    },
+    {
+     "slug": "bug",
+     "score": 18.1
+    },
+    {
+     "slug": "waste",
+     "score": 17.4
+    },
+    {
+     "slug": "more",
+     "score": 17.4
+    },
+    {
+     "slug": "sneakin-sally-thru-the-alley",
+     "score": 17.3
+    },
+    {
+     "slug": "taste",
+     "score": 17.3
+    },
+    {
+     "slug": "scent-of-a-mule",
+     "score": 17.3
+    },
+    {
+     "slug": "i-am-hydrogen",
+     "score": 17.2
+    },
+    {
+     "slug": "gotta-jibboo",
+     "score": 17.1
+    },
+    {
+     "slug": "guelah-papyrus",
+     "score": 17
+    },
+    {
+     "slug": "foam",
+     "score": 16.9
+    },
+    {
+     "slug": "when-the-circus-comes",
+     "score": 16.9
+    },
+    {
+     "slug": "cars-trucks-buses",
+     "score": 16.9
+    },
+    {
+     "slug": "punch-you-in-the-eye",
+     "score": 16.8
+    },
+    {
+     "slug": "my-soul",
+     "score": 16.6
+    },
+    {
+     "slug": "esther",
+     "score": 16.4
+    },
+    {
+     "slug": "nellie-kane",
+     "score": 16.4
+    },
+    {
+     "slug": "mercury",
+     "score": 16.3
+    },
+    {
+     "slug": "horn",
+     "score": 16.2
+    },
+    {
+     "slug": "its-ice",
+     "score": 16.1
+    },
+    {
+     "slug": "train-song",
+     "score": 16
+    },
+    {
+     "slug": "undermind",
+     "score": 15.6
+    },
+    {
+     "slug": "farmhouse",
+     "score": 15.5
+    },
+    {
+     "slug": "my-friend-my-friend",
+     "score": 15.2
+    },
+    {
+     "slug": "axilla-part-ii",
+     "score": 15.2
+    },
+    {
+     "slug": "i-didnt-know",
+     "score": 15.2
+    },
+    {
+     "slug": "buried-alive",
+     "score": 15
+    },
+    {
+     "slug": "the-landlady",
+     "score": 14.9
+    },
+    {
+     "slug": "icculus",
+     "score": 14.9
+    },
+    {
+     "slug": "crosseyed-and-painless",
+     "score": 14.8
+    },
+    {
+     "slug": "timber-jerry-the-mule",
+     "score": 14.8
+    },
+    {
+     "slug": "fuego",
+     "score": 14.6
+    },
+    {
+     "slug": "evolve",
+     "score": 14.5
+    },
+    {
+     "slug": "kill-devil-falls",
+     "score": 14.4
+    },
+    {
+     "slug": "good-times-bad-times",
+     "score": 14.4
+    },
+    {
+     "slug": "a-song-i-heard-the-ocean-sing",
+     "score": 14.3
+    },
+    {
+     "slug": "bold-as-love",
+     "score": 13.6
+    },
+    {
+     "slug": "sweet-adeline",
+     "score": 13.6
+    },
+    {
+     "slug": "mcgrupp-and-the-watchful-hosemasters",
+     "score": 13.1
+    },
+    {
+     "slug": "ocelot",
+     "score": 12.9
+    },
+    {
+     "slug": "guyute",
+     "score": 12.8
+    },
+    {
+     "slug": "meat",
+     "score": 12.7
+    },
+    {
+     "slug": "rock-and-roll",
+     "score": 12.7
+    }
+   ],
+   "modelEra20TopN": [
+    {
+     "slug": "the-moma-dance",
+     "score": 53
+    },
+    {
+     "slug": "46-days",
+     "score": 52.6
+    },
+    {
+     "slug": "piper",
+     "score": 51.3
+    },
+    {
+     "slug": "bathtub-gin",
+     "score": 49.3
+    },
+    {
+     "slug": "slave-to-the-traffic-light",
+     "score": 47.3
+    },
+    {
+     "slug": "down-with-disease",
+     "score": 47.1
+    },
+    {
+     "slug": "wolfmans-brother",
+     "score": 47.1
+    },
+    {
+     "slug": "chalk-dust-torture",
+     "score": 44.5
+    },
+    {
+     "slug": "ghost",
+     "score": 43.8
+    },
+    {
+     "slug": "harry-hood",
+     "score": 42.3
+    },
+    {
+     "slug": "tube",
+     "score": 40.8
+    },
+    {
+     "slug": "also-sprach-zarathustra",
+     "score": 40
+    },
+    {
+     "slug": "first-tube",
+     "score": 37.7
+    },
+    {
+     "slug": "character-zero",
+     "score": 35.9
+    },
+    {
+     "slug": "tweezer",
+     "score": 35.5
+    },
+    {
+     "slug": "tweezer-reprise",
+     "score": 35.3
+    },
+    {
+     "slug": "blaze-on",
+     "score": 35.3
+    },
+    {
+     "slug": "the-wedge",
+     "score": 33.5
+    },
+    {
+     "slug": "twist",
+     "score": 33.4
+    },
+    {
+     "slug": "walls-of-the-cave",
+     "score": 33.4
+    },
+    {
+     "slug": "free",
+     "score": 33.2
+    },
+    {
+     "slug": "steam",
+     "score": 32.5
+    },
+    {
+     "slug": "sand",
+     "score": 32.4
+    },
+    {
+     "slug": "run-like-an-antelope",
+     "score": 32
+    },
+    {
+     "slug": "carini",
+     "score": 31.8
+    },
+    {
+     "slug": "cavern",
+     "score": 31.3
+    },
+    {
+     "slug": "theme-from-the-bottom",
+     "score": 31
+    },
+    {
+     "slug": "david-bowie",
+     "score": 30.5
+    },
+    {
+     "slug": "split-open-and-melt",
+     "score": 29.5
+    },
+    {
+     "slug": "roggae",
+     "score": 28.7
+    },
+    {
+     "slug": "simple",
+     "score": 28.5
+    },
+    {
+     "slug": "limb-by-limb",
+     "score": 28.4
+    },
+    {
+     "slug": "back-on-the-train",
+     "score": 28.3
+    },
+    {
+     "slug": "birds-of-a-feather",
+     "score": 28.2
+    },
+    {
+     "slug": "weekapaug-groove",
+     "score": 27.3
+    },
+    {
+     "slug": "light",
+     "score": 27.3
+    },
+    {
+     "slug": "halleys-comet",
+     "score": 27.1
+    },
+    {
+     "slug": "reba",
+     "score": 25.9
+    },
+    {
+     "slug": "bouncing-around-the-room",
+     "score": 25.8
+    },
+    {
+     "slug": "stash",
+     "score": 25.5
+    },
+    {
+     "slug": "possum",
+     "score": 25.4
+    },
+    {
+     "slug": "555",
+     "score": 25.3
+    },
+    {
+     "slug": "a-song-i-heard-the-ocean-sing",
+     "score": 25.2
+    },
+    {
+     "slug": "mikes-song",
+     "score": 24.5
+    },
+    {
+     "slug": "runaway-jim",
+     "score": 24.2
+    },
+    {
+     "slug": "silent-in-the-morning",
+     "score": 24.1
+    },
+    {
+     "slug": "mountains-in-the-mist",
+     "score": 23.9
+    },
+    {
+     "slug": "maze",
+     "score": 23.8
+    },
+    {
+     "slug": "whats-the-use",
+     "score": 23.8
+    },
+    {
+     "slug": "suzy-greenberg",
+     "score": 23.4
+    },
+    {
+     "slug": "more",
+     "score": 22.4
+    },
+    {
+     "slug": "rift",
+     "score": 22
+    },
+    {
+     "slug": "divided-sky",
+     "score": 21.7
+    },
+    {
+     "slug": "boogie-on-reggae-woman",
+     "score": 21.6
+    },
+    {
+     "slug": "scents-and-subtle-sounds",
+     "score": 21.4
+    },
+    {
+     "slug": "mercury",
+     "score": 21.4
+    },
+    {
+     "slug": "funky-bitch",
+     "score": 20.6
+    },
+    {
+     "slug": "undermind",
+     "score": 20.6
+    },
+    {
+     "slug": "bug",
+     "score": 20
+    },
+    {
+     "slug": "lawn-boy",
+     "score": 19.9
+    },
+    {
+     "slug": "seven-below",
+     "score": 19.9
+    },
+    {
+     "slug": "fuego",
+     "score": 19.7
+    },
+    {
+     "slug": "evolve",
+     "score": 19.6
+    },
+    {
+     "slug": "loving-cup",
+     "score": 19.6
+    },
+    {
+     "slug": "kill-devil-falls",
+     "score": 19.5
+    },
+    {
+     "slug": "sample-in-a-jar",
+     "score": 19.3
+    },
+    {
+     "slug": "cities",
+     "score": 19.2
+    },
+    {
+     "slug": "llama",
+     "score": 19.1
+    },
+    {
+     "slug": "the-horse",
+     "score": 19.1
+    },
+    {
+     "slug": "acdc-bag",
+     "score": 18.9
+    },
+    {
+     "slug": "prince-caspian",
+     "score": 18.8
+    },
+    {
+     "slug": "you-enjoy-myself",
+     "score": 18.6
+    },
+    {
+     "slug": "sleeping-monkey",
+     "score": 18.1
+    },
+    {
+     "slug": "ocelot",
+     "score": 18
+    },
+    {
+     "slug": "no-men-in-no-mans-land",
+     "score": 17.7
+    },
+    {
+     "slug": "meatstick",
+     "score": 17.4
+    },
+    {
+     "slug": "poor-heart",
+     "score": 17.4
+    },
+    {
+     "slug": "gotta-jibboo",
+     "score": 17.3
+    },
+    {
+     "slug": "nicu",
+     "score": 17.3
+    },
+    {
+     "slug": "golgi-apparatus",
+     "score": 17.3
+    },
+    {
+     "slug": "wilson",
+     "score": 17.1
+    },
+    {
+     "slug": "oblivion",
+     "score": 17.1
+    },
+    {
+     "slug": "gumbo",
+     "score": 17
+    },
+    {
+     "slug": "most-events-arent-planned",
+     "score": 16.8
+    },
+    {
+     "slug": "rock-and-roll",
+     "score": 16.6
+    },
+    {
+     "slug": "waste",
+     "score": 16.5
+    },
+    {
+     "slug": "julius",
+     "score": 16.4
+    },
+    {
+     "slug": "taste",
+     "score": 16.3
+    },
+    {
+     "slug": "crosseyed-and-painless",
+     "score": 16.2
+    },
+    {
+     "slug": "everythings-right",
+     "score": 16.1
+    },
+    {
+     "slug": "drift-while-youre-sleeping",
+     "score": 15.9
+    },
+    {
+     "slug": "hey-stranger",
+     "score": 15.7
+    },
+    {
+     "slug": "ya-mar",
+     "score": 15.5
+    },
+    {
+     "slug": "plasma",
+     "score": 15.1
+    },
+    {
+     "slug": "fluffhead",
+     "score": 15.1
+    },
+    {
+     "slug": "golden-age",
+     "score": 14.7
+    },
+    {
+     "slug": "sneakin-sally-thru-the-alley",
+     "score": 14.7
+    },
+    {
+     "slug": "halfway-to-the-moon",
+     "score": 14.5
+    },
+    {
+     "slug": "the-squirming-coil",
+     "score": 14.4
+    },
+    {
+     "slug": "martian-monster",
+     "score": 14.3
+    },
+    {
+     "slug": "sparkle",
+     "score": 14.2
+    },
+    {
+     "slug": "pebbles-and-marbles",
+     "score": 13.9
+    },
+    {
+     "slug": "leaves",
+     "score": 13.8
+    },
+    {
+     "slug": "horn",
+     "score": 13.8
+    },
+    {
+     "slug": "scent-of-a-mule",
+     "score": 13.7
+    },
+    {
+     "slug": "pillow-jets",
+     "score": 13.2
+    },
+    {
+     "slug": "life-saving-gun",
+     "score": 13.1
+    },
+    {
+     "slug": "the-lizards",
+     "score": 13
+    },
+    {
+     "slug": "cars-trucks-buses",
+     "score": 13
+    },
+    {
+     "slug": "wading-in-the-velvet-sea",
+     "score": 12.9
+    },
+    {
+     "slug": "the-oh-kee-pa-ceremony",
+     "score": 12.8
+    },
+    {
+     "slug": "i-am-hydrogen",
+     "score": 12.6
+    },
+    {
+     "slug": "timber-jerry-the-mule",
+     "score": 12.4
+    },
+    {
+     "slug": "farmhouse",
+     "score": 12.4
+    },
+    {
+     "slug": "punch-you-in-the-eye",
+     "score": 12.2
+    },
+    {
+     "slug": "saw-it-again",
+     "score": 12.1
+    },
+    {
+     "slug": "when-the-circus-comes",
+     "score": 12
+    },
+    {
+     "slug": "fee",
+     "score": 11.9
+    },
+    {
+     "slug": "about-to-run",
+     "score": 11.7
+    },
+    {
+     "slug": "set-your-soul-free",
+     "score": 11.6
+    }
+   ],
+   "modelEra30TopN": [
+    {
+     "slug": "the-moma-dance",
+     "score": 53.2
+    },
+    {
+     "slug": "46-days",
+     "score": 52.6
+    },
+    {
+     "slug": "piper",
+     "score": 49.5
+    },
+    {
+     "slug": "bathtub-gin",
+     "score": 49
+    },
+    {
+     "slug": "slave-to-the-traffic-light",
+     "score": 48.2
+    },
+    {
+     "slug": "wolfmans-brother",
+     "score": 46
+    },
+    {
+     "slug": "down-with-disease",
+     "score": 45.9
+    },
+    {
+     "slug": "chalk-dust-torture",
+     "score": 43.7
+    },
+    {
+     "slug": "ghost",
+     "score": 43.3
+    },
+    {
+     "slug": "tube",
+     "score": 42.3
+    },
+    {
+     "slug": "blaze-on",
+     "score": 42.3
+    },
+    {
+     "slug": "harry-hood",
+     "score": 41.3
+    },
+    {
+     "slug": "steam",
+     "score": 39.1
+    },
+    {
+     "slug": "also-sprach-zarathustra",
+     "score": 39
+    },
+    {
+     "slug": "first-tube",
+     "score": 38.8
+    },
+    {
+     "slug": "sand",
+     "score": 37.8
+    },
+    {
+     "slug": "light",
+     "score": 36.5
+    },
+    {
+     "slug": "character-zero",
+     "score": 35.2
+    },
+    {
+     "slug": "the-wedge",
+     "score": 34.7
+    },
+    {
+     "slug": "tweezer",
+     "score": 34.6
+    },
+    {
+     "slug": "tweezer-reprise",
+     "score": 34.6
+    },
+    {
+     "slug": "free",
+     "score": 32.6
+    },
+    {
+     "slug": "twist",
+     "score": 32.6
+    },
+    {
+     "slug": "555",
+     "score": 32.5
+    },
+    {
+     "slug": "carini",
+     "score": 31.7
+    },
+    {
+     "slug": "run-like-an-antelope",
+     "score": 31.6
+    },
+    {
+     "slug": "theme-from-the-bottom",
+     "score": 31.3
+    },
+    {
+     "slug": "cavern",
+     "score": 30.7
+    },
+    {
+     "slug": "walls-of-the-cave",
+     "score": 30
+    },
+    {
+     "slug": "split-open-and-melt",
+     "score": 29.8
+    },
+    {
+     "slug": "back-on-the-train",
+     "score": 29.1
+    },
+    {
+     "slug": "roggae",
+     "score": 28.8
+    },
+    {
+     "slug": "david-bowie",
+     "score": 28.4
+    },
+    {
+     "slug": "kill-devil-falls",
+     "score": 28.4
+    },
+    {
+     "slug": "simple",
+     "score": 27.5
+    },
+    {
+     "slug": "fuego",
+     "score": 27.5
+    },
+    {
+     "slug": "more",
+     "score": 27.5
+    },
+    {
+     "slug": "undermind",
+     "score": 27.5
+    },
+    {
+     "slug": "halleys-comet",
+     "score": 27.3
+    },
+    {
+     "slug": "birds-of-a-feather",
+     "score": 26.9
+    },
+    {
+     "slug": "ocelot",
+     "score": 26.7
+    },
+    {
+     "slug": "silent-in-the-morning",
+     "score": 26.6
+    },
+    {
+     "slug": "mercury",
+     "score": 26.5
+    },
+    {
+     "slug": "weekapaug-groove",
+     "score": 26.4
+    },
+    {
+     "slug": "a-song-i-heard-the-ocean-sing",
+     "score": 25.4
+    },
+    {
+     "slug": "possum",
+     "score": 25.4
+    },
+    {
+     "slug": "reba",
+     "score": 25.4
+    },
+    {
+     "slug": "limb-by-limb",
+     "score": 25.4
+    },
+    {
+     "slug": "bouncing-around-the-room",
+     "score": 25.3
+    },
+    {
+     "slug": "whats-the-use",
+     "score": 25.2
+    },
+    {
+     "slug": "suzy-greenberg",
+     "score": 25
+    },
+    {
+     "slug": "no-men-in-no-mans-land",
+     "score": 24.7
+    },
+    {
+     "slug": "stash",
+     "score": 24
+    },
+    {
+     "slug": "funky-bitch",
+     "score": 23.9
+    },
+    {
+     "slug": "mikes-song",
+     "score": 23.9
+    },
+    {
+     "slug": "maze",
+     "score": 23.2
+    },
+    {
+     "slug": "fluffhead",
+     "score": 22.7
+    },
+    {
+     "slug": "rift",
+     "score": 22.2
+    },
+    {
+     "slug": "golden-age",
+     "score": 22
+    },
+    {
+     "slug": "runaway-jim",
+     "score": 21.9
+    },
+    {
+     "slug": "halfway-to-the-moon",
+     "score": 21.2
+    },
+    {
+     "slug": "everythings-right",
+     "score": 21.1
+    },
+    {
+     "slug": "the-horse",
+     "score": 20.9
+    },
+    {
+     "slug": "martian-monster",
+     "score": 20.3
+    },
+    {
+     "slug": "backwards-down-the-number-line",
+     "score": 20.1
+    },
+    {
+     "slug": "divided-sky",
+     "score": 19.8
+    },
+    {
+     "slug": "boogie-on-reggae-woman",
+     "score": 19.8
+    },
+    {
+     "slug": "meatstick",
+     "score": 19.3
+    },
+    {
+     "slug": "cities",
+     "score": 19
+    },
+    {
+     "slug": "mountains-in-the-mist",
+     "score": 18.6
+    },
+    {
+     "slug": "plasma",
+     "score": 18.4
+    },
+    {
+     "slug": "lawn-boy",
+     "score": 18.4
+    },
+    {
+     "slug": "sleeping-monkey",
+     "score": 18.3
+    },
+    {
+     "slug": "loving-cup",
+     "score": 18.2
+    },
+    {
+     "slug": "prince-caspian",
+     "score": 18
+    },
+    {
+     "slug": "drift-while-youre-sleeping",
+     "score": 18
+    },
+    {
+     "slug": "bug",
+     "score": 17.9
+    },
+    {
+     "slug": "crosseyed-and-painless",
+     "score": 17.8
+    },
+    {
+     "slug": "gumbo",
+     "score": 17.6
+    },
+    {
+     "slug": "stealing-time-from-the-faulty-plan",
+     "score": 17.5
+    },
+    {
+     "slug": "acdc-bag",
+     "score": 17.2
+    },
+    {
+     "slug": "sample-in-a-jar",
+     "score": 17.2
+    },
+    {
+     "slug": "most-events-arent-planned",
+     "score": 17.2
+    },
+    {
+     "slug": "julius",
+     "score": 16.7
+    },
+    {
+     "slug": "gotta-jibboo",
+     "score": 16.4
+    },
+    {
+     "slug": "golgi-apparatus",
+     "score": 16.4
+    },
+    {
+     "slug": "poor-heart",
+     "score": 16.4
+    },
+    {
+     "slug": "you-enjoy-myself",
+     "score": 16.2
+    },
+    {
+     "slug": "sugar-shack",
+     "score": 16.1
+    },
+    {
+     "slug": "sparkle",
+     "score": 15.9
+    },
+    {
+     "slug": "set-your-soul-free",
+     "score": 15.8
+    },
+    {
+     "slug": "scents-and-subtle-sounds",
+     "score": 15.7
+    },
+    {
+     "slug": "nicu",
+     "score": 15.6
+    },
+    {
+     "slug": "rock-and-roll",
+     "score": 15.1
+    },
+    {
+     "slug": "wilson",
+     "score": 14.9
+    },
+    {
+     "slug": "waste",
+     "score": 14.8
+    },
+    {
+     "slug": "llama",
+     "score": 14.8
+    },
+    {
+     "slug": "seven-below",
+     "score": 14.7
+    },
+    {
+     "slug": "shade",
+     "score": 14.5
+    },
+    {
+     "slug": "joy",
+     "score": 14.4
+    },
+    {
+     "slug": "sneakin-sally-thru-the-alley",
+     "score": 14.3
+    },
+    {
+     "slug": "farmhouse",
+     "score": 13.8
+    },
+    {
+     "slug": "when-the-circus-comes",
+     "score": 13.6
+    },
+    {
+     "slug": "winterqueen",
+     "score": 13.3
+    },
+    {
+     "slug": "say-it-to-me-santos",
+     "score": 13.2
+    },
+    {
+     "slug": "about-to-run",
+     "score": 13.1
+    },
+    {
+     "slug": "the-lizards",
+     "score": 13
+    },
+    {
+     "slug": "leaves",
+     "score": 12.9
+    },
+    {
+     "slug": "evolve",
+     "score": 12.8
+    },
+    {
+     "slug": "nellie-kane",
+     "score": 12.8
+    },
+    {
+     "slug": "twenty-years-later",
+     "score": 12.7
+    },
+    {
+     "slug": "the-squirming-coil",
+     "score": 12.6
+    },
+    {
+     "slug": "ya-mar",
+     "score": 12.5
+    },
+    {
+     "slug": "punch-you-in-the-eye",
+     "score": 12.3
+    },
+    {
+     "slug": "train-song",
+     "score": 12.3
+    },
+    {
+     "slug": "my-soul",
+     "score": 12
+    },
+    {
+     "slug": "taste",
+     "score": 11.9
+    },
+    {
+     "slug": "scent-of-a-mule",
+     "score": 11.9
+    },
+    {
+     "slug": "timber-jerry-the-mule",
+     "score": 11.7
+    },
+    {
+     "slug": "wading-in-the-velvet-sea",
+     "score": 11.4
     }
    ],
    "freq": [

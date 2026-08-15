@@ -12,15 +12,16 @@
 > `0001_schema.sql` comment. `wrangler` commands in this doc are literal for that reason.
 > `'kalphishi'` also stays in the reserved-handle list — a retired brand is exactly what
 > somebody would register to look official.
-**Written:** 2026-08-14 (replaces the 2026-08-09 version, which predates the rename,
-calibration, the Nerd Zone, track pre-caching and the first-run wizard)
 
-> **Production is current; one branch is ahead of it.** `main` is at `2b90570`, everything
-> on it is deployed and green, 242 tests pass, and **no migrations are pending**
-> (`0008_invite_groups.sql` is applied to remote).
+**Written:** 2026-08-14, late (replaces the earlier 2026-08-14 version, which predates the
+reach listing, the Nerd Zone merge, the diagnostics, and both model experiments)
+
+> **Production is current and nothing is unmerged.** `main` is at `3c92d80`, everything on it
+> is deployed and green, **272 tests pass**, and **no migrations are pending**
+> (`0008_invite_groups.sql` is applied to remote). The working tree is clean.
 >
-> **`nerd-zone` is code-complete and unmerged** — two commits, reviewed but not yet approved
-> to merge. It is the only unmerged work. See "In progress".
+> The previous version of this doc opened by saying `nerd-zone` was code-complete and
+> unmerged. It is merged. There is no outstanding branch.
 
 Still **closed beta** (~30 testers). The URL is public and registration is open, but this is
 not a public launch — say "in beta," never "launched."
@@ -29,775 +30,559 @@ not a public launch — say "in beta," never "launched."
 
 ## Current goal
 
-**Accumulate graded predictions.** The track record holds **one graded show**. Everything
-the model claims rests on the walk-forward backtest, not on live results, and that only
-changes when real people predict real shows. Dick's is **2026-09-04** (a three-night run),
-roughly four weeks out, and is the best available shot at a burst of them.
+**Accumulate graded predictions.** The track record holds **one graded show**. Everything the
+model claims rests on the walk-forward backtest, not on live results, and that only changes
+when real people predict real shows. Dick's is **2026-09-04 to 09-06** (Fri/Sat/Sun, Labor Day
+weekend), about three weeks out, and is the best available shot at a burst of them.
 
-A cohort of willing phans is being assembled to test through to it. So the priority order
-is: remove what could **lose** a tester, then what could **stop one playing**, then
-everything else. The app is shipped and good enough; what it needs is players, not features.
+**The remaining blocker is not code, and has not been for a while.** Every in-app blocker is
+closed — group onboarding, invite reach, day-one empty states, password recovery, the first-run
+wizard, the pre-lock nudge. What was missing was *reach*: nothing the app can do touches a
+tester who does not open it, and there is deliberately no mail, no service worker and no push.
 
-**Every blocker in that list is now closed** (see Next steps §0) — group onboarding, invite
-reach, day-one empty states, password recovery, the first-run wizard. The session that closed
-them also shipped calibration, gapless playback and the Nerd Zone.
+That is now as solved as it is going to get before Dick's, in two halves:
 
-**One thing has not moved all session, and it is the one that matters most: reach.** There is
-no email, no push, no service worker — verified, not assumed. Nothing the app can do reaches
-a tester who does not open it. Every feature above assumes somebody who already did. With
-~30 people who are already in a group chat, **a message in that chat beats building a
-notification pipeline**, and it is the difference between graded predictions existing at
-Dick's and not. If only one thing happens before the show, make it that.
+- **The campaign is written** — `reach.md`, six messages over three weeks, ready to paste.
+- **The targeting exists** — `GET /api/admin/reach` answers "who has not predicted the next
+  open show", per game, so the messages can be aimed and checked afterwards.
+
+**What has not happened is a human sending message 1.** That is the single highest-value action
+available and it needs no code. If only one thing happens before the show, make it that.
 
 ## Done
 
+### This session (2026-08-14)
+
+- **Reach listing** — `GET /api/admin/reach`, admin-gated like moderation and scoring. Defaults
+  to the next show still open, resolved through `lockState` so it can never disagree with the
+  lock the save route enforces; rolls to night two the moment night one locks; returns
+  `show: null` after the run rather than erroring. `?showdate=` overrides, locked dates
+  included. Per game, ordered warmest first. Handle only, never the email. **It sends nothing
+  and a test asserts it never learns how.** Verified live: 403 without a token, 403 with a
+  wrong one, 404 for a route that does not exist.
+- **`reach.md`** — the campaign the listing aims. Six messages, when to send each, how to pull
+  the @ list. Not published (the build allowlist takes named files only).
+- **The Nerd Zone shipped**, including the judgement call that had been holding it: it publishes
+  the finding that the slot logic *costs* accuracy.
+- **Nerd Zone diagnostics** — four measurements the walk-forward had been making, printing once
+  and throwing away. See below.
+- **Bayesian shrinkage: measured and rejected.** Kept as the record of what was tried.
+- **Fitted dueness: measured, published as a sixth arm**, and it tops the table.
+
+### The diagnostics (Nerd Zone, below the approach picker)
+
+Measurements of the shipping model, **not** approaches. Nothing there re-ranks anything and
+there is nothing to select — a diagnostic leaking into `LENS_ARMS` would become selectable, and
+selecting it would re-rank the site under a lens with no ranking behind it while still rendering
+a plausible number. `test/diagnostics.test.mjs` asserts the separation.
+
+| diagnostic | what it says |
+|---|---|
+| One show is mostly luck | 4.98 hits mean, but the middle 80% is 2–8 and the range 1–13. Drawn as a histogram because the *shape* is the finding. |
+| Never reachable | 2.13 songs/night have no play in the trailing 30, capping recall at 88.6%. Of what *is* reachable the model finds 31.3%. |
+| Is it holding up | Model recall is flat while the baseline collapses 23.9% → 17.4% and unreachable rises to 2.65/night. |
+| Do the percentages mean anything | Isotonic, out of sample over 145 shows: average miss 0.41pp, worst row 4.9pp, top bucket plays 26%. |
+
+They ride in `data/arms.json`, **not** `data/backtest.json` — see Gotchas.
+
+**The drift finding is the most interesting thing measured here and nothing else surfaces it:**
+the model is not improving; the naive baseline is collapsing because the band is rotating
+harder. 2026 is simultaneously the model's worst absolute year and its best relative one.
+
+### The arm menu, as it now stands
+
+| arm | precision | recall | hits/show | vs baseline |
+|---|---|---|---|---|
+| Fitted dueness | **30.9%** | **29.2%** | **5.25** | +5.01pp, z 4.47 |
+| No slot logic | 30.1% | 28.5% | 5.12 | +4.26pp, z 3.62 |
+| Day curve *(shipping)* | 29.3% | 27.7% | 4.98 | +3.45pp, z 2.82 |
+| Show-gap recency | 26.4% | 25.0% | 4.48 | +0.74pp, z 0.65 |
+| Recent, minus repeats | 25.7% | 24.2% | 4.37 | baseline |
+| Most played lately | 13.4% | 12.9% | 2.28 | −11.31pp |
+
 ### Model and scoring
-- **Walk-forward backtest** (`scripts/backtest.js`). Re-predicts all 174 shows in the era
-  window against naive baselines, with paired standard errors and a per-year split. The
-  model core lives in `lib/model.mjs` so the backtest and production run the same code; it
-  throws if handed a row dated on/after the target show.
-- **Day-repeat curve** replaced the show-gap recency term. Recall 25.0% → 27.7%, precision
-  26.4% → 29.3%. `k` chosen on shows through 2024 by the one-standard-error rule, confirmed
-  on 78 held-out shows (+2.57pp, se 0.83, z 3.08). Reproduce: `npm run backtest -- --tune`.
-- **Setlist points** (`lib/scoring.mjs`): 1/call capped at 10, +2 exact placement, +5
-  openers, +5 Set 2 closer, +4 Set 1 closer, +2 per encore song, −1 per wrong guess past a
-  10/10/5 soft cap. Row points *derive* the score, so a breakdown cannot drift from the
-  number beside it.
+
+- **Walk-forward backtest** (`scripts/backtest.js`). Re-predicts all 174 shows in the era window
+  against naive baselines, with paired standard errors and a per-year split. The model core
+  lives in `lib/model.mjs` so the backtest and production run the same code; it throws if handed
+  a row dated on/after the target show.
+- **Day-repeat curve** replaced the show-gap recency term. Recall 25.0% → 27.7%. `k` chosen on
+  shows through 2024 by the one-standard-error rule, confirmed on 78 held-out shows (+2.57pp,
+  se 0.83, z 3.08). Reproduce: `npm run backtest -- --tune`.
+- **Calibration is isotonic, not Platt** (`lib/calibration.mjs`), fitted by `npm run backtest`,
+  applied in `analyze.js`. Every candidate carries `p` alongside `score`, shown as a **Chance**
+  column. Platt was tried and rejected on evidence: it beat the base rate on Brier and log loss
+  and was still unusable, saying 74.6% where reality was 35.0%. **This is why the reliability
+  table is printed and not just Brier.** The honest ceiling is ~29% — even the highest-scoring
+  candidate plays about three times in ten.
+- **`p` is attached in `analyze.js` AFTER `buildModel` returns.** `lib/model.mjs` never sees a
+  probability, so nothing in the assembly can start ranking on one. Do not move it inside — but
+  see the Gotchas: the *reason* previously given for this was wrong.
+- **Setlist points** (`lib/scoring.mjs`): 1/call capped at 10, +2 exact placement, +5 openers,
+  +5 Set 2 closer, +4 Set 1 closer, +2 per encore song, −1 per wrong guess past a 10/10/5 soft
+  cap. Row points *derive* the score, so a breakdown cannot drift from the number beside it.
 - **Scored-setlist view** — a graded prediction redraws as the setlist it was, colour-coded,
   with per-set subtotals and a show total.
 
 ### Platform
-- **Prediction lock** at the published downbeat, scraped at build time
-  (`scripts/fetch-showtimes.js`) and enforced **server-side** (423).
+
+- **Prediction lock** at the published downbeat, scraped at build time and enforced
+  **server-side** (423). Dick's locks at 19:30 America/Denver each night — 21:30 ET.
 - **Moderation** — `GET /api/admin/users`, `PATCH /api/admin/users/:handle` behind
-  `ADMIN_TOKEN`. Rename or ban; a ban revokes sessions and hides the account without
-  deleting data.
-- **Password reset** — see its own section below.
-- **Display-text hardening** — NFKC + invisible/bidi stripping, length cap on registration,
-  avatar must actually be an emoji.
+  `ADMIN_TOKEN`. Rename or ban; a ban revokes sessions and hides the account without deleting
+  data.
+- **Password reset** — operator-minted single-use `/?reset=…` links (24h), handed over out of
+  band. **Deliberately not self-service**: a public forgot-password route with no mail delivery
+  could only verify the requester by something already in the database, which is the same thing
+  an attacker would have. Only `sha256(token)` is stored; issuing supersedes; redemption burns
+  the link and revokes **every** session; no session is issued on redeem; banned accounts are
+  refused at issue *and* re-checked at redemption.
+- **Group invites** — one link both befriends the owner and joins the redeemer to the group.
+  `invites.group_id` is a nullable FK with **ON DELETE SET NULL**, not CASCADE. Minting a group
+  link is **owner-only** and **re-checked at redemption**. The "already friends" early return
+  requires membership **as well as** friendship — on friendship alone a group link handed to an
+  existing friend would report success and join nobody.
+- **Invite defaults are 10 uses / 30 days**, both editable at creation, with **0 meaning no
+  limit**. `pickLimit` in `worker.mjs` keeps "field omitted" distinct from "explicitly 0" —
+  collapsing those is exactly how every early link ended up unlimited.
+- **Display-text hardening** — NFKC + invisible/bidi stripping, length cap, avatar must be an
+  emoji.
 - **Leaderboard split** — setlist points and bingo scores are separate and never averaged.
 
 ### The app surface
+
 - Landing view opens on the games: **45,175px → ~2,700px on a phone**.
-- Tabs are **Phish Bingo | Setlist Bets | Data**, with **Play a Show pinned to the right of
-  the same row**. Play a Show used to float on the banner above the row; it read as elevated
-  above the things it is a peer of. Only the **"Updated" stamp** stays on the banner — it
-  describes the data behind Data and is not somewhere you go.
-- **Data has six sub-tabs**: Predicted Setlist · Song Rotation · Album Coverage · Venue
-  History · Ranked Songs · **Nerd Zone**. Six fills the mobile `repeat(3, 1fr)` grid as a
-  clean 3+3. Pill-to-card mapping is by **exact string identity** between `DATA_TABS` and each
-  card's `dataset.section` — a typo on either side makes a tab that silently shows nothing,
-  and a test now checks every tab has a card.
+- Tabs are **Phish Bingo | Setlist Bets | Data**, with **Play a Show pinned right on the same
+  row**. Only the "Updated" stamp stays on the banner.
+- **Data has six sub-tabs**: Predicted Setlist · Song Rotation · Album Coverage · Venue History ·
+  Ranked Songs · **Nerd Zone**. Pill-to-card mapping is by **exact string identity** between
+  `DATA_TABS` and each card's `dataset.section`; a test checks every tab has a card.
 - **`const sections = [...app.children]` is a ONE-TIME snapshot**, taken after every card is
-  appended. A card appended later is never in the show/hide loop and renders on *every*
-  sub-tab at once — which looks like a CSS bug and is not one. Anything that re-renders a
-  card must refill the **existing element**, never replace it, or that card stops hiding.
-- **The standings are not a tab.** They were briefly, and it cost a permanent slot in the
-  row a phone can least afford for something read occasionally. They now open **per game
-  from that game's Actions menu** (`boardMenuItem`/`boardPanel` in `predictor.js`), plus a
-  standalone button on a scored bingo card, which has no Actions row and is the screen most
-  likely to prompt "where did that put me". **Per game, not combined:** the two scales are
-  never merged, so one board would have had to rank by one game and print the other's number
-  beside it. The API orders by setlist points, so the bingo board **re-ranks and re-filters
-  client-side** — somebody with only setlist scores is absent from the bingo board, not last
-  on it.
-- **The row shortens below 560px** — `Bingo | Setlist | Data` with `▶ Play` pinned right
-  (`▶ Play a Show` above it). `SHORT_LABELS` and `narrowTabs` in `index.html`, plus a
-  matching `@media (max-width: 560px)` for the button. **The JS breakpoint and that CSS rule
-  size one row between them and must agree** — a test asserts it. They didn't once: labels
-  switched at 460px while the full-length set needs ~522px, so 461–530 (tablets) wrapped to
-  two rows, invisible at both ends of the range. A further `@media (max-width: 360px)` trims
-  tab padding for 320px. Labels are chosen in JS at render time, so a `matchMedia` listener
-  rebuilds the row on rotate. **Swept 320 → 1440 after every change to it; tightest is 320px
-  with 50px spare.**
-  - Play was briefly the **bare ▶** here. That was only ever forced by the short-lived
-    Leaderboard tab competing for the same row; with three tabs the word fits everywhere,
-    and an unlabelled triangle asked the reader to guess. Don't reintroduce it without
-    re-measuring — the room exists now.
-- **Rotating tagline** — `TAGLINES` in `web/index.html`, currently 25. The list is meant to
-  grow; new lines go there and nowhere else. The picker draws uniformly and only excludes
-  the immediately previous line, so it needs no change as the list grows *or shrinks*.
-  **No tagline names the app any more.** Two that did were cut in the rename rather than
-  translated, and the Meatstick line renders it as `basu tabu de no kake` — so a future
-  rename does not have to hunt through the jokes.
-- **The light rig** (the `CK5` comment block in `index.html`). A dark hall behind the top of
-  the page carries angled beams from mirrored fixture positions, blended additively so
-  crossings brighten, masked so light falls off rather than ending on an edge. Cards are
-  translucent so it reads through them. Peaks on save and on BINGO. Parked by
-  `IntersectionObserver` when scrolled away.
-- **Control row, both games, left to right:** Save · Ask Diego? · ⟶ Actions pinned right.
-  Two buttons and a menu, nothing else — Actions holds Randomize, Our Prediction,
-  Reload last save, Clear, Standings and the scoring rules, and is deliberately the furthest
-  thing from Save. **Reload sits above Clear**: the way back is read before the way to need
-  it, and Clear stays the last of the pair, furthest from a stray press.
-- **The row holds one line at 375px and that is load-bearing.** It measures 282px in a 290px
-  row. Adding a fourth control puts it over: that is why **Reload last save lives in Actions**
-  rather than on the row, and why **Actions is a ⋮ below 560px** (the word costs 100px to say
-  what the glyph says in 44). `.p-row .p-btn` also trims side padding to 12px on touch. Any
-  new control here has ~8px of slack — put it in the menu instead.
-- **Ask Diego? randomizes** (it does *not* use the model — that is Our Prediction,
-  one press away in Actions) and stays on the row so it can be pressed repeatedly. Locked
-  bingo squares survive a re-roll, which is what makes repeat-pressing useful.
-- **Lock mode** (bingo only, from Actions) turns the whole card into a lock picker: a tap on
-  any filled square toggles its lock, instead of aiming at an 11px icon in the corner of a
-  60px cell. While it is on, **Ask Diego? is replaced by "Lock it in"**, which is the way
-  out — it displaces that button specifically because re-rolling is the thing locks exist to
-  survive, so offering the roll mid-lock invites pressing it before the locks are set.
-  Drag-to-reorder, the × and the empty-cell picker are all suppressed while it runs: every
-  one of them competes for the same tap, and a delete button beside a lock target turns a
-  mis-tap into a lost song. A banner above the grid says the mode is on, because otherwise
-  three affordances silently stopping reads as the page being broken.
-- **There is no per-square lock button any more.** Building a card, an unlocked square shows
-  nothing in that corner and a locked one shows a non-interactive 🔒 — state, not a control.
-  Don't put the button back: 24 controls nobody was aiming at is what Lock mode replaced.
-- **Inside Lock mode there are no icons on the grid at all** — a locked square is a **red
-  border** (`--lock`, its own token because `--miss` is fenced to results and a locked square
-  is not a wrong answer). 24 padlocks on a 5×5 fought the song titles for the same pixels,
-  and a border reads across the whole card at once rather than one cell at a time.
-  `aria-pressed` on each cell is what keeps the state readable without the glyph.
-- **Part-filled bingo cards save.** No minimum: nothing server-side enforced one, and
-  `scoreBingoPrediction` already skips empty cells and still divides by 24, so an unfinished
-  card just scores fewer hits. `bingoLine` treats the donut as always-counting.
-- **A saved bingo card stays editable until the show locks.** Checking squares off is a
-  during-the-show act, so the lock starts it, not the save.
-- **The scoring panel is scoped to the game you are in**, closes on an outside click, and
-  the full both-games reference lives in the account menu. The standings panel behaves
-  identically and for the same reasons — including the outside-click exemption, since a
-  click inside either one is somebody reading it.
-- **The account menu is ordered by engagement, not by architecture:** the identity block
-  (avatar, name, totals) **is** the Profile button, then My History, Friends, How scoring
-  works, Sign out. Friends sits inside the loop people return for rather than below the
-  reference material. **Change password lives at the foot of Profile**, not in the menu — it
-  is account maintenance and was taking a top-level slot ahead of the social loop.
-- Bingo squares reorder — drag on desktop, tap-then-tap on touch. All tap targets ≥44px.
+  appended. A card appended later renders on *every* sub-tab at once — which looks like a CSS
+  bug and is not one. Anything that re-renders a card must refill the **existing element**.
+- **The standings are not a tab.** They open **per game from that game's Actions menu**, plus a
+  standalone button on a scored bingo card. Per game, not combined: the two scales are never
+  merged. The API orders by setlist points, so the bingo board **re-ranks client-side**.
+- **The row shortens below 560px.** **The JS breakpoint and the CSS rule size one row between
+  them and must agree** — a test asserts it. Swept 320 → 1440 after every change; tightest is
+  320px with 50px spare.
+- **Rotating tagline** — `TAGLINES` in `web/index.html`, currently 25. **No tagline names the
+  app any more**, so a future rename does not have to hunt through the jokes.
+- **The light rig** (the `CK5` comment block). Parked by `IntersectionObserver` when scrolled
+  away.
+- **Control row, both games:** Save · Ask Diego? · ⟶ Actions pinned right. **The row holds one
+  line at 375px and that is load-bearing** — 282px in a 290px row. Any new control has ~8px of
+  slack; put it in the menu instead.
+- **Ask Diego? randomizes** (it does *not* use the model — that is Our Prediction, one press
+  away in Actions).
+- **Lock mode** (bingo only) turns the card into a lock picker; a locked square is a **red
+  border** (`--lock`), not an icon. `aria-pressed` carries the state.
+- **Part-filled bingo cards save.** A saved bingo card stays editable until the show locks.
+- **The account menu is ordered by engagement, not architecture.** Change password lives at the
+  foot of Profile.
+- **First-run wizard** — five steps inline above the game, never over it. "Seen" is
+  `profile.wizardSeen`, needing `PROFILE_FLAGS` kept separate from `PROFILE_FIELDS`: running
+  `sanitizeLine` over a boolean persists the string `"true"`, truthy on the way back out.
+- **Pre-lock nudge** — a strip above the control row, only for a signed-in user with no saved
+  prediction for the open show *in the game they are looking at*. Dismissible per show and per
+  game. A strip, **not a modal**: the landing view opens on the games on purpose.
 
 ### Audio
-- `web/relisten.js` plays past shows from **Song Rotation** (dates), **Venue History**
-  (every song, that show's performance — 846 across 42 shows), **Ranked Songs** (the
-  performance phish.in's users have liked most) and the **Play a Show** view.
-- **A show plays straight through and stops at the last track.** Never rolls into the next
-  show, never loops. Nothing *starts* without a press; advancing is the continuation of a
-  press that already happened. That bound is what keeps the draw on phish.in's privately
-  funded bandwidth proportional to actual listening.
-- Relisten indexes; **phish.in hosts the bytes**, and the recordings are audience tapes
-  shared under Phish's taping policy for **non-commercial** use. Hence: Data side only,
-  nothing autoplays, `preload="none"`, and credit to both renders with the player rather
-  than buried in a footer. Tests guard all of it.
 
-### Password reset (2026-08-09)
-```
-POST /api/admin/users/:handle/reset   ADMIN_TOKEN, returns the link once
-POST /api/password/reset              unauthenticated, the token is the proof
-```
-An operator mints a single-use `/?reset=…` link (24h) and hands it over out of band, because
-nothing is ever sent to the address on file. **Deliberately not self-service**: a public
-forgot-password route with no mail delivery could only verify the requester by something
-already in the database, which is the same thing an attacker would have.
+- `web/relisten.js` plays past shows from Song Rotation, Venue History, Ranked Songs and Play a
+  Show. **A show plays straight through and stops at the last track.** Nothing *starts* without
+  a press.
+- **phish.in hosts the bytes** under Phish's taping policy for **non-commercial** use. Hence:
+  Data side only, nothing autoplays, `preload="none"`, credit rendered with the player.
+- **Gapless: the 255ms gap is 0ms**, measured off real transport events. Two `Audio` decks
+  ping-ponging; `currentMp3` is the only answer to "what is playing". Preload fires late via
+  `timeupdate` ~20–30s from the end, which keeps the draw on phish.in's bandwidth proportional
+  to actual listening. `assets.test.mjs` guards that specifically — it does not show up as a
+  broken feature when it regresses, it shows up as somebody else's bill.
 
-Properties, all verified against a real D1 rather than by reading the code — only
-`sha256(token)` is stored; issuing supersedes any outstanding link; redemption burns it and
-revokes **every** session; missing/spent/expired return one identical message; no session is
-issued on redeem, so the new password must be proved by signing in with it; banned accounts
-are refused at issue *and* re-checked at redemption. `newToken()` lives in `auth.mjs` and
-`newSession` uses it too, so session and reset tokens are the same strength by construction.
+### Cache policy
 
-### Group invites (2026-08-09, on `group-invites` — not yet deployed)
-```
-POST /api/invites            { groupId?, maxUses?, expiresInDays? }   owner-only for groupId
-POST /api/invites/:code/redeem   befriends the owner AND joins the group, one batch
-```
-`invites.group_id` is a nullable FK with **ON DELETE SET NULL**, not CASCADE: deleting a
-group must not revoke links people are already holding — it degrades to the plain friend
-invite the link always also was. Redemption re-resolves the group anyway, so a dangling id
-fails safe even with foreign keys off.
-
-Verified end-to-end against a real local D1, not by reading the code: an existing friend
-redeeming a group link still joins; re-opening a spent-on-you link is a no-op that doesn't
-burn a use; a non-owner minting into someone else's group gets 404; deleting the group
-leaves the link working as a friend invite. The unit tests are source-property assertions in
-`test/group-invites.test.mjs` — same pattern and same reason as the password-reset ones.
-
-### Cache policy (2026-08-09)
-`web/_headers`, published to `public/_headers` by the build:
-```
-/            no-cache
-/index.html  no-cache
-/web/*       public, max-age=31536000, immutable
-```
-`index.html` is the one file whose URL never changes and it carries the `?v=` stamps, so a
-stale copy pins a visitor to a stale bundle — the symptom reads as "the feature you shipped
-isn't there". The scripts are content-hashed, so revalidating them was a wasted round trip
-per script per page load. `/data/*.json` are **deliberately absent**: they are not hashed and
+`web/_headers`, published to `public/_headers` by the build: `/` and `/index.html` `no-cache`;
+`/web/*` immutable for a year. `/data/*.json` are **deliberately absent** — not hashed, they
 change in place, so they keep revalidating.
 
 ## In progress
 
-**Branch `nerd-zone` — code complete, reviewed, NOT merged.** Two commits, 242 tests
-passing, working tree clean, no migration involved. It adds the Nerd Zone sub-tab and lets a
-chosen approach drive Our Prediction (see Next steps item 4 for what it is and why).
+**Nothing.** The era lenses shipped — see below. What follows is the record of what they cost
+and what they proved, because two of the three findings generalise well beyond this feature.
 
-Nothing blocks the merge technically. What was left open is a **judgement call, deliberately
-not made unilaterally**: the Nerd Zone publishes the finding that the shipping model's slot
-logic *costs* accuracy — 28.5% recall without it against 27.7% with it. Publishing that is
-in keeping with how the rest of the app treats its own numbers, and it is the app's own
-credibility being spent. The alternative is to keep `modelTopN` out of the menu.
+### Era what-if lenses — BUILT
 
-One cosmetic thing to eyeball before merging, because the Browser pane's compositing failed
-during the last checks and it is verified by measurement only: the `🛟 <approach>` chip on
-the game heading row at 375px.
+`era = 'off' | '1.0' | '2.0' | '3.0'` on `buildModel`, a centred log-lift beside the day and
+dueness terms. Three menu entries under their own "Or a what-if" heading, sorted below the
+approaches and flagged `whatIf`.
+
+| lens | recall | vs modelTopN | vs control |
+|---|---|---|---|
+| Sounds like 1.0 | 25.1% | −3.36pp, z −4.65 | −4.06pp |
+| Sounds like 2.0 | 27.9% | −0.60pp, z −0.94 | −1.29pp |
+| Sounds like 3.0 | 29.2% | +0.68pp, z 1.35 | **−0.02pp, z −0.05** |
+
+**There is no 4.0 and there must never be one.** `buildModel`'s leakage guard inspects the
+*rows* it is handed; an era table arrives as a *parameter*, so the guard structurally cannot see
+it. Safety comes from the data: 1.0/2.0/3.0 close in 2000, 2004 and 2020, all before the first
+graded target, so each table is a constant across the walk-forward — *safer* than the day curve,
+which refits per target. Era 4.0 overlaps every graded show; it would report inflated accuracy
+and pass the whole suite. `scripts/build-eras.js` refuses to write any era touching the window
+and a test asserts it.
+
+**Three findings worth more than the feature:**
+
+- **The third test for a new scoring term.** `lib/shrinkage.mjs` gives two (an affine transform
+  of an existing quantity cannot reorder; a tail-only change cannot buy recall). Add: **does it
+  beat the same term with its new data deleted?** Era 3.0 passes both existing tests and fails
+  this one at z −0.05 — its entire gain is the log *shape*, not the era table. The control is
+  `modelLogFreqTopN`: same machinery, era rates replaced by the model's own in-window rate.
+  Measured and printed, never published, because nobody can select it.
+- **Reordering decisively is not reordering correctly.** Era 1.0 moves the top of the list hard
+  — 48/174 shows tie, against shrinkage's 104 — and still loses 3.4pp. That is the opposite of
+  shrinkage's failure and a distinct one.
+- **A free +0.70pp is sitting there.** The control arm — centred log of the model's own recent
+  play rate — beats `modelTopN` by +0.70pp at **z 2.46**, which is real by this repo's own bar
+  and better than the era lens it exists to debunk. It is not built into anything. Worth taking
+  seriously as an actual model change, tuned and held out properly.
+
+**Done so far — the data exists now, which it did not before.** `scripts/fetch-eras.js` pulls
+all-time setlists; `data/setlists-<year>.json` covers **every year 1983–2026** (44 files, 79MB,
+gitignored). The model still reads only 2022+ — `scripts/backtest.js` hardcodes the year list —
+so the extra files are inert until something asks for them.
+
+**Era definitions, verified against the data. They tile Phish's performing history with zero
+orphan dates:**
+
+| era | span | shows | distinct songs | ρ vs current (4.0) |
+|---|---|---|---|---|
+| 1.0 | 1983-12-02 → 2000-10-07 | 1201 | 628 | **0.551** |
+| 2.0 | 2002-12-31 → 2004-08-15 | **63** | 222 | **0.699** |
+| 3.0 | 2009-03-06 → 2020-03-01 | 444 | 514 | **0.785** |
+| 4.0 | 2021-07-01 → present | 250 | 366 | — |
+
+**Three findings that shape whatever gets built:**
+
+- **It is viable.** Rank correlation against the current era is 0.55–0.79, nowhere near 1, so an
+  era bias genuinely reorders the *current* candidate pool rather than being a no-op. It also
+  degrades monotonically with distance in time, which is the sanity check you want.
+- **Era 2.0 is dangerously thin — 63 shows against 1.0's 1201, a 19× difference in evidence.**
+  A "10%" song in 2.0 carries a ±7.4pp confidence interval against 1.0's ±1.7pp, and 132 of its
+  222 songs have under 5 plays. Raw prevalence is **not comparable across eras**, and an arm
+  built on it would make 2.0 the loudest and noisiest option in the menu.
+- **`lib/shrinkage.mjs` is the right tool for exactly this**, and this is the case it was built
+  for. It was rejected this morning because a *common* denominator makes `(k+α)/(n+α+β)` affine
+  in `k` and therefore incapable of reordering. Across eras the denominators differ 19×, so it is
+  not affine and does real work — damping 2.0 hard while leaving 1.0 almost untouched.
+
+**Boundary handling is already correct and needs no special-casing.** The model's existing
+`prepareRows` filter (`artistid===1`, `!exclude`, `set!=='s'`) leaves exactly **2002-12-31** as
+2.0's first show, matching the era definition. The 61 dates it drops across 43 years are
+rehearsals and sessions — Anastasio's house, Fish's house, MTV Studios, NPR, a wedding — plus
+day-before festival warmups of 3–8 songs, mostly "Jam". **Every real festival performance night
+is already counted** (Clifford Ball, Big Cypress, IT, Coventry, Super Ball, Mondegreen all
+present with full `1/2/3/e` structure).
+
+**Open:** which mechanism. Candidates are an additive log-lift term (matching how `dayrepeat.mjs`
+and `hazard.mjs` already work), swapping the base frequency term, blending current and era
+frequency, or widening the candidate pool to reach songs outside the current rotation. The
+pool-widening option looks weakest: the songs it would surface are mostly one-off covers
+(`uncle-pen`, `take-the-a-train`, `amazing-grace`), not the beloved bustouts.
+
+**Expect era arms to score BELOW the shipping model** and plan the framing for that — an arm
+that predicts 2026 as though it were 1998 *should* lose. The Nerd Zone has to publish that
+honestly without it reading as a failed experiment.
 
 ## Next steps
 
-### 0. Social readiness — before the cohort arrives
-
-Verified against the code 2026-08-08. Friendships form **only** by redeeming an invite link;
-they are instant, mutual, and have no approval step. Groups are owner-created, owner-managed,
-and members must already be friends.
-
-1. ~~Onboarding thirty people is about sixty manual steps~~ — **done on `group-invites`,
-   2026-08-09.** An invite can now carry a group (`invites.group_id`), so one link both
-   befriends the owner and joins the redeemer to the group. Thirty people is one link.
-
-   The alternative — a standalone join-by-group code — was **rejected, don't revisit it
-   without a reason**: group membership is drawn from the owner's friends, and carrying the
-   group on the existing invite preserves that exactly, because by the time the membership
-   insert runs the redeemer is already the owner's friend, established in the same batch. A
-   standalone code would put non-friends on a group leaderboard and would break the
-   friend-removal cascade, which assumes friendship implies the membership.
-
-   Two decisions inside it worth keeping. Minting a group link is **owner-only** and
-   **re-checked at redemption** against the invite's owner, the same way the reset flow
-   re-checks bans — the mint-time check can be weeks stale by the time anyone opens the
-   link. And the "already friends" early return now requires membership **as well as**
-   friendship: on friendship alone, a group link handed to an existing friend would report
-   success and join nobody. That is the one bug this feature is shaped to avoid, and there
-   is a test named for it.
-
-2. ~~Decide the invite link's default reach~~ — **done on `group-invites`, 2026-08-09.**
-   The answer to "confirm they are surfaced" was **no**: the client posted `{}` and every
-   link ever created was unlimited-use and never-expiring. New links now default to
-   **10 uses / 30 days**, both editable at creation, with **0 meaning no limit**.
-
-   `pickLimit` in `worker.mjs` keeps "field omitted" distinct from "explicitly 0" —
-   collapsing those is exactly how every link ended up unlimited, since the old code fell
-   through to NULL for both. Existing unlimited links are untouched; the ~30 testers holding
-   them keep what they have.
-
-3. ~~Look at day one for a brand-new tester~~ — **walked 2026-08-09, empty states fixed on
-   `group-invites`.** Findings worth keeping:
-
-   - **The Data tab is fully populated on day one** — it is model output, not user data. All
-     five sub-tabs are rich for someone who registered a minute ago. The empty surfaces are
-     only the social ones, which is a much smaller problem than it looked.
-   - The Friends board said *"scores appear once a show is graded"* to someone with **no
-     friends at all** — wrong about the cause, and it prescribed waiting at the exact moment
-     the reader should be sharing a link. Now distinguishes no-one-here from nobody-graded,
-     and does the same for a group that is still just its owner.
-   - ~~The leaderboard is buried inside My History~~ — **fixed 2026-08-09, then moved
-     again 2026-08-10: it is now `🏆 Standings` in each game's Actions menu, scoped to that
-     game.** It was briefly a fourth tab; that cost a permanent slot in the one row a phone
-     can least afford, for something read occasionally. Per game rather than combined
-     because the two scales are never merged — one board had to rank by setlist points and
-     print the bingo number beside it, which reads as a single ranking with a stray number
-     attached. Still **viewable signed out** on the everyone scope, which the route always
-     allowed. My History keeps only the prediction list.
-   - Minor, unresolved: an empty bingo card offers only **Ask Diego?** and the **⋮** — no
-     Save until something is picked, so day one shows a 5×5 of `＋` with no stated goal.
-     Defensible (nothing to save yet), but nobody has decided it.
-
-4. ~~Whether anything nudges a tester to predict before a show locks~~ — **closed
-   2026-08-10, in-app half built, outbound half deliberately not.**
-
-   **Built:** a pre-lock strip above the control row (`predictNudge` in `predictor.js`,
-   `.p-nudge`). Shows only to a signed-in user with **no saved prediction for the open show
-   in the game they are looking at**, and disappears the instant one is saved, so it cannot
-   nag somebody who already did the thing it asks for. Dismissible per show *and* per game
-   — plenty of people only ever play one — via a `bb-nudge-<mode>-<showdate>` localStorage
-   key. Two tiers only: calm, and inside 48h it gains an ⏳, the countdown inline, and the
-   `--lock` red border. The heading-row countdown already carries the exact figure, so this
-   only has to say "soon" or "now or never". A strip, **not a modal**: the landing view opens
-   on the games on purpose, and a dialog in front of that undoes what it is asking for.
-
-   **Not built, and this is the honest part: none of it solves reach.** It can only ever
-   speak to somebody who already opened the app, which is not the population at risk.
-   Verified there is no outbound channel of any kind today — no mail capability anywhere
-   (no MailChannels/SendGrid/Resend/SMTP/`send_email` in `src/`, `scripts/`, `wrangler.jsonc`
-   or the dependency tree), no service worker, no web manifest, no `Notification` /
-   `PushManager` / VAPID code.
-
-   **The decision: for a ~30-person closed beta you already have in a group chat, a human
-   message is the channel.** Zero code, and it works today. Do not build a push pipeline
-   before Dick's.
-
-   What a later build would need, so it does not have to be rediscovered:
-   - **The trigger already exists and is proven.** `wrangler.jsonc` runs
-     `["0 13,17,21 * * *"]`, and `scheduled()` in `worker.mjs` already wakes three times a
-     day, queries D1 and reasons about showdates — it grades finished shows and sweeps
-     sessions. A "who has no prediction for the next show" query drops into running
-     machinery.
-   - **Repeat-suppression is the missing table.** Three-times-daily reminders for 25 days is
-     how a cohort mutes you. Needs a per-user, per-show "notified" record; nothing today.
-   - **Email is not the cheap option it looks like.** `users.email` has **never been
-     verified**, and mail delivery is the one thing this project deliberately avoided —
-     password reset is hand-delivered out of band precisely because of it. It would also be
-     the app's first external service dependency.
-   - **Web push** needs a service worker, manifest, VAPID keys and a subscriptions table,
-     and on iOS only works if the tester adds the app to their Home Screen.
-
-5. ~~Password recovery~~ — **done 2026-08-09**, see above.
-
-6. ~~First-run setup wizard~~ — **built 2026-08-10.** `WIZARD_STEPS` / `renderWizard` in
-   `predictor.js`, `.p-wiz` in `index.html`.
-
-   **Shape:** a five-step card **inline above the game, never over it** — the landing view
-   opens on the games deliberately, and a dialog in front of that undoes the thing it is
-   trying to get somebody to do. Skip in one press from any step. Steps: who you are (the
-   only one that asks for anything — display name and avatar) → two games, scored separately
-   → how to fill one in → it closes at the downbeat → playing against people.
-
-   **"Seen" is `profile.wizardSeen`.** `users.profile` is already a JSON blob with a
-   merge-not-replace PUT, so this needed **no migration**. It does need `PROFILE_FLAGS` in
-   `worker.mjs`, kept separate from `PROFILE_FIELDS`: the text sanitisers do not apply to a
-   boolean, and running `sanitizeLine` over one persists the string `"true"`, which is
-   truthy on the way back out and looks fine until something compares it to `true`.
-
-   **It does not fill a card for you at the end, though that was the plan.** The fill and
-   save routines are closures inside each builder over `grid`/`build`; reaching them from
-   the wizard meant hoisting them or clicking my own buttons by label — coupling the intro
-   to the internals of both games to save one tap. The last step hands off to the pre-lock
-   nudge (item 4), which renders the instant the wizard clears and says exactly that, with
-   the real button beside it. The wizard and the nudge are mutually exclusive by
-   construction, so they never stack.
-
-   **Existing testers see it once.** No backfill: it is five steps and a Skip, and they have
-   not seen most of what it describes either.
-
-   Still open, and deliberately not guessed at: whether the intro should ever be
-   *re-openable* from the ☰ menu once dismissed. Nothing currently offers a way back to it.
-
-   Why it belongs here rather than under "Then": the day-one walk found the app is *legible*
-   but not *self-explaining*. A first-timer lands on an empty 5×5 of `＋` with no Save button
-   and no stated goal (see the unresolved note in item 3), two games whose scoring differs and
-   is never merged, a Standings panel now folded inside an Actions menu, and an invite system
-   that is the entire point of the social side and is mentioned nowhere on the way in. Each
-   was a defensible call on its own; together they assume a visitor who explores. A cohort
-   that has to be told how the app works, one Discord message at a time, is the same
-   onboarding cost group invites just removed.
-
-   **What it should cover** — smallest set that makes someone self-sufficient, in order:
-   pick a display name and avatar; the two games are separate and separately scored; how to
-   fill a card (Ask Diego? / Our Prediction / by hand) and that a part-filled card
-   saves; predictions close at the downbeat and cannot be edited after; where Standings live
-   and that Friends/Groups need an invite link; and — for anyone who arrived by invite —
-   that they are already connected to whoever sent it.
-
-   **Constraints, from decisions already made elsewhere in this doc:**
-   - **Skippable, and never blocking.** The landing view opens on the games deliberately;
-     a modal wall in front of that undoes it.
-   - **Resumable, and dismissible for good.** Needs a per-user "seen" flag. `users.profile`
-     is already a JSON blob with a merge-not-replace PUT, so this needs no migration.
-   - **Must not fight the invite flow.** `/?invite=CODE` already stashes the code through
-     registration and redeems on first session (`redeemPendingInvite`). The wizard fires at
-     the same moment; whichever runs second must not talk over the other's flash message.
-   - **Signed-out visitors get nothing.** The everyone-scope Standings and the whole Data
-     tab are open by design as the reason to register — the wizard is for after that.
-
-   **Open questions:** whether it is a modal, a dismissible strip above the card, or a
-   coach-marked pass over the real UI; whether it ends by *making* a prediction for the open
-   show (strongest finish — it produces the graded prediction the project needs, and Ask
-   Diego? fills a card in one press) or just points at it; and whether returning testers who
-   predate it ever see it.
-
-### Then
-
-1. **Pre-cache the next track — HIGH priority, after the cohort blockers.**
-
-   **The gap is 255ms, measured.** Captured off real transport events by grabbing the
-   module's detached `Audio` and seeking to two seconds before a track's end:
-
-   ```
-   ended        0 ms   Sample in a Jar
-   waiting     +1 ms   next track
-   loadstart   +1 ms
-   canplay   +255 ms
-   playing   +255 ms   Sparkle
-   ```
-
-   The whole gap is one network round-trip. `advance()` fires in ~1ms, so nothing in our code
-   is slow; `preload="none"` simply means the fetch cannot start until the previous track has
-   ended. Expect ~255ms on desktop broadband; do not go looking for a bug in `advance()`.
-
-   **Shape that fits:** two `Audio` elements ping-ponging — one plays while the other holds
-   the next track pre-buffered, swap on `ended`, the old one becomes the next preloader. A
-   single element cannot do this: assigning `.src` tears down the buffer it is playing from.
-
-   **Preload late, via `timeupdate`, ~20-30s from the end.** This is what keeps it honest.
-   Most sessions stop mid-track, so preloading at track start would fetch files nobody hears
-   — and phish.in pays for that. Being 20s from the end is a strong signal somebody is
-   actually listening. Same reasoning that put `preload="none"` there; see the header block
-   in `relisten.js`.
-
-   **Two things that will bite:**
-   - `paint()` decides the playing row with `a.src === t.mp3`, and `advance()` locates itself
-     with `queue.findIndex(t => t.mp3 === audio.src)`. Both assume ONE element. Two makes
-     "which src counts" ambiguous, and the failure lands exactly at the swap. Needs an
-     explicit active-element concept before either is touched.
-   - iOS Safari restricts multiple media elements and largely ignores `preload` on cellular.
-     Expect a desktop-and-Android improvement only.
-
-   ### ~~Done 2026-08-10~~ — **the gap is 0ms, measured the same way**
-
-   ```
-   ended     0 ms   deck 0   Sample in a Jar
-   playing   0 ms   deck 1   Sparkle
-   ```
-
-   Same show and same track pair as the 255ms capture above, so the two are directly
-   comparable. The `waiting → loadstart → canplay` sequence that *was* the entire gap does
-   not appear at all — there is no request at the boundary, because the bytes are already
-   there.
-
-   Both warnings above were real and both were paid. `decks[]`, `active` and `currentMp3`
-   replaced every read of `audio.src`: `currentMp3` is now the only answer to "what is
-   playing", and `trackList` re-reads `decks[active]` on every paint instead of capturing
-   the element once — captured, it would have described and paused the deck that had just
-   finished. The second deck is built lazily inside a `try`, so a browser that refuses it
-   falls back to the old single-element behaviour, gap included.
-
-   Housekeeping that is easy to miss: the finished deck is emptied on swap (a whole decoded
-   show held one track at a time is the slow way to a dead tab), a manual pick cancels any
-   buffered preload rather than leaving it fetching, and only the active deck may repaint —
-   the idle one fires `error` routinely, because emptying it is how a preload is cancelled.
-
-   `assets.test.mjs` gained `preloading stays proportional to actual listening`, which
-   guards the bandwidth rule specifically: gated on `!paused`, gated on the lead time, the
-   lead kept ≤60s, no `play()` anywhere in the preloader, and no double-fetch. None of that
-   shows up as a broken feature when it regresses — it shows up as somebody else's bill.
-
-2. ~~Calibration~~ — **done 2026-08-14, and it is isotonic, not Platt.** `lib/calibration.mjs`,
-   fitted by `npm run backtest`, applied in `analyze.js`. Every candidate in `analysis.json`
-   carries `p` alongside `score`, and **Ranked Songs shows it as a `Chance` column**
-   (2026-08-14), ahead of Score because it is the number a reader can act on. Filter and sort
-   work on it numerically — note the `numCols` indices in that `tableOf` call shifted by one
-   when the column was inserted, and a stale index there silently turns a number column into
-   a substring match rather than erroring.
-
-   **Platt was tried first, as this entry originally specified, and rejected on evidence.**
-   Walk-forward over 145 shows, fitted only on shows before each target:
-
-   | | Brier | log loss | weighted cal. error | worst bucket |
-   |---|---|---|---|---|
-   | base rate | 0.0814 | 0.3011 | — | — |
-   | Platt | 0.0794 | 0.2830 | 1.82pp | **49.6pp** |
-   | isotonic | **0.0777** | **0.2760** | **0.41pp** | **4.9pp** |
-
-   Platt beat the base rate on both aggregate metrics **and was still unusable**: it said
-   74.6% where reality was 35.0%. The aggregates improved because 76% of all candidates sit
-   in the bottom bucket, where it was fine; every bucket above ~20% was badly overconfident.
-   **This is why the reliability table is printed and not just Brier** — Brier alone would
-   have shipped it. A logistic is simply the wrong shape here: real scores flatten at the
-   top, and Platt extrapolates confidence the tail does not support.
-
-   **The honest ceiling is ~29%.** Even the highest-scoring candidate plays about three times
-   in ten. The ranking never revealed that, and it is the single most useful thing
-   calibration produced.
-
-   **The caveat in item 6 is resolved by construction, not by discipline.** `p` is attached in
-   `analyze.js` AFTER `buildModel` returns — `lib/model.mjs` is untouched and never sees a
-   probability, so the four `score > 0` pool gates cannot be affected by anything here.
-   Verified: with `p` attached, the published prediction, the candidate order and every score
-   are byte-identical to the previous `analysis.json`.
-
-   **Known limitation:** the output is coarse. `MIN_BIN = 250` keeps any bin from resting on a
-   handful of shows, so the top five candidates all read 29% and the next three all read 19%.
-   Accurate but blunt. Smoothing it means more data or a different model, not a smaller bin —
-   a smaller bin buys precision the sample cannot support.
-
-   `data/calibration.json` is committed (un-ignored in `.gitignore`) because reproducing it
-   needs a 145-show walk-forward over the raw setlists, which are gitignored.
-3. **Bayesian and Monte Carlo approaches in the Nerd Zone — NEXT, agreed 2026-08-14.**
-   The Nerd Zone menu currently offers five arms that all rank by the same hand-tuned score.
-   These two are genuinely different machinery, and they are **not** interchangeable with
-   each other — they are consecutive layers of one pipeline:
-
-   > Bayesian **fits the parameters** → calibration **turns scores into probabilities**
-   > (done) → Monte Carlo **turns probabilities into outcome odds**.
-
-   A menu that presents them as alternatives teaches the audience most likely to notice it is
-   false. In the Nerd Zone they can still appear as separate rows, because each is a distinct
-   *ranking* a reader can apply — but the copy must say they stack, not compete.
-
-   ### 3a. Bayesian parameter fitting — do this one first
-   Replace the hand-tuned weights in `lib/model.mjs` (`freq × 30`, `−15` just played, `−10`
-   at last tour show, `+8` conspicuously absent, `+2.5` per venue play, the `DAY_CURVE_K`
-   weight) with parameters **fitted from outcomes** rather than chosen by hand.
-
-   - **It changes the ranking**, so unlike calibration it is a real model change and must
-     win on precision and recall, not merely on elegance. It gets an arm in the backtest and
-     lives or dies on the paired test against `freqNoRepeat` like everything else.
-   - **Fit inside the walk-forward**, refitting per target from prior shows only. Fitting
-     once over all 174 and then "evaluating" is the same leak the calibrator had to avoid,
-     and it will look like a large improvement.
-   - Simplest honest version: **logistic regression** on the existing per-song features
-     (era frequency, gap vs own cadence, days since last, tour plays, venue count, slot
-     shares) predicting "played at this show". That IS the Bayesian layer in practice — with
-     a prior/regularisation term it is literally MAP estimation — and it produces a
-     probability directly, which means it may not need the isotonic step at all. **Check its
-     reliability before assuming it does**; a regression's raw output is often already close.
-   - **The `score > 0` trap applies with full force here.** Four pools in `assembleSetlist`
-     gate on it. A fitted model emitting probabilities has no negatives, so those gates go
-     vacuous and the predicted setlist changes silently. Either keep a score-shaped quantity
-     for the gates or replace the gates deliberately, with the setlist diffed before and
-     after. See item 6.
-   - Cheap prerequisite already in place: the walk-forward harness, `lib/baselines.mjs`,
-     `arms.json`, and a UI that will display a sixth arm with no changes at all.
-
-   ### 3b. Monte Carlo odds — harder than it looks, and not blocked by sample size
-   Simulate whole setlists from the probabilities, many times, and report outcome odds:
-   "chance Tweezer opens set 2", "chance of a bustout", "odds your card gets 5 hits".
-
-   - **The blocker is song dependence, and it is structural.** Sampling 120 independent
-     Bernoullis gives 40-song sets, Tweezer Reprise without Tweezer, two openers, and Harry
-     Hood in three places. Real odds need a **joint** distribution: set sizes, slot
-     constraints, segue pairs, and the strong pairwise rules this band actually follows.
-     More graded shows do not help. This is modelling work, not data collection.
-   - **The flat middle makes the payoff smaller than it sounds.** 78 of 120 candidates sit
-     at 17–18%, so simulated odds over that mass would be mush wearing a precise number.
-   - **A sane first version**: sample *set sizes* from history, then draw without replacement
-     using the calibrated probabilities as weights, then apply a small rule table (Reprise
-     requires its parent; one opener; encore drawn from the encore pool). That is defensible
-     and testable — simulate the 174 backtest shows and check the simulated distribution of
-     hits matches the observed one.
-   - **The free thing to ship before any of this: expected hits.** Summing `p` over a card is
-     valid *regardless of dependence*, because expectation is linear. The current predicted
-     setlist is worth ~3.7 hits, and the one graded show returned 4. No simulation required.
-
-   ### What must stay true for both
-   - Every arm in the menu carries its own walk-forward numbers, or it does not go in the
-     menu. That rule is the whole reason the Nerd Zone is defensible.
-   - A lens still may not touch saving, scoring, points, standings or Track Record.
-   - Whatever ships must state its own limits in the card, as the isotonic one does.
-
-4. Deferred, in rough priority: bingo scoring rework, the `obscenity` profanity filter,
-   rehoming the era window / tour totals, rehoming the attendance toggle.
-5. ~~"Nerd Zone"~~ — **BUILT 2026-08-14.** A sixth Data sub-tab after Ranked Songs: explains
-   the approach, and lets a reader re-rank under a *different* one. Was deferred to ~30
-   graded shows; that deferral was void for two reasons that became true the same day.
-
-   **Where a chosen approach reaches, and where it does not.** It re-ranks Predicted Setlist
-   and All candidates, and — added after the first pass — it decides what **Our Prediction**
-   offers in both games, with a `🛟 <approach>` chip on the game's heading row whenever it is
-   not the house model. It reaches **nothing else**: not saving, not scoring, not points, not
-   standings, not Track Record. Nothing about the choice is sent to the server. That is safe
-   only because a prediction is graded against the real setlist and never against the model,
-   so which approach filled a card cannot move a single point — the property to preserve if
-   this is ever extended again. `test/lenses.test.mjs` asserts the save payload carries no
-   lens and that Track Record stays pinned.
-
-   **The chip costs a line on a phone, unavoidably.** At 375px the heading and the lock
-   countdown already fill 288px of a 290px row, so any chip wraps. It lands as
-   heading + chip on one line and the countdown on the next, which reads fine and only
-   happens to a reader who opted into a lens.
-
-   **A slot-less approach still fills all three lists.** Baselines rank but do not assign
-   sets, so their top 17 are laid into the same 8/7/2 shape — otherwise picking one and
-   pressing Our Prediction would half-fill the builder with no explanation.
-
-   **The old blocker was "any alternative mode needs its own walk-forward backtest".
-   Several already have one.** `scripts/backtest.js` has been grading five arms all along,
-   over 174 shows, against paired standard errors:
-
-   | arm | what it is |
-   |---|---|
-   | `model` | day curve — the shipping model |
-   | `modelTopN` | the same scores with the slot logic removed |
-   | `modelShowGap` | the model as it was *before* the day curve |
-   | `freq` | baseline: top-N by trailing-30 frequency |
-   | `freqNoRepeat` | the same, minus anything played ≤3 days ago |
-
-   Those are real, measured, and already computed. A menu built from exactly these presents
-   nothing unvalidated, and each option can show its own precision and recall next to it —
-   which is the opposite of the failure the original entry feared.
-
-   **And calibration shipped with its own 145-show walk-forward**, so probabilities are now
-   the most validated output in the app. Note they went out *without* a mode switch, as the
-   `Chance` column, because they are more honest than the ranking beside them and belong on
-   by default rather than behind a toggle.
-
-   **`buildModel` already accepts `recency: 'days' | 'shows' | 'off'`**, so producing the
-   alternative rankings is a matter of calling it more than once in `analyze.js`. Measured
-   cost: one extra ranking as `(slug, score, p)` is 3.2KB against a 235KB `analysis.json`.
-
-   **Out of scope, and the reasons are not timing:**
-   - **Monte Carlo odds.** Blocked by song *dependence*, not sample size. Sampling 120
-     independent Bernoullis produces 40-song sets, Tweezer Reprise without Tweezer, and two
-     openers. Real odds need a joint distribution — set structure, segue pairs, slot
-     constraints — and none of it exists. Graded shows do not fix this.
-   - Made worse by **the flat middle**: 78 of 120 candidates sit at 17–18%, so simulated odds
-     would be mush wearing a precise-looking number.
-   - **Bayesian parameter fitting.** Worth doing, but it *changes the ranking*, so it is a
-     model change that must win on precision and recall — not a lens, and not a display mode.
-   - **Expected hits is the one odds-flavoured number available free.** Summing `p` over a
-     card is valid *regardless of dependence*, because expectation is linear. The current
-     predicted setlist is worth ~3.7 hits.
-
-   Two conclusions from the original entry that still hold:
-   - Calibrated / Bayesian / Monte Carlo are **not alternatives** — they're layers of one
-     pipeline. A menu presenting them as mutually exclusive teaches the audience most likely
-     to notice something false. The axis for a menu is *which validated ranking*, not *which
-     layer of the pipeline*.
-   - Safe to expose at all only because predictions are graded against the real setlist,
-     never against the model — a reader's choice of lens **cannot** touch their points or the
-     leaderboard. It **would** fragment Track Record, which grades the model, so Track Record
-     stays pinned to the shipping arm.
-6. **Calibration caveat — still live, and still the trap.** Honoured by keeping `p` out of
-   the model entirely (see step 2), but the moment somebody moves it *in* to reuse it inside
-   `assembleSetlist`, all of this applies again. `lib/model.mjs` gates the opener, closer,
-   set-2-opener and encore
-   pools on `c.score > 0` (four places, in the block building `openerPool`/`closerPool`/
-   `s2openPool`/`encorePool`). Score accumulates penalties from zero (−15 just played, −10
-   played at last tour show, −5 for 3+ tour plays) against a base of only `freq × 30`, so
-   those gates are **load-bearing**. A calibrated probability is never ≤ 0, so *replacing*
-   `score` silently makes all four vacuous and changes the predicted setlist. Add `p`
-   alongside `score`; do not swap it. The calibrator must also be fitted inside the
-   walk-forward loop, or the backtest gets optimistically wrong in a way that looks like the
-   calibration helped.
+### 0. Send message 1. Before anything else.
+
+Zero code. `reach.md` has it written. Everything below is worth less than this.
+
+**Mint the invite link with `maxUses: 0` first.** New links default to **10 uses**, which a
+thirty-person chat burns through in an afternoon and then fails silently for the eleventh
+person. This is the one step that happens outside the code and the one that fails quietly.
+
+Then pull the baseline so the campaign can be measured:
+
+```bash
+curl -s -H "x-admin-token: $ADMIN_TOKEN" https://kalphishi.kalphishi.workers.dev/api/admin/reach
+```
+
+Re-read `totals` a few hours after each send. It is the only signal the app can give that a
+message worked.
+
+### 1. Dick's, 4–6 September
+
+Three nights, six cards per tester. The messages for the mornings after nights one and two are
+the **highest-yield in the sequence** and are marked as such in `reach.md`: everything before
+them asks people to act on faith, while those two have real standings behind them. Fill in their
+bracketed figures from the real result — a generic version of those two is worth much less than
+a specific one.
+
+### 2. Dick's is also the clean test of the dueness hypothesis
+
+`modelDuenessTopN` gains over `modelTopN` only in recent years (−1.4pp in 2024, +2.3pp in 2026),
+consistent with the drift measurement. That pattern was noticed *after the fact*, so it is a
+hypothesis, and the 174 shows it was found in cannot test it. **Three graded shows in September
+are the first uncontaminated evidence.** If it holds there, promoting fitted dueness to the
+shipping default becomes a defensible change rather than a marginal one.
+
+Re-run afterwards: `npm run backtest -- --tune-dueness`.
+
+### 3. Model work, in the order the evidence now supports
+
+The shrinkage post-mortem produced a rule that should govern this list: **a change that only
+moves the tail of the ranking cannot buy recall.** 104 of 174 shows scored identically under
+shrinkage because the songs it reordered never reach the top 17.
+
+- **Promote fitted dueness to default** — if Dick's confirms it. See step 2.
+- **Logistic regression on the existing per-song features.** Still the biggest untried idea. Fit
+  **inside** the walk-forward, refitting per target. **It must beat `modelTopN` at 28.5%, not
+  `model` at 27.7%** — beating the shipping arm while losing to "delete the slot code" would not
+  be a win. The real constraint is **not** the `score > 0` gates — those are inert, see Gotchas
+  — it is that a probability is a different quantity from a score, and the whole assembly ranks
+  on whatever it is handed. Swapping one for the other changes the setlist because the ordering
+  changes, not because any filter goes vacuous.
+- **Exponentially-decayed recency instead of the hard trailing-30 window.** Lower confidence than
+  it looked: it mostly re-weights the tail, which is what just failed.
+- **Deferred:** bingo scoring rework, the `obscenity` profanity filter, rehoming the era window /
+  tour totals, rehoming the attendance toggle.
+
+### 4. Monte Carlo odds — closed, with a number
+
+Previously filed as "blocked by song dependence". Now quantified, so it does not need
+rediscovering. Across 30,876 candidate pairs in the cached setlists: **55.2% have never
+co-occurred**, and **75.9% of the pairs that have were seen once or twice**. The joint
+distribution is not thin, it is absent — and more shows will not fix it, because the pair space
+grows quadratically while shows arrive linearly.
+
+*(Computed over the 160 cached setlists, which skew to famous shows, so treat the exact
+percentages as indicative. The conclusion is robust to the sample.)*
+
+**Expected hits remains the free, valid odds-flavoured number** — summing `p` over a card is
+correct regardless of dependence, because expectation is linear. The current predicted setlist is
+worth ~3.7 hits and the one graded show returned 4.
+
+### 5. Festival sensitivity — FLAGGED, deliberately not imminent
+
+Raised 2026-08-14: when a future festival is announced (2027 is the plausible one), the model
+should know, and this is wanted as a contribution to the **base model** rather than as a lens.
+That distinction sets the bar — a base-model term has to clear the walk-forward, which a lens
+does not.
+
+**Festivals really do have their own centre of gravity. Measured, not assumed:**
+
+| | festivals | regular shows |
+|---|---|---|
+| shows (1983–2026) | 27 | 1931 |
+| mean songs/show | **27.6** | 20.1 |
+| distinct songs | 266 | 935 |
+
+Spearman between festival and regular prevalence is **0.747** — the same order of effect as being
+in a different *era* (1.0 vs now is 0.551, 3.0 vs now is 0.785). Most over-represented at
+festivals, against their regular rate: `when-the-circus-comes` 5.8×, `meatstick` 5.6×,
+`scents-and-subtle-sounds` 5.7×, `water-in-the-sky` 4.2×, `boogie-on-reggae-woman` 3.7×,
+`punch-you-in-the-eye` 3.4×. Detected by venue: Plattsburgh Air Force Base, Loring Commerce
+Centre, Oswego County Airport, Big Cypress, Newport State Airport, Empire Polo Club, Watkins
+Glen International, The Woodlands.
+
+**Three things a future session should not have to rediscover:**
+
+- **The model already has a partial version of this.** `isResetVenue` in `lib/tourleg.mjs` matches
+  `watkins glen|the woodlands` among others, and softens the recency penalties through
+  `RESET_VENUE_PENALTY_SCALE = 0.3`. That is festival-shaped behaviour already shipping. Extend
+  it; do not build a second concept beside it.
+- **The forward hook already exists.** `scheduleRows` is passed into `buildModel` for
+  `isNearTourGap`, so the model can already see an announced show before it happens. A declared
+  festival needs no new data plumbing — but note `tour_name` will NOT identify one: Mondegreen is
+  filed as "2024 Summer Tour". **Venue is the signal**, so a curated venue list (or an explicit
+  festival flag) is required.
+- **It cannot be validated by the current harness, and this is the blocker.** Only **4 of the 174
+  backtest shows are festivals** (Mondegreen, 2024-08-15..18). A paired test over 4 shows says
+  nothing. Options, none free: widen the backtest window backwards (all-time setlists are now
+  fetched, see `scripts/fetch-eras.js`, which would bring in 27 festival shows but changes the era
+  window the whole model is tuned on); or accept it as a lens rather than a base-model term; or
+  wait until enough festivals accumulate, which at roughly one every few years is not a plan.
+
+Widening the backtest window is the interesting option and is a bigger change than it sounds —
+every published accuracy figure in the Nerd Zone is measured over the 2022+ window, and moving it
+re-bases all of them at once.
 
 ## Key files
 
-Anchors, not line numbers — an older version of this doc cited a tagline at "line 343" that
-had drifted 80 lines by the time anyone read it.
+Anchors, not line numbers — an older version of this doc cited a tagline at "line 343" that had
+drifted 80 lines by the time anyone read it.
 
 | Path | Role |
 |---|---|
-| `lib/model.mjs` | The prediction model, pure. Leakage guard at the top of `buildModel`. The `score > 0` pool gates are near the bottom. |
-| `lib/dayrepeat.mjs` | Day-since-last-play curve; `DAY_CURVE_K` lives in `model.mjs`. |
-| `lib/calibration.mjs` | score → probability. `fitIsotonic`/`isoProb` are what ship; `fitPlatt`/`plattProb` are kept as the rejected comparison. Plus `brier`, `logLoss`, `reliability`. |
-| `lib/baselines.mjs` | The naive baselines, shared by the backtest and analyze so a shipped ranking cannot drift from the accuracy printed under it. |
-| `lib/scoring.mjs` | Setlist + bingo scoring. `SETLIST_POINTS`, `SETLIST_SOFT_CAP`, per-row `rows`/`setTotals`. Mirrored in `predictor.js`; a test asserts they stay in step. |
+| `reach.md` | The campaign: six messages, timing, how to aim them. Operator doc, not published. |
+| `lib/model.mjs` | The prediction model, pure. Leakage guard at the top of `buildModel`. The `score > 0` pool gates are near the bottom. Options: `recency`, `freqEstimator`, `dueness`, `era`. The note beside the pool gates explains why they are inert. |
+| `lib/hazard.mjs` | Relative-time dueness curve — elapsed days over the song's *own* median gap. Header carries the full measured verdict and the held-out confound. |
+| `lib/shrinkage.mjs` | **Measured and rejected**, kept as the record. Explains why common-denominator shrinkage cannot reorder anything, and why the per-window version that can still does not help. |
+| `lib/dayrepeat.mjs` | The *absolute* day curve. Different quantity from hazard.mjs — both apply. |
+| `lib/calibration.mjs` | score → probability. `fitIsotonic`/`isoProb` ship; `fitPlatt`/`plattProb` kept as the rejected comparison. Plus `brier`, `logLoss`, `reliability`. |
+| `lib/baselines.mjs` | The naive baselines, shared by backtest and analyze so a shipped ranking cannot drift from the accuracy printed under it. |
+| `lib/scoring.mjs` | Setlist + bingo scoring. Mirrored in `predictor.js`; a test asserts they stay in step. |
 | `lib/showtime.mjs` | Showtime parsing, venue→timezone, `lockStateFor`, `preferResolved`. |
 | `lib/identity.mjs` | Email/handle rules **and** `sanitizeLine`/`sanitizeBlock`/`sanitizeAvatar`. |
-| `src/auth.mjs` | Hashing, sessions, cookies. `newToken()` mints both session and reset tokens. `RESET_TTL_MS`, `PBKDF2_ITERATIONS`. |
-| `src/worker.mjs` | Every route. Lock check, admin endpoints, password reset. Static assets are served **before** this runs. |
+| `src/auth.mjs` | Hashing, sessions, cookies. `newToken()` mints both session and reset tokens. |
+| `src/worker.mjs` | Every route. Lock check, admin endpoints, password reset, **`/api/admin/reach`**. Static assets are served **before** this runs. |
 | `src/db.mjs` | D1 queries; `NOT_BANNED` and the split stats. |
 | `src/showtimes.generated.mjs` | Generated lock table bundled into the Worker. Do not hand-edit. |
-| `web/index.html` | Everything: all CSS, dashboard, tab bar, banner. Find by symbol — `TAGLINES`, the `CK5` block, `.hall`/`.rig`, `renderTabs`, `stage-actions`, `venueShowsGrid`, `songCell`. |
-| `web/predictor.js` | The games. `initPredictor(mount, A, opts)`. `renderBingo` holds swap + lock logic; `actionsMenu`; `renderPasswordReset`. |
-| `web/relisten.js` | The audio player. `slugify` is the single source of truth for phish.in slugs. `bind(container)` wires `data-listen-*`; `playFrom()` is the only way playback starts; `advance()` stops at the queue end. |
-| `web/_headers` | Cache policy. Opposite rules for the HTML and the hashed scripts — read the file, it explains why. |
-| `scripts/build-public.js` | The deploy allowlist, the content-hash stamping, and publishing `_headers`. Throws if a stamp matches nothing. |
-| `scripts/backtest.js` | Dev tool. `--experiments`, `--tune`. Needs gitignored raw setlists. Also writes `data/calibration.json` and `data/arms.json` unconditionally. |
-| `data/calibration.json` | Fitted isotonic bins. **Committed, never published** — analyze bakes `p` into `analysis.json`. |
-| `data/arms.json` | Walk-forward accuracy per approach. Same deal: committed, not published, baked into `analysis.json` as `lenses`. |
-| `.github/workflows/deploy.yml` | Fires on push to `main`. Tests gate the deploy. Deliberately does **not** run migrations. |
+| `web/index.html` | Everything: all CSS, dashboard, tab bar, banner, Nerd Zone + diagnostics. Find by symbol — `TAGLINES`, the `CK5` block, `renderTabs`, `nz-diag`, `nz-picker`. |
+| `web/predictor.js` | The games. `renderBingo` holds swap + lock logic; `actionsMenu`; `renderPasswordReset`; `predictNudge`; `renderWizard`. |
+| `web/relisten.js` | The audio player. `decks[]`/`active`/`currentMp3`. `playFrom()` is the only way playback starts. |
+| `web/_headers` | Cache policy. Opposite rules for the HTML and the hashed scripts. |
+| `scripts/build-public.js` | The deploy allowlist, content-hash stamping, publishing `_headers`. Throws if a stamp matches nothing. |
+| `scripts/backtest.js` | Dev tool. `--experiments`, `--tune`, `--tune-dueness`, `--json`. Needs gitignored raw setlists. Writes `calibration.json` and `arms.json` unconditionally. |
+| `scripts/analyze.js` | Builds `analysis.json`, including every published arm's ranking and the `lenses` block. |
+| `scripts/fetch-eras.js` | One-off crawl of all-time setlists, 1983→now, for era analysis. Kept OUT of `fetch.js` so the routine refresh does not re-walk forty years. Idempotent — skips any year already cached, and never writes a partial file on failure. |
+| `data/arms.json` | Per-arm walk-forward accuracy, **plus `vsNearest`, `byYear`, and `diagnostics`**. Committed, not published, baked into `analysis.json`. |
+| `data/calibration.json` | Fitted isotonic bins. Committed, never published. |
+| `.github/workflows/deploy.yml` | Fires on push to `main` only — no CI on branches or PRs. Deliberately does **not** run migrations. |
 
 ## Open decisions / questions
 
-- **Bingo scoring** — the 5×5 grid is ruled out for change. Measured: a line completes in at
-  most ~8% of cases even with an optimal card, and 89.6% of shows saw no bingo among 20
-  simulated cards. So "first to bingo" would fall through to total calls ~9 shows in 10.
-  Unresolved.
-- **Profanity filter** — `obscenity` recommended (0 deps, 149KB). Would be this repo's
-  **first runtime dependency**, a stated architectural property.
+- **Delete the `nerd-zone` branch?** Its content is in `main` via the squash of #51, so it is
+  redundant, but git will not report it as merged. Left alone deliberately — this repo already
+  keeps squash-merge residue and some of it is worth keeping.
+- **Does fitted dueness become the default?** Not yet. Its edge over `modelTopN` is +0.75pp at
+  z 1.23 — inside noise. Dick's is the test. See Next steps 2.
+- **Bingo scoring** — the 5×5 grid is ruled out for change. A line completes in at most ~8% of
+  cases even with an optimal card, and 89.6% of shows saw no bingo among 20 simulated cards, so
+  "first to bingo" would fall through to total calls ~9 shows in 10. Unresolved.
+- **Profanity filter** — `obscenity` recommended (0 deps, 149KB). Would be this repo's **first
+  runtime dependency**, a stated architectural property.
+- **Should the first-run wizard be re-openable** from the ☰ menu once dismissed? Nothing offers a
+  way back to it.
+- **An empty bingo card offers only Ask Diego? and the ⋮** — no Save until something is picked, so
+  day one shows a 5×5 of `＋` with no stated goal. Defensible, nobody has decided it.
 - **Track record** sits under the Predicted Setlist sub-tab, not its own — flagged, never
   confirmed.
 - **Era window / tour totals** are stated nowhere since the header line was cut.
-- **Attendance toggle** hidden behind `SHOW_ATTENDANCE_TOGGLE = false`. While off nobody can
-  mark a new show, so the points-at-shows split stops accumulating.
+- **Attendance toggle** hidden behind `SHOW_ATTENDANCE_TOGGLE = false`. While off nobody can mark
+  a new show, so the points-at-shows split stops accumulating.
 - **Six legacy graded predictions** remain on the old 0–100 setlist scale, excluded from
   aggregates rather than re-scored.
-- **Title mismatches between catalogues.** Our setlists and the recordings' track lists agree
-  on words, not always punctuation ("Thru" vs "Through"). Matching is on letters and digits
-  only. **Fuzzy matching was deliberately rejected**: across the venue grid's 240 distinct
-  songs, `tweezer`, `axilla` and `meat` are each a prefix of another song, so a prefix match
-  would serve Tweezer Reprise to someone asking for Tweezer.
+- **Title mismatches between catalogues.** Matching is on letters and digits only. **Fuzzy
+  matching was deliberately rejected**: `tweezer`, `axilla` and `meat` are each a prefix of
+  another song, so a prefix match would serve Tweezer Reprise to someone asking for Tweezer.
 
 ## Gotchas
 
+### Measurement traps — these cost real time this session
+
+- **The `score > 0` gates are INERT, and this doc said the opposite for months.** Measured over
+  174 shows: deleting all four gates in `assembleSetlist` changes the predicted setlist on
+  **zero** shows, despite ~41 candidates a show scoring ≤ 0. `scored` is sorted descending and
+  `pick()` walks each pool from the FRONT taking one or two entries, so a `> 0` filter can only
+  delete from the BOTTOM of a list nothing was going to reach. The old warning — "a term with
+  no negatives makes the gates vacuous and the setlist changes silently" — is backwards, and
+  two separate experiments were shaped around avoiding it.
+  **They bind in one direction only:** a term that pushes scores far enough NEGATIVE empties a
+  pool, the `pool.length ? pool : scored` fallback fires, and that slot is filled from the whole
+  list. Shifting every score down by 10 moves 10/174 shows; by 20, 121/174 and about a point of
+  recall. So the real rule for a new scoring term is *do not drag the distribution negative* —
+  which is why the era lens is centred on the pool mean. Full note beside the gates in
+  `lib/model.mjs`.
+
+- **A held-out split is not a control when the effect is time-varying.** The standard protocol
+  (tune through 2024, confirm on the 78 after) printed `CONFIRMED, z 2.25` for fitted dueness.
+  The held-out window *is* a later period, and the effect only exists in later periods, so the
+  confirmation was confounded. The full-window direct comparison is +0.75pp at z 1.23. **Check
+  the per-year split before believing a held-out number.**
+- **An affine transformation cannot reorder anything.** Beta-Binomial shrinkage on a common
+  denominator is `(k+a)/(n+a+b)` — affine in `k`, therefore order-preserving by construction.
+  Half a day went into building something mathematically incapable of doing what it claimed.
+  Check whether a proposed change *can* change the ranking before measuring whether it does.
+- **`data/backtest.json` only regenerates under `--json`.** It is gitignored and goes stale
+  silently. Mine was ten days old and described the pre-day-curve model, which produced one wrong
+  reading. Check its `generated` field before trusting per-show numbers.
+- **The by-year `GAIN` column is signed so positive means the BASELINE won** (documented in
+  `scripts/backtest.js`). Under a header called `GAIN`, 2026's `-8.7pp` reads as the model
+  degrading when it is the model's best relative year.
+- **`npm run analyze` bumps the `generated` timestamp inside `data/archive/*.json` and
+  `data/history.json`** even when the content is identical. The archive is the record of what was
+  published *before* a show — restore it rather than committing a date that misrepresents that.
+- **Only published arms get published numbers.** `arms.json` carries figures for arms the site
+  actually offers; `modelShrunk`, `modelShrunkTopN` and `modelDueness` are measured and printed
+  but not published.
+
+### Build and deploy
+
 - **Migrations are manual and must be applied to remote BEFORE merging dependent code.**
-  `npx wrangler d1 migrations apply kalphishi --remote`. CI deliberately does not do this.
-  Latest applied to remote: `0008_invite_groups.sql`. **Nothing pending.**
-- **`wrangler dev` does not pick up brand-new files.** It hot-reloads edits to existing ones
-  but 404s a file added since startup — restart after adding one. Cost a wrong diagnosis
-  twice.
-- **`npm test` does not rebuild `public/`.** Editing `web/*` and then testing in the browser
-  serves the OLD bundle. Run `npm run build:ci` first. This is the single most common way to
-  waste ten minutes here, and it looks exactly like a caching bug.
-- **Restart `wrangler dev` after every `npm run build:ci`.** Not "if hot reload seems stuck"
-  — every time. A rebuild rewrites `public/index.html` with new `?v=` stamps, and the running
-  server keeps serving the *previous* `index.html`, so the page asks for the previous stamp
-  and the browser answers from cache. The scripts on disk are current the whole time, which
-  is what makes it so convincing: the file is right, the fetch is right, the page is wrong.
-  Observed on every rebuild in a long session, not intermittently. (The older note here said
-  the `EBUSY: resource busy or locked` watcher death was a convenience problem affecting hot
-  reload only — that undersold it. It changes what the browser executes.)
-- **Cloudflare's edge lags a deploy by a few minutes.** Right after a merge some fraction of
-  fetches return the previous version; it converges on its own. **Re-check before
-  diagnosing** — this has produced false "the route is broken" and false "the stamp didn't
-  update" readings more than once. No header fixes it.
-- **Local files are CRLF, CI builds on Linux with LF**, so a hash of a local build never
-  matches the deployed one. Normalise with `tr -d '\r'` before comparing, or you will
-  "discover" a deploy problem that does not exist.
-- **`node --test` uses the spec reporter (✖), not TAP.** Grepping its output for `not ok`
-  silently counts zero failures — which once produced a false pass while mutation-testing a
-  guard. Read the `ℹ fail` line instead.
-- **Browser tests drift between tool calls.** Holding a DOM reference across a repaint, or a
-  tab selection across calls, has produced two false results. Do a whole browser check in
-  ONE evaluation.
-- **The stale-`index.html` symptom, and how to tell it apart from a real bug.** It presents
-  as "my change didn't take", never as an error: the feature is simply absent and the source
-  looks correct, because it *is* correct. `wrangler dev` does not appear to apply `_headers`,
-  so the `no-cache` that prevents this in production is not in play locally. It has cost two
-  wrong diagnoses — an hour on the leaderboard tab, and a second on a missing Actions entry
-  that turned out to be half real. **Compare the stamp on disk against the stamp in the DOM
-  before touching any source:**
+  `npx wrangler d1 migrations apply kalphishi --remote`. CI deliberately does not do this. Latest
+  applied: `0008_invite_groups.sql`. **Nothing pending.**
+- **`npm test` does not rebuild `public/`.** Editing `web/*` then testing in the browser serves
+  the OLD bundle. Run `npm run build:ci` first. The single most common way to waste ten minutes
+  here, and it looks exactly like a caching bug.
+- **Restart `wrangler dev` after every `npm run build:ci`.** Not "if hot reload seems stuck" —
+  every time. A rebuild rewrites `public/index.html` with new `?v=` stamps and the running server
+  keeps serving the previous one. The scripts on disk are current the whole time, which is what
+  makes it so convincing.
+- **The stale-`index.html` symptom.** Presents as "my change didn't take", never as an error.
+  **Compare the stamp on disk against the stamp in the DOM before touching any source:**
   ```bash
   grep -o 'predictor\.js?v=[0-9a-f]*' public/index.html
   ```
-  ```js
-  [...document.querySelectorAll('script[src]')].find(s => /predictor/.test(s.src)).src
-  ```
-  Different stamps means restart the server; the code was never the problem. **Same stamps
-  means it is a real bug** — which is how the missing Bingo Actions entry was eventually
-  found, after the restart failed to make it appear.
-- **The Browser pane can stop compositing mid-session** — screenshots fail with *"the Browser
-  pane is not displayed"* while DOM reads keep working. Geometry, copy and computed styles
-  are still verifiable; only the visual check is lost. Ask for the pane.
+  Different stamps means restart the server; the code was never the problem. **Same stamps means
+  it is a real bug.**
+- **`wrangler dev` does not pick up brand-new files** — restart after adding one.
+- **Cloudflare's edge lags a deploy by a few minutes.** Re-check before diagnosing.
+- **Local files are CRLF, CI builds on Linux with LF.** Normalise with `tr -d '\r'` before
+  comparing hashes. **This also breaks test regexes:** `/\n  }/` matches a CRLF file but
+  `/  }\n/` does not — the `\r` is absorbed by a lazy run in front of it, not behind.
+- **No CI on branches or PRs.** The workflow fires on push to `main` only, so a PR shows no
+  checks. Local `npm test` is the only signal until it merges.
+
+### Environment
+
+- **`node --test` uses the spec reporter (✖), not TAP.** Grepping for `not ok` silently counts
+  zero failures. Read the `ℹ fail` line.
+- **Browser tests drift between tool calls.** Do a whole browser check in ONE evaluation.
+- **The Browser pane can stop compositing mid-session** — screenshots fail with *"the Browser pane
+  is not displayed"* while DOM reads keep working. Geometry, copy and computed styles stay
+  verifiable; only the visual is lost. Ask for the pane.
 - **`\uXXXX` escapes get mangled** when written into source through the editing tools.
-  `lib/identity.mjs` uses numeric code point ranges for exactly this reason — do not "tidy"
-  it into a regex class.
-- **Bash tool is Git Bash, not PowerShell.** A PowerShell here-string (`@'…'@`) silently
-  produced a mangled commit message. Use a heredoc.
+  `lib/identity.mjs` uses numeric code point ranges for exactly this reason.
+- **Bash tool is Git Bash, not PowerShell.** A PowerShell here-string (`@'…'@`) silently produced
+  a mangled commit message. Use a heredoc.
 - **`cd` resets between Bash calls** — always use absolute paths.
 - **Node can't read `/c/Users/...` paths** — use `C:/Users/...` inside `node -e`.
 - **Multi-statement `--command` can crash mid-way on Windows.** One statement per call.
-- **Local D1 is separate from remote.** Cleanup is always surgical.
-- **Drag on touch was deliberately not implemented** for bingo: `touch-action: none` on a
-  grid cell would kill page scrolling on a phone.
+- **Local D1 is separate from remote.** Cleanup is always surgical. **Never bulk-wipe
+  `data/db.json` or D1 user rows.**
+- **`data/archive/*.json` is committed on purpose** and cannot be regenerated. A test guards the
+  gitignore pattern.
+
+### Design constraints that will bite
+
+- **Drag on touch was deliberately not implemented** for bingo: `touch-action: none` on a grid
+  cell would kill page scrolling on a phone.
 - **`predictor` and `menuMode` in `index.html` are `let`, declared above `initPredictor`** on
   purpose — `onModeChange` can fire from inside it.
-- **`.overlap` in venue setlists means "also in the current top-40 candidates."** It is an
-  underline carrying data. Playable songs there are deliberately *not* underlined so that
-  signal survives — see `.setlist a.s:not(.overlap)`.
-- **Never bulk-wipe `data/db.json` or D1 user rows.**
-- **`data/archive/*.json` is committed on purpose** and cannot be regenerated. A test guards
-  the gitignore pattern.
+- **`.overlap` in venue setlists means "also in the current top-40 candidates."** Playable songs
+  there are deliberately *not* underlined so that signal survives.
+- **`usesCalibration` is load-bearing.** The isotonic bins were fitted on the *shipping* model's
+  score distribution. Only arms sharing those exact scores may show a Chance — a test enforces it
+  and it caught a real mistake this session.
 
 ## Branches
 
 ```
-main        2b90570   ← production, current, deployed green
-nerd-zone   ac48f28   ← 2 commits ahead, code complete, NOT merged
+main   3c92d80   ← production, current, deployed green, 272 tests
 ```
 
-Merged and deleted this session, in order: `group-invites` (#33), `handoff-roadmap` (#42),
-`tagline-fluff` (#40), `tagline-weigh` → the rename (#41), `actions-ellipsis` (#34),
-`setup-wizard` (#45), `track-precache` (#46), `calibration` (#47), `show-chance` (#48),
-`chance-tooltips` (#49).
+Nothing is ahead of `main`. Branch from it for the next piece of work.
 
-Older leftovers still around: ~13 branches carrying commits unreachable from `main`
-(squash-merge residue) — `backtest-harness` and `leaderboard-split` are the two I would not
-delete unexamined.
+Merged and deleted this session: `reach-targeting` (#50), `nerd-zone-diagnostics` (#51, which
+folded in `nerd-zone`).
 
-Branch from `main` for the next piece of work — **unless** it builds on the Nerd Zone, in
-which case branch from `nerd-zone` and say so, since that is where `lenses` lives.
+Older leftovers still around (squash-merge residue, commits unreachable from `main`):
+`bingo-cell-icons`, `cache-policy`, `controls-and-taglines`, `drop-tagline`, `first-run-mobile`,
+`handoff-refresh`, `handoff-social`, `nerd-zone`, `password-reset`, `play-a-show`,
+`roadmap-precache`, `scoring-scope`, `show-autoadvance`, plus local-only `backup-pre-rewrite` and
+`cloudflare-migration`. **`nerd-zone` is now fully contained in `main`** and is safe to delete
+whenever you want to.
