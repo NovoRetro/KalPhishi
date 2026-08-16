@@ -1,8 +1,22 @@
 # Shipping Bathtub Bets as an app — readiness review
 
 **Written 2026-08-16.** A review of where the app stands against Apple App Store and
-Google Play requirements, what is genuinely blocking, and the order to fix it in. Nothing
-here is implemented yet.
+Google Play requirements, what is genuinely blocking, and the order to fix it in.
+
+> **Status: steps 1 and 2 are done and deployed.** In-app account deletion shipped
+> (`DELETE /api/me`, re-authenticated — blocker 2 below is closed), and the PWA
+> foundation shipped: generated icon set, manifest, theme-color per scheme, safe-area
+> insets, and a cache-only service worker with an offline shell (blocker 1 closed, and
+> the service-worker nuance below resolved in practice). Remaining before a store
+> submission: **the domain**, **a privacy policy**, and — for Apple only — **Guideline
+> 4.2**. Verified in production; note the deploy's edge lag makes a fresh path 404 for a
+> minute or two, which is worth remembering before diagnosing anything.
+>
+> One nuance discovered while shipping: the service worker's cache name is a hash of the
+> built `index.html`, and local builds are CRLF while CI builds are LF — so the same
+> commit yields a different cache name locally than in production. Harmless (each
+> environment is internally consistent, and that is all cache eviction needs), but do not
+> treat the cache name as a build fingerprint across environments.
 
 **The framing first: none of this lands before Dick's (2026-09-04).** Store review alone
 is days-to-weeks, and Google Play's new-developer testing requirement is measured in
