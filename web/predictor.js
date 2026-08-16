@@ -323,9 +323,8 @@ function initPredictor(mount, A, opts = {}) {
         : mode === 'bingo' ? gridSnap(grid) : wombatSnap(wombatRanks);
       if (live === appliedFill.snap) {
         const chip = el('span', 'p-lensnote', `🛟 ${esc(appliedFill.label)}`);
-        chip.title = `This board is exactly the "${appliedFill.label}" prediction. `
-          + 'Change anything and the tag comes off — from then on it’s your call. '
-          + 'Your picks are always scored against the real setlist either way.';
+        chip.title = `This board is ${appliedFill.label}’s call, untouched. `
+          + 'Change anything and it’s yours.';
         head.appendChild(chip);
       }
     }
@@ -340,8 +339,8 @@ function initPredictor(mount, A, opts = {}) {
         // appears then. Before that the useful thing to say is the opposite: it is saved,
         // and it is still yours to change.
         : L.locked
-          ? 'Tap squares as they’re played.'
-          : 'Saved — editable until the lock.'));
+          ? 'Tap ’em as they’re played.'
+          : 'Saved. Change it ’til showtime.'));
     }
     if (L.known && (mode === 'setlist' || mode === 'bingo' || mode === 'wombat')) {
       const clock = L.local ? `${L.local} local` : 'showtime';
@@ -730,7 +729,7 @@ function initPredictor(mount, A, opts = {}) {
     const row = el('div', 'p-nudge' + (urgent ? ' p-nudge-urgent' : ''));
     const what = mode === 'bingo' ? 'card' : 'setlist';
     row.appendChild(el('span', null,
-      `${urgent ? '⏳ ' : ''}No ${what} saved for <b>${esc(fmtDate(showdate))}</b> yet`
+      `${urgent ? '⏳ ' : ''}Nothing in for <b>${esc(fmtDate(showdate))}</b>`
       + (urgent ? ` — locks in <b>${esc(untilText(left))}</b>` : '')
       + '. Ask Diego? fills one in a press.'));
     const x = el('button', 'p-nudge-x', '×');
@@ -1257,7 +1256,7 @@ function initPredictor(mount, A, opts = {}) {
     // Kept, unlike the rest of the guidance: which entry counts as the opener and which
     // as the closer changes the score, and there is no way to work it out from the UI.
     mount.appendChild(el('div', 'hint',
-      'First = opener, last = closer. Drag ⋮⋮ to reorder.'));
+      'First is the opener, last is the closer. Drag ⋮⋮ to move.'));
   }
 
   // ---------- bingo ----------
@@ -1595,8 +1594,8 @@ function initPredictor(mount, A, opts = {}) {
               await loadExisting();
               mode = 'bingo';
               flash(filledNow < 24
-                ? `Saved ${filledNow}/24 — finish it any time before the show.`
-                : 'Card saved — live mode on.');
+                ? `${filledNow}/24 in. Finish it before showtime.`
+                : 'Card’s in. Tap ’em as they come.');
               window.KalphishiRig?.peak();
             } catch (e) { flash(e.message, true); }
           });
@@ -2051,21 +2050,19 @@ function initPredictor(mount, A, opts = {}) {
           ? groups.find(g => `group:${g.id}` === leaderboardScope) : null;
         let msg;
         if (leaderboardScope === 'friends' && !friends.length) {
-          msg = 'No friends here yet — open the menu and share an invite link, '
-            + 'then this becomes you against them.';
+          msg = 'Nobody here yet. Share an invite link from ☰ and this turns into '
+            + 'you against them.';
         } else if (grp && grp.memberCount <= 1) {
           msg = `${grp.name} is just you so far — share a link for it from the Friends menu `
             + 'and whoever opens it joins the group.';
         } else if (board.length) {
           // People are here and graded, just not at this game. Saying "nobody has a scored
           // prediction" here would be flatly untrue and readable as a bug.
-          msg = `No graded ${G.name} predictions here yet — the other game's scores are a `
-            + 'separate scale and do not carry over.';
+          msg = `No ${G.name} scores here yet. The other game’s points are their own thing.`;
         } else if (leaderboardScope === 'everyone') {
-          msg = `Nobody has a graded ${G.name} prediction yet.`;
+          msg = `No ${G.name} scores yet — the first show settles that.`;
         } else {
-          msg = `Nobody here has a graded ${G.name} prediction yet — scores appear once a `
-            + 'show is graded.';
+          msg = `No ${G.name} scores here yet — they post after the encore.`;
         }
         boardHost.appendChild(el('div', 'hint', msg));
         return;
@@ -2159,9 +2156,9 @@ function initPredictor(mount, A, opts = {}) {
     // The whole pitch, one line, above the builder — this game is new to everyone and
     // its one non-obvious idea is that rank buys ownership across the crew.
     mount.appendChild(el('div', 'hint',
-      'Rank up to 10. Highest rank in your crew <b>owns</b> a song; exact ties cancel '
-      + 'each other and it falls to the next. Your top 5 survivors are your card — 1 pt '
-      + 'each when played. Resolves per crew at the lock.'));
+      'Ten songs, ranked. Beat your crew’s rank on a song and it’s yours alone — tie '
+      + 'exactly and you both lose it. Your top five survivors ride. A point each if they '
+      + 'play it.'));
 
     const controls = el('div', 'p-row p-controls');
     if (wombatRanks.length > 0) {
@@ -2259,7 +2256,7 @@ function initPredictor(mount, A, opts = {}) {
       mount.appendChild(el('div', 'p-cap', `${WOMBAT_LIST_SIZE} of ${WOMBAT_LIST_SIZE} — the list is full`));
     }
     mount.appendChild(el('div', 'hint',
-      'Your #1 beats anyone who ranked the same song lower. See how it resolved on your crew’s page after the lock.'));
+      'Your #1 beats their #2. See how it shook out on your crew’s page after showtime.'));
   }
 
   // ---------- the crew page ----------
@@ -2276,7 +2273,7 @@ function initPredictor(mount, A, opts = {}) {
   async function renderCrew() {
     const wrap = el('div');
     mount.appendChild(wrap);
-    if (!crewId) { wrap.appendChild(el('div', 'hint', 'No crew selected — open one from ☰ → Friends.')); return; }
+    if (!crewId) { wrap.appendChild(el('div', 'hint', 'Pick a crew from ☰ → Friends.')); return; }
     let groups = [], members = [];
     try {
       [groups, members] = await Promise.all([
@@ -2290,7 +2287,7 @@ function initPredictor(mount, A, opts = {}) {
     const g = groups.find(x => x.id === crewId);
     if (!g) {
       // Deleted, or you were removed, while a link to it was still on screen somewhere.
-      wrap.appendChild(el('div', 'hint', 'This crew is gone — deleted, or you were removed from it.'));
+      wrap.appendChild(el('div', 'hint', 'That crew’s not there anymore.'));
       return;
     }
 
@@ -2337,7 +2334,7 @@ function initPredictor(mount, A, opts = {}) {
     const L = lockInfo();
     const strip = el('div', 'crew-strip');
     const stripLine = L.locked
-      ? `<b>${inFor} of ${members.length}</b> made the lock — envelopes are open`
+      ? `<b>${inFor} of ${members.length}</b> got in — envelopes are open`
       : `<b>${inFor} of ${members.length}</b> in for ${esc(day)}`
         + (L.known ? ` · locks in <b>${untilText(L.at - Date.now())}</b>` : '');
     strip.appendChild(el('div', 'crew-strip-txt', stripLine));
@@ -2393,7 +2390,7 @@ function initPredictor(mount, A, opts = {}) {
       row.addEventListener('click', () => showPublicProfile(profilePanel, mem.handle));
       wrap.appendChild(row);
     }
-    wrap.appendChild(el('div', 'hint', '● setlist · ● bingo · ● wombat — saved for the open show. Tap a name for their record.'));
+    wrap.appendChild(el('div', 'hint', 'Who’s in for ' + esc(day) + '. Tap a name for their record.'));
     wrap.appendChild(profilePanel);
   }
 
@@ -2520,7 +2517,7 @@ function initPredictor(mount, A, opts = {}) {
           `<span>🏆 Bingo: <b>@${esc(top.userHandle)}</b> — ${top.result.hitCount}/24${top.result.bingo ? ' · BINGO 🍩' : ''}</span>`
           + `<span class="menu-stats">${bg.length} card${bg.length === 1 ? '' : 's'}</span>`));
       }
-      card.appendChild(el('div', 'hint', 'Tap a name in the roster below for their full scored card.'));
+      card.appendChild(el('div', 'hint', 'Tap a name below for their card.'));
     }
 
     // ---- Wombat: the draft results (WOMBAT.md). Resolution is computed HERE, per
@@ -2556,7 +2553,7 @@ function initPredictor(mount, A, opts = {}) {
           `<span>💀 Cancelled out</span>`
           + `<span class="menu-stats">${W.dead.map(slug => esc(nameOf.get(slug) || slug)).join(' · ')}</span>`));
       }
-      if (!anyScored) card.appendChild(el('div', 'hint', 'Points land when the show is graded.'));
+      if (!anyScored) card.appendChild(el('div', 'hint', 'Points post after the encore.'));
     }
 
     // ---- the share card. The group chat lives off-app by design (reach.md), so this
@@ -2742,23 +2739,45 @@ function initPredictor(mount, A, opts = {}) {
     const code = takePendingInvite();
     if (!code) return;
     if (!user) {
+      // Name the door before asking anyone to walk through it. The preview needs no
+      // session precisely because the reader has no account yet; a dead link says so
+      // here rather than after they have typed an email and a password, and either way
+      // the form still opens — somebody who arrived through a friend's link is worth
+      // signing up whether or not the link itself survived.
+      let message = 'Sign in or create an account to accept this invite.';
+      try {
+        const inv = await api(`/api/invites/${encodeURIComponent(code)}/preview`);
+        const who = `${inv.inviter.avatar} ${inv.inviter.name}`;
+        message = inv.group
+          ? `${who} invited you to ${inv.group.name}.`
+          : `${who} invited you.`;
+      } catch (e) {
+        message = e.message || message;
+      }
       // Hold it and ask them to sign in; redeem runs again after auth succeeds.
-      authPrompt = {
-        tab: 'register',
-        message: 'Sign in or create an account to accept this invite.',
-        onAuthed: null,
-      };
+      authPrompt = { tab: 'register', message, onAuthed: null };
       render();
       return;
     }
     clearPendingInvite();
     try {
       const j = await api(`/api/invites/${encodeURIComponent(code)}/redeem`, 'POST', {});
-      // The group is named when there is one: someone who opened a link expecting to join
-      // their crew needs to see that it happened, and "you are now friends" alone reads as
-      // though the group part silently failed.
-      const who = j.already ? `You're already friends with ${j.friend.name}` : `You and ${j.friend.name} are now friends`;
-      flash(j.group ? `${who}, and you're in ${j.group.name}.` : `${who}.`);
+      // Land them IN the crew rather than telling them about it. A flash is 2.5 seconds
+      // and a phone mid-signup is the worst possible moment to spend them — keyboards
+      // dismissing, password managers interrupting. The crew page is permanent, says the
+      // same thing with a roster instead of a sentence, and turns a re-opened link into
+      // a deep link instead of a silent no-op. The flash stays, now short enough to be
+      // the confirmation rather than the whole explanation.
+      if (j.group) {
+        // Navigate FIRST, then flash. goToCrew re-renders, and render() empties the mount
+        // the flash was just appended to — announcing before navigating destroys the
+        // announcement on the very next tick. Caught live: the toast never appeared, and
+        // the only evidence was its absence.
+        menuActions.goToCrew(j.group.id);
+        flash(j.already ? `Already in ${j.group.name}.` : `You're in ${j.group.name}.`);
+      } else {
+        flash(j.already ? `Already friends with ${j.friend.name}.` : `You and ${j.friend.name} are friends now.`);
+      }
     } catch (e) {
       flash(e.message, true);
     }

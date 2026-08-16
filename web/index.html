@@ -1607,8 +1607,8 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
         // One note, not two: the old "whoever opens it becomes your friend" line said half
         // of this and sat directly beneath it.
         inviteHost.appendChild(el('div', 'menu-note',
-          `Whoever opens a link becomes your friend. Limited by default — 0 means no limit.${owned.length
-            ? ' Pick a group and they join it too.' : ''}`));
+          `Whoever opens it becomes your friend. 0 means no limit.${owned.length
+            ? ' Pick a group and they join that too.' : ''}`));
 
         const live = invites.filter(i => !i.spent && !i.expired);
         if (!live.length) return;
@@ -3499,9 +3499,7 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h2>The data did not load</h2>'
-    + '<div class="hint">The setlist analysis could not be fetched, so the Data pages are empty. '
-    + 'A reload usually fixes it. The games are unaffected — your saved predictions are on the '
-    + 'server, not in this file.</div>';
+    + '<div class="hint">A reload usually fixes it. Your saved cards are safe on the server.</div>';
   app.appendChild(card);
 });
 </script>

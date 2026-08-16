@@ -219,3 +219,57 @@ test('the share card is built from SVG in-document, nothing fetched', () => {
   // Every user-supplied string that reaches the SVG is escaped — a crew name is free text.
   assert.match(share[0], /escXml\(crewName\)/, 'the crew name must be XML-escaped');
 });
+
+// ---- the invite door (2026-08-16) ----
+
+test('the invite preview needs no session and leaks nothing', () => {
+  const c = stripComments(handlerFor(`p.startsWith('/api/invites/') && p.endsWith('/preview')`, 'GET'));
+  // The one invite route without a session check — the reader has no account yet, which
+  // is the entire point. Holding a 16-byte code IS the authorisation.
+  assert.doesNotMatch(c, /currentUser/, 'the preview must not require a session');
+  // Three answers, and no fourth.
+  assert.match(c, /publicName\(owner\)/, 'a legacy email-as-name must not leak here either');
+  assert.doesNotMatch(c, /\bemail\b/);
+  assert.doesNotMatch(c, /handle/, 'the preview names a person, it does not identify an account');
+  assert.doesNotMatch(c, /group\.id|id: group/, 'the group id belongs to whoever actually joins');
+  // Same verdicts as redeem, so one link cannot read two ways.
+  for (const v of ['that invite link is not valid', 'that invite link has expired', 'that invite link has been used up']) {
+    assert.ok(c.includes(v), `preview must report "${v}" the way redeem does`);
+  }
+});
+
+test('a ban reaches the links the account already minted', () => {
+  // Otherwise moderation is one old URL away from being bypassed: a banned account keeps
+  // recruiting friends and filling its groups while invisible everywhere else.
+  for (const route of [
+    `p.startsWith('/api/invites/') && p.endsWith('/preview')`,
+    `p.startsWith('/api/invites/') && p.endsWith('/redeem')`,
+  ]) {
+    const c = stripComments(handlerFor(route, route.includes('preview') ? 'GET' : 'POST'));
+    assert.match(c, /!owner \|\| isBanned\(owner\)/, `${route} must refuse a banned owner's link`);
+  }
+});
+
+test('the invite door names who is behind it, and opens into the crew', () => {
+  const fn = predictor.match(/async function redeemPendingInvite\(\)[\s\S]*?\n  \}/);
+  assert.ok(fn, 'redeemPendingInvite not found');
+  // Asked BEFORE the signup form is offered, not after.
+  assert.match(fn[0], /\/preview`\)[\s\S]*?authPrompt = \{ tab: 'register', message/,
+    'the preview must resolve before the auth prompt is built');
+  assert.match(fn[0], /invited you to \$\{inv\.group\.name\}/);
+  // A dead link still offers signup — the person arrived through a friend either way.
+  assert.match(fn[0], /catch \(e\) \{\s*\n?\s*message = e\.message \|\| message;/);
+  // And a successful group redeem lands them in the room rather than in a 2.5s toast.
+  assert.match(fn[0], /menuActions\.goToCrew\(j\.group\.id\)/);
+});
+
+test('the invite flash survives the navigation that follows it', () => {
+  // goToCrew re-renders, and render() empties the mount a flash was appended to — so
+  // announcing before navigating destroys the announcement. Order is load-bearing, and
+  // its failure mode is silent (a toast that simply never appears).
+  const fn = predictor.match(/async function redeemPendingInvite\(\)[\s\S]*?\n  \}/)[0];
+  const nav = fn.indexOf('menuActions.goToCrew(j.group.id)');
+  const say = fn.indexOf('`You\'re in ${j.group.name}.`');
+  assert.ok(nav !== -1 && say !== -1, 'the group branch of the redeem is gone');
+  assert.ok(nav < say, 'navigate first, then flash — the reverse wipes the flash');
+});

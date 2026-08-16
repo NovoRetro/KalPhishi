@@ -654,6 +654,40 @@ async function api(request, env, ctx, { p, m, q, url }) {
     });
   }
 
+  // Who is at the door, before anyone is asked to open it. Deliberately the ONE invite
+  // route that needs no session: it is read by someone who, by definition, does not have
+  // an account yet — being handed a bare "accept this invite" and a signup form is how a
+  // shared link reads as "some app wants my email" instead of "Kim wants you in her crew".
+  //
+  // Minimal by construction. It answers three things — display name, avatar, crew name —
+  // and cannot answer anything else: no email (never in a public shape anywhere), no
+  // handle-based enumeration (a code is 16 random bytes, so holding one IS the
+  // authorisation), and not even the group id, which the redeem response already returns
+  // to whoever actually joins. publicName keeps a legacy email-as-name from leaking here
+  // the same way it does on every other public shape.
+  if (p.startsWith('/api/invites/') && p.endsWith('/preview') && m === 'GET') {
+    const code = decodeURIComponent(p.split('/').slice(-2)[0]);
+    const inv = await env.DB.prepare(
+      'SELECT owner_id, expires, max_uses, uses, group_id FROM invites WHERE code = ?1'
+    ).bind(code).first();
+    // Same wording as redeem, on purpose: one link, one verdict, whichever route the
+    // reader happens to hit first.
+    if (!inv) return err(404, 'that invite link is not valid');
+    if (inv.expires != null && inv.expires < Date.now()) return err(410, 'that invite link has expired');
+    if (inv.max_uses != null && inv.uses >= inv.max_uses) return err(410, 'that invite link has been used up');
+    const owner = await getUser(env, inv.owner_id);
+    if (!owner || isBanned(owner)) return err(404, 'that invite link is not valid');
+    const group = inv.group_id
+      ? await env.DB.prepare('SELECT name FROM friend_groups WHERE id = ?1 AND owner_id = ?2')
+        .bind(inv.group_id, inv.owner_id).first()
+      : null;
+    const profile = JSON.parse(owner.profile || '{}');
+    return json({
+      inviter: { name: publicName(owner), avatar: profile.avatar || '🎣' },
+      group: group ? { name: group.name } : null,
+    });
+  }
+
   if (p.startsWith('/api/invites/') && p.endsWith('/redeem') && m === 'POST') {
     const user = await currentUser(request, env);
     if (!user) return err(401, 'not signed in');
@@ -667,7 +701,12 @@ async function api(request, env, ctx, { p, m, q, url }) {
     if (inv.max_uses != null && inv.uses >= inv.max_uses) return err(410, 'that invite link has been used up');
 
     const owner = await getUser(env, inv.owner_id);
-    if (!owner) return err(404, 'that invite link is not valid');
+    // A ban has to reach the links the account minted before it, or moderation is one
+    // old URL away from being bypassed — the banned account would keep recruiting
+    // friends and filling its groups while being invisible everywhere else. Reported as
+    // "not valid" rather than "banned": a redeemer is owed a working link or not, and is
+    // owed nothing about somebody else's account standing.
+    if (!owner || isBanned(owner)) return err(404, 'that invite link is not valid');
 
     // Re-resolved at redemption, and pinned to the invite's owner — the same re-check the
     // reset flow does for bans. A group deleted since the link was minted, or somehow no
