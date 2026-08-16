@@ -25,3 +25,23 @@
 
 /web/*
   Cache-Control: public, max-age=31536000, immutable
+
+# /sw.js must never be served from cache. A stale worker is the one file that can pin a
+# device to an old bundle with no network round trip at all to correct it — the browser
+# would keep handing out a worker whose cache name never changes and whose activate step
+# therefore never evicts anything. Browsers already special-case worker updates, but the
+# cost of being explicit here is zero and the failure it prevents is unrecoverable
+# without asking a tester to clear site data.
+/sw.js
+  Cache-Control: no-cache
+
+# The manifest changes about as often as the app is renamed. A day is long enough to stop
+# it being fetched on every load and short enough that a change lands the next day.
+/manifest.webmanifest
+  Cache-Control: public, max-age=86400
+
+# Icons are NOT content-hashed, so they cannot take the /web/* immutable rule. A week is
+# the compromise: effectively free on repeat visits, and a redesigned icon reaches
+# everybody within a week rather than within a year.
+/icons/*
+  Cache-Control: public, max-age=604800

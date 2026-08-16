@@ -1,7 +1,7 @@
 {
   "name": "bathtub-bets",
   "version": "0.1.0",
-  "description": "Phish setlist prediction tool — rotation analysis, venue history, and a PHISH bingo game",
+  "description": "Phish setlist prediction tool \u2014 rotation analysis, venue history, and a PHISH bingo game",
   "main": "src/worker.mjs",
   "scripts": {
     "fetch": "node scripts/fetch.js && node scripts/fetch-showtimes.js",
@@ -13,14 +13,15 @@
     "build:songmeta": "node scripts/build-songmeta.js",
     "build:history": "node scripts/build-history.js",
     "build:public": "node scripts/build-public.js",
-    "build": "node scripts/build-songmeta.js && node scripts/build-history.js && node scripts/build-public.js",
+    "build": "node scripts/build-songmeta.js && node scripts/build-history.js && node scripts/build-icons.js && node scripts/build-public.js",
     "dev": "wrangler dev",
     "test": "node --test \"test/**/*.test.mjs\"",
     "deploy": "npm test && npm run build && wrangler deploy",
     "_comment_deploy_ci": "CI build: history.json is rebuilt from the committed archive, then public/ is assembled from committed artifacts. Skips build:songmeta, which needs the 14MB of gitignored raw setlists.",
-    "build:ci": "node scripts/build-history.js && node scripts/build-public.js",
+    "build:ci": "node scripts/build-history.js && node scripts/build-icons.js && node scripts/build-public.js",
     "fetch:showtimes": "node scripts/fetch-showtimes.js",
-    "_comment_fetch_showtimes": "fetch-showtimes runs after fetch because it reads the schedule fetch.js refreshes. It degrades to a retained or fallback time rather than throwing, so it will not fail the chain on a bad response from phish.com."
+    "_comment_fetch_showtimes": "fetch-showtimes runs after fetch because it reads the schedule fetch.js refreshes. It degrades to a retained or fallback time rather than throwing, so it will not fail the chain on a bad response from phish.com.",
+    "build:icons": "node scripts/build-icons.js"
   },
   "devDependencies": {
     "wrangler": "^4"

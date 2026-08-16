@@ -19,6 +19,17 @@ const ALLOW = [
   ['web/reorder.js', 'web/reorder.js'],
   ['web/relisten.js', 'web/relisten.js'],
   ['web/predictor.js', 'web/predictor.js'],
+  // PWA. The manifest and the worker must land at the ROOT: a worker's scope is capped by
+  // the directory it is served from, so /web/sw.js could never control "/" — the exact
+  // thing it exists to cache. Icons sit at /icons/ rather than /web/icons/ deliberately:
+  // /web/* is immutable-for-a-year in _headers, and these are NOT content-hashed, so an
+  // icon change under that rule would never reach a device that had seen the old one.
+  ['web/manifest.webmanifest', 'manifest.webmanifest'],
+  ['web/sw.js', 'sw.js'],
+  ['web/icons/icon-192.png', 'icons/icon-192.png'],
+  ['web/icons/icon-512.png', 'icons/icon-512.png'],
+  ['web/icons/icon-maskable-512.png', 'icons/icon-maskable-512.png'],
+  ['web/icons/apple-touch-icon.png', 'icons/apple-touch-icon.png'],
   ['data/analysis.json', 'data/analysis.json'],
   ['data/history.json', 'data/history.json'],
   ['data/showtimes.json', 'data/showtimes.json'],
@@ -40,7 +51,10 @@ for (const [rel, published] of ALLOW) {
   if (DENY.test(rel) || DENY.test(published)) throw new Error(`refusing to publish ${rel}`);
   const src = path.join(root, rel);
   if (!fs.existsSync(src)) {
-    throw new Error(`missing asset: ${rel} — run npm run fetch / analyze / build:songmeta first`);
+    const hint = rel.startsWith('web/icons/')
+      ? 'run npm run build:icons'
+      : 'run npm run fetch / analyze / build:songmeta first';
+    throw new Error(`missing asset: ${rel} — ${hint}`);
   }
   const dest = path.join(pub, published);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -65,6 +79,18 @@ for (const rel of SCRIPTS) {
   if (index === before) throw new Error(`no <script src="/${rel}"> to stamp in index.html`);
 }
 fs.writeFileSync(indexPath, index);
+
+// Version the service worker's cache from the bundle it will serve. A fixed cache name is
+// the classic way to ship a worker that hands out last week's shell forever: the browser
+// fetches the new sw.js, sees byte-identical contents, and never activates. Deriving the
+// name from the stamped index.html means the worker's own bytes change exactly when the
+// bundle does — which is what triggers the update, evicts the old cache in `activate`, and
+// makes a no-op rebuild a genuine no-op.
+const swPath = path.join(pub, 'sw.js');
+const build = crypto.createHash('sha256').update(index).digest('hex').slice(0, 10);
+const sw = fs.readFileSync(swPath, 'utf8');
+if (!sw.includes('__BUILD__')) throw new Error('sw.js has no __BUILD__ placeholder to stamp');
+fs.writeFileSync(swPath, sw.replace('__BUILD__', build));
 
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e =>
   e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);

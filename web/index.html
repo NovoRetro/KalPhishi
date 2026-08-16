@@ -2,8 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- viewport-fit=cover lets the page paint into the notch and the home-indicator strip,
+     which is what an installed app should do. It also means the safe-area insets below
+     are load-bearing rather than decorative: without them the fixed ☰ button sits under
+     the status bar on any notched phone. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Bathtub Bets — Phish Setlist Predictor</title>
+<meta name="description" content="Call the setlist before the band does. Phish bingo, setlist bets and Wombat, played against your crew.">
+<!-- Standalone chrome takes its colour from here. Two tags rather than one because the
+     app has a real light mode: a single dark theme-color paints a black status bar above
+     a white page. Browsers pick the first matching media, so these must stay in this
+     order. Both are the PAGE colour, not the stage's — the status bar sits above the
+     scroll, which is --page long before it is the hall. -->
+<meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<!-- iOS ignores the manifest for both of these. -->
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bathtub Bets">
+<!-- black-translucent draws the page under the status bar, matching viewport-fit=cover.
+     The insets are what keep text out from under it. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root {
     color-scheme: light;
@@ -120,6 +141,15 @@
   * { box-sizing: border-box; margin: 0; }
   body {
     background: var(--page); color: var(--ink);
+    /* Safe-area insets, for the installed/standalone case. viewport-fit=cover in the head
+       means the page now owns the notch and the home-indicator strip, so it has to keep
+       content out of them itself. env() is 0px on every device without insets, so this
+       changes nothing in a normal browser tab. The bottom one matters more than it looks:
+       the Save button sits at the foot of a long form, and the home indicator sits exactly
+       where a thumb reaches for it. */
+    padding-left: max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     font-size: 14px; line-height: 1.5; padding: 24px;
   }
@@ -171,7 +201,7 @@
     background: radial-gradient(70% 36% at 50% 4%, var(--haze), transparent 72%);
     transition: opacity 380ms ease; }
 
-  .stage { padding: 30px 18px 34px; }
+  .stage { padding: max(30px, calc(env(safe-area-inset-top) + 14px)) 18px 34px; }
   /* The beams converge on centre, which is exactly where the title and tagline are. On a
      narrow screen a full-brightness shaft lands right behind the words and the tagline
      stops being readable. This is a scrim under the text only — soft-edged and confined to
@@ -273,7 +303,7 @@
      to spend and the rig is the first impression there. */
   @media (max-width: 560px) {
     .stage-actions { position: static; align-items: center; margin-top: 10px; }
-    .stage { padding: 16px 14px 18px; }
+    .stage { padding: max(16px, calc(env(safe-area-inset-top) + 8px)) 14px 18px; }
     /* The banner text vs the rig, on a phone (2026-08-15 direction). At 375px the beams
        converge exactly where the title sits, and the brighter per-game palettes — the
        sunset's yellows especially — can wash white text out entirely at full beam. Two
@@ -295,7 +325,10 @@
     .hall { height: 420px; }
     .tabs { margin-top: 10px; }
     .tab { padding: 8px 10px; }
-    body { padding: 12px; }
+    body { padding: 12px;
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+      padding-bottom: max(12px, env(safe-area-inset-bottom)); }
   }
 
   /* ---- Play a Show ---- */
@@ -1045,7 +1078,7 @@
   /* Align with the right edge of the centered 1180px content column (the wrap's edge is
      (100vw - 1180px)/2 from the viewport once body padding cancels out); never closer
      than 12px to the viewport edge on narrow screens. */
-  .menu-btn { position: fixed; top: 10px; right: max(12px, calc((100vw - 1180px) / 2)); z-index: 60; width: 44px; height: 44px;
+  .menu-btn { position: fixed; top: max(10px, env(safe-area-inset-top)); right: max(12px, calc((100vw - 1180px) / 2)); z-index: 60; width: 44px; height: 44px;
     display: flex; align-items: center; justify-content: center; font-size: 20px; line-height: 1;
     background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 10px;
     cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
@@ -3514,6 +3547,20 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     + '<div class="hint">A reload usually fixes it. Your saved cards are safe on the server.</div>';
   app.appendChild(card);
 });
+
+// ---- service worker.
+// Registered after load so it never competes with the first render for bandwidth — the
+// worker's whole value is on the SECOND visit, and racing it against the first one trades
+// a real page load for a hypothetical offline one.
+//
+// Failure is silent on purpose: an unsupported browser, a private window, or a blocked
+// registration all mean "no offline shell", which is exactly how the app worked before
+// this existed. Nothing downstream may depend on the worker being there.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* no offline shell, no problem */ });
+  });
+}
 </script>
 </body>
 </html>
