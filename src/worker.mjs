@@ -1,5 +1,6 @@
 import {
   slugifyName, FREE, bingoLine, scoreSetlistPrediction, scoreBingoPrediction,
+  scoreWombatPrediction,
 } from '../lib/scoring.mjs';
 import {
   normalizeEmail, isValidEmail, handleCandidates, slugifyHandle, isValidHandle,
@@ -62,12 +63,14 @@ async function scoreShow(env, showdate, actual, force = false) {
   const now = new Date().toISOString();
   const stmts = results.map(r => {
     const payload = JSON.parse(r.payload);
-    const result = r.type === 'setlist'
-      ? scoreSetlistPrediction(payload, actual)
-      : scoreBingoPrediction(payload, actual);
+    // Wombat is graded as facts (which ranked songs played), score NULL — points are a
+    // property of (show, crew) and are computed at read; see scoreWombatPrediction.
+    const result = r.type === 'setlist' ? scoreSetlistPrediction(payload, actual)
+      : r.type === 'bingo' ? scoreBingoPrediction(payload, actual)
+      : scoreWombatPrediction(payload, actual);
     return env.DB.prepare(
       'UPDATE predictions SET result = ?1, score = ?2, bingo = ?3, scored_at = ?4 WHERE id = ?5'
-    ).bind(JSON.stringify(result), result.score, result.bingo ? 1 : 0, now, r.id);
+    ).bind(JSON.stringify(result), result.score ?? null, result.bingo ? 1 : 0, now, r.id);
   });
   await env.DB.batch(stmts);
   return results.length;
@@ -354,12 +357,24 @@ async function api(request, env, ctx, { p, m, q, url }) {
     const user = await currentUser(request, env);
     if (!user) return err(401, 'not signed in');
     const { showdate, type, payload } = await body(request);
-    if (!showdate || !['setlist', 'bingo'].includes(type) || !payload) {
-      return err(400, 'showdate, type (setlist|bingo), payload required');
+    if (!showdate || !['setlist', 'bingo', 'wombat'].includes(type) || !payload) {
+      return err(400, 'showdate, type (setlist|bingo|wombat), payload required');
     }
     if (type === 'bingo') {
       const slugs = payload.grid.filter((c, i) => i !== FREE && c).map(c => c.slug);
       if (new Set(slugs).size !== slugs.length) return err(400, 'duplicate songs in grid');
+    }
+    if (type === 'wombat') {
+      // An ordered list of at most ten distinct songs. Order IS the payload — rank is
+      // array position — so the server checks shape and uniqueness and nothing else;
+      // resolution against the rest of a crew happens at read time, never here.
+      const ranks = payload.ranks;
+      if (!Array.isArray(ranks) || !ranks.length || ranks.length > 10) {
+        return err(400, 'wombat payload is ranks: 1-10 songs in order');
+      }
+      const slugs = ranks.map(r => r && r.slug).filter(Boolean);
+      if (slugs.length !== ranks.length) return err(400, 'every rank needs a song');
+      if (new Set(slugs).size !== slugs.length) return err(400, 'duplicate songs in ranks');
     }
     // Predictions lock at the published downbeat. This belongs here, not in the builder:
     // a disabled button stops nobody from POSTing, and a prediction edited after the first
@@ -512,9 +527,10 @@ async function api(request, env, ctx, { p, m, q, url }) {
           WHERE pm.group_id = ?1 AND pr.showdate = ?2`
       ).bind(gid, showdate).all();
       for (const pr of preds) {
-        const cur = inFor.get(pr.user_id) || { setlist: false, bingo: false };
+        const cur = inFor.get(pr.user_id) || { setlist: false, bingo: false, wombat: false };
         if (pr.type === 'setlist') cur.setlist = true;
         if (pr.type === 'bingo') cur.bingo = true;
+        if (pr.type === 'wombat') cur.wombat = true;
         inFor.set(pr.user_id, cur);
       }
     }
@@ -522,7 +538,7 @@ async function api(request, env, ctx, { p, m, q, url }) {
       members: results.map(r => ({
         handle: r.handle, name: publicName(r),
         profile: JSON.parse(r.profile || '{}'), isOwner: !!r.isOwner,
-        ...(showdate ? (inFor.get(r.uid) || { setlist: false, bingo: false }) : {}),
+        ...(showdate ? (inFor.get(r.uid) || { setlist: false, bingo: false, wombat: false }) : {}),
       })),
     });
   }

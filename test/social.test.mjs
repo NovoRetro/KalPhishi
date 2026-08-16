@@ -157,7 +157,7 @@ test('the applied-prediction tag requires the board to still match the fill', ()
   // comparison on every render, so nothing has to remember to remove it.
   assert.match(predictor, /appliedFill = \{ mode: 'setlist', label: fillLabel\(\), snap: setlistSnap\(build\) \}/);
   assert.match(predictor, /appliedFill = \{ mode: 'bingo', label: fillLabel\(\), snap: gridSnap\(grid\) \}/);
-  assert.match(predictor, /const live = mode === 'setlist' \? setlistSnap\(build\) : gridSnap\(grid\);/,
+  assert.match(predictor, /const live = mode === 'setlist' \? setlistSnap\(build\)\s*\n?\s*: mode === 'bingo' \? gridSnap\(grid\) : wombatSnap\(wombatRanks\);/,
     'the tag must be gated on a live comparison, not on a flag an edit could forget to clear');
   assert.match(predictor, /if \(live === appliedFill\.snap\)/);
   // The old behaviour — wearing the tag merely because a lens was selected — must not return.

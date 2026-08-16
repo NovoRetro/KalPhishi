@@ -141,11 +141,11 @@ test('the Our Prediction button is named for what it will actually fill from', (
   // would freeze on whichever approach was selected when the card was first built.
   // The crew page also builds an actionsMenu (its owner tools), so count the menus whose
   // first entry is the label fn rather than every menu in the file — the invariant is
-  // that BOTH GAME menus lead with Our Prediction, not that no other menu exists.
+  // that EVERY GAME menu leads with Our Prediction, not that no other menu exists.
   const menus = [...predictor.matchAll(/actionsMenu\(\[\s*(?:\/\/[^\n]*\n\s*)*\[([^,]+),/g)];
   const gameMenus = menus.filter(m => /ourPredictionLabel\(\)/.test(m[1]));
-  assert.equal(gameMenus.length, 2,
-    'both game menus must lead with Our Prediction, calling the label fn');
+  assert.equal(gameMenus.length, 3,
+    'all three game menus must lead with Our Prediction, calling the label fn');
   assert.doesNotMatch(predictor, /\['🛟 Our Prediction',/, 'no hardcoded label may remain');
 });
 
