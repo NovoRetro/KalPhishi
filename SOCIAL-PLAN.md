@@ -1,6 +1,6 @@
 # Crew Night — the social UX plan
 
-**Status: Phases 0–3 implemented** (2026-08-15, #57/#58 merged, Phase 3 on
+**Status: Phases 0–3 implemented, plus Phase 4's superlatives** (2026-08-15, #57/#58 merged, Phase 3 on
 `crew-phase-3`) — the predictions API is sealed; every member opens the roster and the
 Crew page; at the lock the room flips to the reveal (chalk, sole calls, overlap, then
 the scored recap) with the SVG share card. Approach labels were renamed for players
@@ -147,7 +147,7 @@ Each stands alone; none blocks another. Ordered by fun-per-effort as I see it:
 
 | Feature | What it is | Storage |
 |---|---|---|
-| **Superlatives** | Auto-titles after each scored show: *Bustout Prophet* (called the biggest gap), *Encore Whisperer*, *Chalk Artist* (most consensus picks), *Lone Wolf* (sole call that hit). Rendered as chips on the recap and the roster. | none — derived |
+| **Superlatives** — **SHIPPED 2026-08-16** | Five auto-titles after each scored show: *Bustout Prophet* (biggest-gap song that played, 31-show floor), *Lone Wolf* (a hit nobody else called), *Sharpshooter* (best hit rate, five-call floor), *Encore Whisperer* (song placed in the encore), *Chalk Artist* (most consensus calls, needs a crew of 3). Shared on ties rather than tie-broken; all five positive by design. Chips on the recap and the roster, and the headline one rides the share card. | none — derived |
 | **Rivalry records** | Head-to-head W-L vs each friend across scored shows, shown on their roster row. "You lead @robbie 4–2." | none — derived |
 | **Donut reactions** | One tap on a friend's revealed/scored card: 🍩 ⚡ 🎯 🤡 from a fixed set. Counts only. | one small table (reactor, target user+show+game, emoji, unique per reactor/target) |
 | **Streaks** | Consecutive shows predicted, per member; crew participation % per run. | none — derived |

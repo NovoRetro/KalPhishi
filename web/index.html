@@ -1177,6 +1177,12 @@
     gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--grid); font-size: 13px; }
   .crew-reveal-row:last-of-type { border-bottom: 0; }
   .crew-share { margin-top: 10px; }
+  /* Superlative chips. Gold rather than any palette colour: --chip green already means
+     "in for this show" on the dots two pixels away, and a title is not a status. Same
+     shape as the bustout badges so the two read as one family of "this is notable". */
+  .sup-chip { font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap;
+    color: #eec26a; border: 1px solid currentColor; border-radius: 4px; padding: 0 5px; }
+  .crew-member-right { flex-wrap: wrap; justify-content: flex-end; }
   .friend-remove { background: none; border: 1px solid var(--border); border-radius: 99px; color: var(--series-2);
     font: inherit; font-size: 11px; padding: 4px 10px; min-height: 32px; cursor: pointer; }
   .friend-remove:hover { background: var(--accent-wash); }

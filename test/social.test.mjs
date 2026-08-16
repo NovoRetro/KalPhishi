@@ -182,7 +182,9 @@ test('the reveal is gated on the lock and adds no server surface', () => {
   // The whole design: Phase 0's seal is the only server rule, and the reveal is a client
   // read of the same route everything else reads. If this ever grows its own endpoint,
   // there are two visibility rules to keep consistent instead of one.
-  assert.match(predictor, /if \(L\.locked\) await renderReveal\(wrap, members\)/,
+  // The call now captures the superlatives it hands back for the roster, but the gate is
+  // the invariant being protected: nothing of the reveal exists before the downbeat.
+  assert.match(predictor, /L\.locked \? \(await renderReveal\(wrap, members\)\) \|\| \[\] : \[\]/,
     'the reveal must render only once the show is locked');
   const reveal = predictor.match(/async function renderReveal\([\s\S]*?\n  \}/);
   assert.ok(reveal, 'renderReveal not found');

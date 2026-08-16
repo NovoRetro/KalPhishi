@@ -2197,6 +2197,102 @@ function initPredictor(mount, A, opts = {}) {
     return { owners, outbid, nullified, dead, cards };
   }
 
+  // ---------- superlatives (SOCIAL-PLAN.md, Phase 4) ----------
+  //
+  // Auto-awarded titles from a scored show. Derived, never stored: every input is already
+  // on screen at reveal time, so this needed no migration, no route and no cron work — it
+  // is arithmetic over what the recap is showing anyway.
+  //
+  // Pure and self-contained for the same reason resolveWombat is: test/superlatives.test.mjs
+  // extracts it from this file by source and runs fixtures against it, so it must not
+  // reach into the enclosing closure.
+  //
+  // Every award can be SHARED. Inventing a tiebreak to force a single winner would mean
+  // handing one of two identical performances a title and the other nothing, which is a
+  // worse outcome than two people both being Bustout Prophet. Handles are sorted so the
+  // same show always produces the same order.
+  //
+  // All five are positive. A wooden spoon was considered and cut: night one at Dick's is
+  // the first time most of the crew will see any of this, and the newest player is the
+  // likeliest to score zero.
+  function computeSuperlatives(players, ctx) {
+    // players: [{ handle, calls: [slug], hits: [slug], encorePlaced: [slug] }]
+    // ctx: { gapOf: {slug: gap}, callCount: {slug: n}, crewSize: n, nameOf: {slug: name} }
+    const { gapOf = {}, callCount = {}, crewSize = 0, nameOf = {} } = ctx || {};
+    const named = slug => nameOf[slug] || slug;
+    const out = [];
+    const award = (key, emoji, title, handles, detail) => {
+      if (handles.length) out.push({ key, emoji, title, handles: [...handles].sort(), detail });
+    };
+
+    // 🔮 Bustout Prophet — called the most overdue song that actually played. The 31-show
+    // floor is the app's own definition of a bustout (bustTier), not a new one: a title
+    // for calling something that was due next week would be a title for nothing.
+    let bestGap = 0;
+    let bestSlug = null;
+    for (const p of players) {
+      for (const slug of p.hits) {
+        const gap = gapOf[slug] || 0;
+        if (gap >= 31 && gap > bestGap) { bestGap = gap; bestSlug = slug; }
+      }
+    }
+    if (bestSlug) {
+      award('bustout', '🔮', 'Bustout Prophet',
+        players.filter(p => p.hits.includes(bestSlug)).map(p => p.handle),
+        `${named(bestSlug)} — ${bestGap} shows`);
+    }
+
+    // 🐺 Lone Wolf — hit something nobody else in the crew called. Every qualifying player
+    // gets it; they each did the same rare thing on a different song.
+    const wolves = new Map();
+    for (const p of players) {
+      for (const slug of p.hits) {
+        if (callCount[slug] === 1 && p.calls.includes(slug)) {
+          if (!wolves.has(p.handle)) wolves.set(p.handle, slug);
+        }
+      }
+    }
+    if (wolves.size) {
+      const only = [...new Set([...wolves.values()])];
+      award('lonewolf', '🐺', 'Lone Wolf', [...wolves.keys()],
+        only.length === 1 ? named(only[0]) : `${only.length} calls nobody else made`);
+    }
+
+    // 🎯 Sharpshooter — best hit rate. The five-call floor is what stops a single lucky
+    // pick from outranking a full card: one-for-one is 100% and means nothing.
+    const eligible = players.filter(p => p.calls.length >= 5 && p.hits.length > 0);
+    if (eligible.length) {
+      const rate = p => p.hits.length / p.calls.length;
+      const best = Math.max(...eligible.map(rate));
+      award('sharp', '🎯', 'Sharpshooter',
+        eligible.filter(p => rate(p) === best).map(p => p.handle),
+        `${Math.round(best * 100)}% of their calls played`);
+    }
+
+    // 🎪 Encore Whisperer — put a song in the encore and the band put it there too.
+    const whisperers = players.filter(p => p.encorePlaced.length > 0);
+    if (whisperers.length) {
+      const most = Math.max(...whisperers.map(p => p.encorePlaced.length));
+      const top = whisperers.filter(p => p.encorePlaced.length === most);
+      award('encore', '🎪', 'Encore Whisperer', top.map(p => p.handle),
+        most === 1 ? named(top[0].encorePlaced[0]) : `${most} encore songs, in the encore`);
+    }
+
+    // 📋 Chalk Artist — most calls that half the crew or more also made. Needs three
+    // players to mean anything: in a duo "consensus" is just the two of you agreeing.
+    if (crewSize >= 3) {
+      const threshold = Math.ceil(crewSize / 2);
+      const chalkOf = p => p.calls.filter(s => (callCount[s] || 0) >= threshold).length;
+      const most = Math.max(...players.map(chalkOf), 0);
+      if (most > 0) {
+        award('chalk', '📋', 'Chalk Artist',
+          players.filter(p => chalkOf(p) === most).map(p => p.handle),
+          `${most} calls the crew agreed on`);
+      }
+    }
+    return out;
+  }
+
   function renderWombatBuilder() {
     const usedSlugs = () => new Set(wombatRanks.map(s => s.slug));
 
@@ -2409,7 +2505,14 @@ function initPredictor(mount, A, opts = {}) {
     // surface here; a sealed row simply has no payload and drops out of every count.
     // Consensus and overlap are computed here in the client over at most a few hundred
     // slugs, which is the whole reason the seal could stay the only server rule.
-    if (L.locked) await renderReveal(wrap, members);
+    // The reveal hands back the superlatives so the roster can wear them; nothing else
+    // needs them, and recomputing per row would repeat the whole show's arithmetic once
+    // per member.
+    const supers = L.locked ? (await renderReveal(wrap, members)) || [] : [];
+    const wonBy = new Map();
+    for (const sup of supers) {
+      for (const h of sup.handles) wonBy.set(h, [...(wonBy.get(h) || []), sup]);
+    }
 
     // ---- the two boards. Never merged; the tab pair mirrors the game tabs above and the
     // board itself is the standings panel pinned to this crew.
@@ -2435,6 +2538,12 @@ function initPredictor(mount, A, opts = {}) {
         `<span class="p-avatar">${esc(mem.profile.avatar || '🎣')}</span> <b>${esc(mem.name)}</b> ` +
         `<span class="menu-stats">@${esc(mem.handle)}${mem.isOwner ? ' 👑' : ''}</span>`);
       const right = el('span', 'crew-member-right');
+      // Titles first — they are the only thing on this row that took doing.
+      for (const sup of wonBy.get(mem.handle) || []) {
+        const chip = el('span', 'sup-chip', `${sup.emoji} ${esc(sup.title)}`);
+        chip.title = sup.detail;
+        right.appendChild(chip);
+      }
       if (!L.locked && (mem.setlist || mem.bingo || mem.wombat)) {
         const pill = el('span', 'm-chip-seal', 'sealed 🔒');
         pill.title = 'They’re in — their pick exists, and nobody sees it until the show locks.';
@@ -2477,32 +2586,67 @@ function initPredictor(mount, A, opts = {}) {
     // section below, and counting a ranked list as "calls" would double-speak a song
     // the resolution says someone else owns. Their names and played-facts still feed in.
     const wombatEntries = [];
+    // Per player, for the superlatives: what they called, what of it played, and which
+    // encore songs they put in the encore and got right. Kept alongside the crew-wide
+    // sets rather than derived from them later, because "did THIS person hit this song"
+    // is not recoverable from a union once the loop has moved on.
+    const perPlayer = new Map();
+    const statsFor = h => {
+      if (!perPlayer.has(h)) perPlayer.set(h, { handle: h, calls: new Set(), hits: new Set(), encorePlaced: new Set() });
+      return perPlayer.get(h);
+    };
     for (const p of open) {
+      const mine = statsFor(p.userHandle);
       if (p.type === 'wombat') {
         const ranks = p.payload.ranks || [];
         for (const r of ranks) if (r && r.slug && !nameOf.has(r.slug)) nameOf.set(r.slug, r.name);
         wombatEntries.push({ handle: p.userHandle, slugs: ranks.map(r => r.slug), result: p.result });
-        if (p.result?.played) for (const [slug, hit] of Object.entries(p.result.played)) if (hit) hitSlugs.add(slug);
+        if (p.result?.played) {
+          for (const [slug, hit] of Object.entries(p.result.played)) {
+            if (hit) { hitSlugs.add(slug); mine.hits.add(slug); }
+          }
+        }
         continue;
       }
       const set = calls.get(p.userHandle) || new Set();
-      const add = s => { if (s && s.slug) { set.add(s.slug); if (!nameOf.has(s.slug)) nameOf.set(s.slug, s.name); } };
+      const add = s => {
+        if (s && s.slug) {
+          set.add(s.slug); mine.calls.add(s.slug);
+          if (!nameOf.has(s.slug)) nameOf.set(s.slug, s.name);
+        }
+      };
       if (p.type === 'setlist') for (const k of ['set1', 'set2', 'encore']) (p.payload[k] || []).forEach(add);
       else (p.payload.grid || []).filter(Boolean).forEach(add);
       calls.set(p.userHandle, set);
       if (p.result) {
-        if (p.type === 'setlist' && p.result.rows) {
+        // rows live under `breakdown`, NOT on the result itself: scoreSetlistPrediction
+        // keeps hits/stressors at the top level so predictions graded under the old
+        // scheme still render, and puts everything newer inside breakdown. Reading
+        // p.result.rows here was a silent no-op that shipped in Phase 3 — no setlist hit
+        // ever reached hitSlugs, so the reveal's tick marks only ever came from bingo and
+        // wombat. Found by pointing the superlatives at real scored data: Sharpshooter
+        // reported 67% for a player who had hit five of six.
+        if (p.type === 'setlist' && p.result.breakdown?.rows) {
           for (const k of ['set1', 'set2', 'encore']) {
-            for (const r of p.result.rows[k] || []) if (r.status !== 'miss') hitSlugs.add(r.slug);
+            for (const r of p.result.breakdown.rows[k] || []) {
+              if (r.status === 'miss') continue;
+              hitSlugs.add(r.slug); mine.hits.add(r.slug);
+              // 'placed' in the encore means the song was called AND landed in the
+              // encore — the hardest slot in the game to get right.
+              if (k === 'encore' && r.status === 'placed') mine.encorePlaced.add(r.slug);
+            }
           }
         } else if (p.type === 'bingo' && p.result.checked && p.payload.grid) {
-          p.result.checked.forEach((hit, i) => { if (hit && p.payload.grid[i]) hitSlugs.add(p.payload.grid[i].slug); });
+          p.result.checked.forEach((hit, i) => {
+            if (hit && p.payload.grid[i]) { hitSlugs.add(p.payload.grid[i].slug); mine.hits.add(p.payload.grid[i].slug); }
+          });
         }
       }
     }
     const callers = [...calls.keys()];
     const scored = open.filter(p => p.result);
 
+    let supers = [];
     const card = el('div', 'crew-reveal');
     card.appendChild(el('div', 'setlabel', scored.length ? `The reveal — scored` : 'The reveal'));
 
@@ -2578,6 +2722,33 @@ function initPredictor(mount, A, opts = {}) {
       card.appendChild(el('div', 'hint', 'Tap a name below for their card.'));
     }
 
+    // ---- superlatives. Scored shows only: every one of them is a statement about what
+    // actually played, and awarding "Sharpshooter" before the encore would be a guess
+    // wearing a trophy.
+    if (scored.length) {
+      const gapOf = {};
+      for (const slug of nameOf.keys()) { const g = meta[slug]?.gap; if (g != null) gapOf[slug] = g; }
+      const callCount = {};
+      for (const [slug, n] of counts) callCount[slug] = n;
+      supers = computeSuperlatives(
+        [...perPlayer.values()].map(v => ({
+          handle: v.handle,
+          calls: [...v.calls],
+          hits: [...v.hits],
+          encorePlaced: [...v.encorePlaced],
+        })),
+        { gapOf, callCount, crewSize: members.length, nameOf: Object.fromEntries(nameOf) });
+      if (supers.length) {
+        card.appendChild(el('div', 'crew-reveal-h', 'Superlatives'));
+        for (const s of supers) {
+          card.appendChild(el('div', 'crew-reveal-row',
+            `<span><span class="sup-chip">${s.emoji} ${esc(s.title)}</span> `
+            + `${s.handles.map(h => '<b>@' + esc(h) + '</b>').join(', ')}</span>`
+            + `<span class="menu-stats">${esc(s.detail)}</span>`));
+        }
+      }
+    }
+
     // ---- Wombat: the draft results (WOMBAT.md). Resolution is computed HERE, per
     // crew, from the sealed lists the lock just opened — never stored, because the same
     // global list resolves differently in every crew. Needs two players to be a game.
@@ -2617,9 +2788,13 @@ function initPredictor(mount, A, opts = {}) {
     // ---- the share card. The group chat lives off-app by design (reach.md), so this
     // hands it something worth pasting.
     const share = el('button', 'p-btn crew-share', '📤 Share the card');
-    share.addEventListener('click', () => shareRevealCard(members, { calls, counts, callers, nameOf, hitSlugs, scored }));
+    share.addEventListener('click', () => shareRevealCard(members, { calls, counts, callers, nameOf, hitSlugs, scored, supers }));
     card.appendChild(share);
     wrap.appendChild(card);
+    // Handed back so the roster below can chip each member with what they won — the
+    // reveal renders first, and recomputing this per row would be the same arithmetic
+    // done once per member instead of once per show.
+    return supers;
   }
 
   // A pure-SVG summary rendered to PNG — no canvas library, no dependency, nothing
@@ -2648,6 +2823,11 @@ function initPredictor(mount, A, opts = {}) {
         const who = R.callers.find(h => R.calls.get(h).has(soleHit[0]));
         lines.push(`Sole call that hit: ${R.nameOf.get(soleHit[0])} — only @${who}`);
       }
+      // One superlative, not all five — the card is a boast for a group chat, and a
+      // list of five awards is a table. Bustout Prophet leads because calling a song
+      // nobody has heard in three years is the most interesting thing anyone did.
+      const head = (R.supers || [])[0];
+      if (head) lines.push(`${head.emoji} ${head.title}: @${head.handles.join(', @')} — ${head.detail}`);
     } else {
       const threshold = Math.max(2, Math.ceil(R.callers.length / 2));
       const chalk = [...R.counts].filter(([, n]) => n >= threshold).sort((a, b) => b[1] - a[1]).slice(0, 4);
