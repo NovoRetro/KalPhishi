@@ -2,6 +2,9 @@
 // Runs unmodified in Node because the module deliberately uses only Web Crypto.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import {
   hashPassword, verifyPassword, sha256hex, getCookie,
   sessionCookie, clearedSessionCookie, timingSafeEqualStr,
@@ -77,14 +80,17 @@ test('sha256hex is stable, 64 hex chars, and matches a known vector', async () =
   assert.notEqual(h, await sha256hex('session-token '));
 });
 
-test('session cookie carries HttpOnly, Secure, SameSite and the full TTL', () => {
+test('session cookie carries HttpOnly, Secure, SameSite and a year of life', () => {
   const c = sessionCookie('abc123');
   assert.match(c, new RegExp(`^${SESSION_COOKIE}=abc123;`));
   assert.match(c, /HttpOnly/);
   assert.match(c, /Secure/, 'the Worker is HTTPS-only');
   assert.match(c, /SameSite=Lax/);
   assert.match(c, /Path=\//);
-  assert.match(c, new RegExp(`Max-Age=${SESSION_TTL_MS / 1000}\\b`));
+  // A year, NOT the session TTL: sessions slide server-side, and a cookie tied to the
+  // login-time TTL would silently log out the most active player at day 30. The
+  // sessions row is the authority on validity; the cookie only has to still exist.
+  assert.match(c, /Max-Age=31536000\b/);
 });
 
 test('clearing the cookie empties the value and expires it immediately', () => {
@@ -124,4 +130,25 @@ test('published auth constants stay within their documented bounds', () => {
   assert.ok(MIN_PASSWORD_LENGTH >= 6, 'short passwords are the tradeoff for a low work factor');
   assert.ok(PBKDF2_ITERATIONS <= 100_000, 'Cloudflare caps PBKDF2 at 100k iterations');
   assert.equal(SESSION_TTL_MS, 30 * 24 * 3600 * 1000);
+});
+
+test('sessions slide for the active and end for the absent', async () => {
+  // The cookie must outlive the server window — the sessions row is the authority on
+  // validity, and a cookie tied to the login-time TTL dies at day 30 no matter how
+  // active the player is, which is the silent logout the slide exists to prevent.
+  const { sessionCookie, SESSION_TTL_MS, SESSION_RENEW_BELOW_MS, SESSION_COOKIE_MAX_AGE_S } =
+    await import('../src/auth.mjs');
+  assert.ok(SESSION_COOKIE_MAX_AGE_S * 1000 > SESSION_TTL_MS,
+    'the cookie must not expire before a sliding session can');
+  assert.match(sessionCookie('tok'), new RegExp(`Max-Age=${SESSION_COOKIE_MAX_AGE_S}`));
+  assert.ok(SESSION_RENEW_BELOW_MS < SESSION_TTL_MS,
+    'renewal must trigger before expiry or it never triggers at all');
+  // The renewal itself needs D1, so its properties are asserted at the source, same
+  // pattern as the route tests: guarded to at most one write per half-window, awaited
+  // so Workers cannot cancel it, and the caller-visible shape unchanged.
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'src/auth.mjs'), 'utf8');
+  assert.match(src, /if \(user\.expires - now < SESSION_RENEW_BELOW_MS\) \{\s*\n\s*await env\.DB/,
+    'the slide must be guarded and awaited');
+  assert.match(src, /delete user\.expires/,
+    'currentUser must hand back the same shape it always did');
 });
