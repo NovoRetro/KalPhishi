@@ -89,10 +89,17 @@ function initPredictor(mount, A, opts = {}) {
   // without anything having to remember to remove it. The tag is a statement of
   // provenance ("this board is the Native Model's call"), and a board with your own
   // fingerprints on it is yours, not the model's.
-  let appliedFill = null; // { mode: 'setlist' | 'bingo', label, snap }
+  let appliedFill = null; // { mode: 'setlist' | 'bingo' | 'wombat', label, snap }
   const setlistSnap = b => ['set1', 'set2', 'encore'].map(k => b[k].map(s => s.slug).join(',')).join('|');
   const gridSnap = g => g.map(c => (c ? c.slug : '')).join(',');
+  const wombatSnap = r => r.map(s => s.slug).join(',');
   const fillLabel = () => lensArm()?.label || 'Our Prediction';
+  // Wombat working state. An ordered list IS the whole prediction — rank is array
+  // position — so unlike the setlist there is no shape to it beyond the order.
+  let wombatRanks = []; // [{slug, name}] in rank order, at most WOMBAT_LIST_SIZE
+  let savedWombat = null;
+  const WOMBAT_LIST_SIZE = 10;
+  const WOMBAT_CARD_SIZE = 5;
   // working state
   let build = { set1: [], set2: [], encore: [] };
   let grid = Array(25).fill(null);
@@ -292,6 +299,7 @@ function initPredictor(mount, A, opts = {}) {
       // The crew's NAME renders inside renderCrew, where it is data — this static label
       // just says what kind of place you are in.
       crew: 'Crew',
+      wombat: 'Wombat',
     };
     // The countdown rides the heading row, pushed right and only as wide as its text.
     // As a full-width banner under the top bar it read as an alert; up here it is a
@@ -301,7 +309,7 @@ function initPredictor(mount, A, opts = {}) {
     // a row of the game's space. History and Profile keep theirs at every width: they are
     // reached from the menu, no tab names them, so the heading is their only label.
     const head = el('div', 'p-headrow'
-      + (mode === 'bingo' || mode === 'setlist' ? ' p-headrow-game' : ''));
+      + (mode === 'bingo' || mode === 'setlist' || mode === 'wombat' ? ' p-headrow-game' : ''));
     head.appendChild(el('h2', null, HEADINGS[mode] || HEADINGS.setlist));
     // The provenance tag (2026-08-15 direction). It used to name the selected approach
     // whenever one was chosen, whether or not the board had anything to do with it — a
@@ -310,8 +318,9 @@ function initPredictor(mount, A, opts = {}) {
     // gone the moment an edit deviates — a board with your fingerprints on it is yours,
     // not the model's. Nothing has to remember to remove it; the comparison happens on
     // every render, and re-creating the exact prediction by hand honestly re-earns it.
-    if ((mode === 'bingo' || mode === 'setlist') && appliedFill && appliedFill.mode === mode) {
-      const live = mode === 'setlist' ? setlistSnap(build) : gridSnap(grid);
+    if ((mode === 'bingo' || mode === 'setlist' || mode === 'wombat') && appliedFill && appliedFill.mode === mode) {
+      const live = mode === 'setlist' ? setlistSnap(build)
+        : mode === 'bingo' ? gridSnap(grid) : wombatSnap(wombatRanks);
       if (live === appliedFill.snap) {
         const chip = el('span', 'p-lensnote', `🛟 ${esc(appliedFill.label)}`);
         chip.title = `This board is exactly the "${appliedFill.label}" prediction. `
@@ -334,7 +343,7 @@ function initPredictor(mount, A, opts = {}) {
           ? 'Tap squares as they’re played.'
           : 'Saved — editable until the lock.'));
     }
-    if (L.known && (mode === 'setlist' || mode === 'bingo')) {
+    if (L.known && (mode === 'setlist' || mode === 'bingo' || mode === 'wombat')) {
       const clock = L.local ? `${L.local} local` : 'showtime';
       head.appendChild(L.locked
         ? el('span', 'p-lock p-locked', `🔒 Locked · started ${esc(clock)}`)
@@ -364,6 +373,7 @@ function initPredictor(mount, A, opts = {}) {
     const builderStart = mount.childElementCount;
     if (mode === 'setlist') renderSetlistBuilder();
     else if (mode === 'bingo') renderBingo();
+    else if (mode === 'wombat') renderWombatBuilder();
     else if (mode === 'profile') renderProfile();
     else if (mode === 'crew') renderCrew();
     else renderHistory();
@@ -373,7 +383,7 @@ function initPredictor(mount, A, opts = {}) {
     // people still switch shows and mark attendance after the fact. Bingo cells are divs
     // and so survive this deliberately: tapping squares as songs are played is the point
     // of live mode, and it writes to live_checked, never to the prediction itself.
-    if ((mode === 'setlist' || mode === 'bingo') && lockInfo().locked) {
+    if ((mode === 'setlist' || mode === 'bingo' || mode === 'wombat') && lockInfo().locked) {
       const SEL = 'button, input, select, textarea';
       for (let i = builderStart; i < mount.childElementCount; i++) {
         const node = mount.children[i];
@@ -977,6 +987,7 @@ function initPredictor(mount, A, opts = {}) {
     const preds = await api(`/api/predictions?user=${user.handle}&showdate=${showdate}`);
     const sl = preds.find(p => p.type === 'setlist');
     const bg = preds.find(p => p.type === 'bingo');
+    const wb = preds.find(p => p.type === 'wombat');
     // Saved predictions win, but never clobber an unsaved local draft with emptiness —
     // signing in mid-draft (e.g. via the menu) must not wipe the work in progress.
     const draftSongs = build.set1.length + build.set2.length + build.encore.length;
@@ -985,8 +996,11 @@ function initPredictor(mount, A, opts = {}) {
     const draftCells = grid.filter((c, i) => c && i !== FREE).length;
     if (bg) grid = bg.payload.grid.slice();
     else if (!draftCells) grid = Array(25).fill(null);
+    if (wb) wombatRanks = JSON.parse(JSON.stringify(wb.payload.ranks || []));
+    else if (!wombatRanks.length) wombatRanks = [];
     locks = Array(25).fill(false);
     livePrediction = bg || null;
+    savedWombat = wb || null;
     // Retained so the setlist builder can offer the same way back as the board does. The
     // payload is what gets restored, so it must not be the same object `build` is edited
     // through — otherwise editing the draft would quietly rewrite the thing being kept as
@@ -2076,6 +2090,178 @@ function initPredictor(mount, A, opts = {}) {
     wrap.appendChild(profilePanel);
   }
 
+  // ---------- wombat ----------
+  //
+  // The rules live in WOMBAT.md; the one-line version: rank up to 10 songs, the highest
+  // rank across the crew owns a song, exact ties nullify the tied players and the song
+  // cascades to the next unique claim, your top 5 survivors are your card, 1 point each
+  // when played. Resolution is a property of (show, crew) — computed here at read time,
+  // never stored — which is why this function is deliberately self-contained and pure:
+  // test/wombat.test.mjs extracts it from this file by source and runs fixtures against
+  // it directly, so it must not reach for anything in the enclosing closure.
+  function resolveWombat(entries) {
+    // entries: [{ handle, slugs: [slug, ...] }] in each player's rank order.
+    const claims = new Map(); // slug -> [{handle, rank}]
+    for (const e of entries) {
+      (e.slugs || []).forEach((slug, rank) => {
+        if (!claims.has(slug)) claims.set(slug, []);
+        claims.get(slug).push({ handle: e.handle, rank });
+      });
+    }
+    const owners = {};      // slug -> handle
+    const outbid = {};      // slug -> [handles who claimed it and lost]
+    const nullified = {};   // slug -> [handles who tied each other out]
+    const dead = [];        // every level tied out
+    for (const [slug, cs] of claims) {
+      const byRank = new Map();
+      for (const c of cs) { if (!byRank.has(c.rank)) byRank.set(c.rank, []); byRank.get(c.rank).push(c.handle); }
+      const levels = [...byRank.keys()].sort((a, b) => a - b);
+      const ties = [];
+      let owner = null;
+      for (const lv of levels) {
+        const atLevel = byRank.get(lv);
+        if (atLevel.length === 1) { owner = atLevel[0]; break; }
+        ties.push(...atLevel);
+      }
+      if (owner) {
+        owners[slug] = owner;
+        const losers = cs.map(c => c.handle).filter(h => h !== owner);
+        if (losers.length) outbid[slug] = losers;
+        if (ties.length) nullified[slug] = ties;
+      } else {
+        dead.push(slug);
+        nullified[slug] = ties;
+      }
+    }
+    // Card: your owned songs in YOUR rank order, top 5. Inherited songs arrive at your
+    // own rank, which is what keeps low-balling a consolation rather than a jackpot.
+    const cards = {};
+    for (const e of entries) {
+      cards[e.handle] = (e.slugs || []).filter(slug => owners[slug] === e.handle).slice(0, 5);
+    }
+    return { owners, outbid, nullified, dead, cards };
+  }
+
+  function renderWombatBuilder() {
+    const usedSlugs = () => new Set(wombatRanks.map(s => s.slug));
+
+    const randomizeWombat = () => {
+      wombatRanks = randomSongs(WOMBAT_LIST_SIZE, new Set());
+      render();
+    };
+    const fillWombatFromModel = () => {
+      wombatRanks = lensRanking().slice(0, WOMBAT_LIST_SIZE).map(s => ({ slug: s.slug, name: s.name }));
+      appliedFill = { mode: 'wombat', label: fillLabel(), snap: wombatSnap(wombatRanks) };
+      render();
+      if (!lensIsDefault()) flash(`Filled from ${lensArm().label}.`);
+    };
+
+    // The whole pitch, one line, above the builder — this game is new to everyone and
+    // its one non-obvious idea is that rank buys ownership across the crew.
+    mount.appendChild(el('div', 'hint',
+      'Rank up to 10. Highest rank in your crew <b>owns</b> a song; exact ties cancel '
+      + 'each other and it falls to the next. Your top 5 survivors are your card — 1 pt '
+      + 'each when played. Resolves per crew at the lock.'));
+
+    const controls = el('div', 'p-row p-controls');
+    if (wombatRanks.length > 0) {
+      const save = el('button', 'p-btn', user ? 'Bag it, Tag it'
+        : probablyHasAccount() ? 'Sign in to save' : 'Sign up to save');
+      save.addEventListener('click', () => requireAuth('Save your Wombat ranks:', async () => {
+        try {
+          await api('/api/predictions', 'POST', { showdate, type: 'wombat', payload: { ranks: wombatRanks } });
+          savedWombat = { payload: { ranks: JSON.parse(JSON.stringify(wombatRanks)) } };
+          flash('Saved.');
+          window.KalphishiRig?.peak();
+          render();
+        } catch (e) { flash(e.message, true); }
+      }));
+      controls.appendChild(save);
+    }
+    const pick = el('button', 'p-btn' + (wombatRanks.length ? ' p-btn-alt' : ''), '✨ Ask Diego?');
+    pick.title = 'Roll a random ranked 10 — press again for a different one';
+    pick.addEventListener('click', randomizeWombat);
+    controls.appendChild(pick);
+
+    const wombatDiffers = () => {
+      const saved = savedWombat?.payload?.ranks;
+      if (!saved) return false;
+      if (saved.length !== wombatRanks.length) return true;
+      return saved.some((s, i) => s.slug !== wombatRanks[i].slug);
+    };
+    const reloadItem = savedWombat && wombatDiffers()
+      ? [['↩ Reload last save', () => {
+        wombatRanks = JSON.parse(JSON.stringify(savedWombat.payload.ranks));
+        render();
+        flash('Reloaded your last saved ranks.');
+      }]]
+      : [];
+    controls.appendChild(actionsMenu([
+      [ourPredictionLabel(), fillWombatFromModel],
+      ['🎲 Randomize', randomizeWombat],
+      ...reloadItem,
+      ['🧹 Clear the list', () => { wombatRanks = []; render(); }],
+    ]));
+    mount.appendChild(controls);
+
+    // The ranked list. Same row anatomy as the setlist sets — handle, name, badges,
+    // × — plus the rank number, which here IS the gameplay.
+    const list = el('div', 'p-setlist wb-list');
+    wombatRanks.forEach((s, i) => {
+      const badges = bustChip(s.slug);
+      const row = el('div', 'p-songrow',
+        `<span class="wb-rank">${i + 1}</span>`
+        + `<span class="p-songmain"><span>${esc(s.name)}</span></span>`
+        + (badges.trim() ? `<span class="p-rowbadges">${badges}</span>` : ''));
+      const handle = el('span', 'p-drag', '⋮⋮');
+      handle.title = 'drag to reorder — rank decides who owns a song';
+      row.prepend(handle);
+      handle.addEventListener('pointerdown', ev => {
+        ev.preventDefault();
+        try { handle.setPointerCapture(ev.pointerId); } catch { /* non-active id */ }
+        dragState = { key: 'wombat', from: i };
+        row.classList.add('dragging');
+      });
+      handle.addEventListener('pointermove', ev => {
+        if (!dragState || dragState.key !== 'wombat') return;
+        clearDropMarks(list);
+        const t = dropTargetIn(list, ev.clientY);
+        if (!t || t.idx === i) return;
+        const target = list.querySelectorAll('.p-songrow')[t.idx];
+        if (target) target.classList.add(t.after ? 'drop-below' : 'drop-above');
+      });
+      handle.addEventListener('pointerup', ev => {
+        if (!dragState || dragState.key !== 'wombat') return;
+        const t = dropTargetIn(list, ev.clientY);
+        clearDropMarks(list);
+        row.classList.remove('dragging');
+        const from = dragState.from;
+        dragState = null;
+        const to = resolveDropIndex(from, t);
+        if (to !== from) wombatRanks = moveItem(wombatRanks, from, to);
+        render();
+      });
+      handle.addEventListener('pointercancel', () => {
+        dragState = null;
+        clearDropMarks(list);
+        row.classList.remove('dragging');
+      });
+      const x = el('button', 'p-x', '×');
+      x.addEventListener('click', () => { wombatRanks.splice(i, 1); render(); });
+      row.appendChild(x);
+      list.appendChild(row);
+    });
+    mount.appendChild(list);
+    if (wombatRanks.length < WOMBAT_LIST_SIZE) {
+      mount.appendChild(el('div', 'p-cap', `${wombatRanks.length} of ${WOMBAT_LIST_SIZE}`));
+      mount.appendChild(typeahead('add a song…', usedSlugs, s => { wombatRanks.push(s); render(); }));
+    } else {
+      mount.appendChild(el('div', 'p-cap', `${WOMBAT_LIST_SIZE} of ${WOMBAT_LIST_SIZE} — the list is full`));
+    }
+    mount.appendChild(el('div', 'hint',
+      'Your #1 beats anyone who ranked the same song lower. See how it resolved on your crew’s page after the lock.'));
+  }
+
   // ---------- the crew page ----------
   //
   // The room (SOCIAL-PLAN.md, Phase 2). Everything a group IS lives here — status strip,
@@ -2146,7 +2332,7 @@ function initPredictor(mount, A, opts = {}) {
 
     // ---- status strip: the emotional center pre-lock. Counts anyone with either game
     // saved; the bar and the copy both flip when the show locks.
-    const inFor = members.filter(m => m.setlist || m.bingo).length;
+    const inFor = members.filter(m => m.setlist || m.bingo || m.wombat).length;
     const day = new Date(showdate + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' });
     const L = lockInfo();
     const strip = el('div', 'crew-strip');
@@ -2194,19 +2380,20 @@ function initPredictor(mount, A, opts = {}) {
         `<span class="p-avatar">${esc(mem.profile.avatar || '🎣')}</span> <b>${esc(mem.name)}</b> ` +
         `<span class="menu-stats">@${esc(mem.handle)}${mem.isOwner ? ' 👑' : ''}</span>`);
       const right = el('span', 'crew-member-right');
-      if (!L.locked && (mem.setlist || mem.bingo)) {
+      if (!L.locked && (mem.setlist || mem.bingo || mem.wombat)) {
         const pill = el('span', 'm-chip-seal', 'sealed 🔒');
         pill.title = 'They’re in — their pick exists, and nobody sees it until the show locks.';
         right.appendChild(pill);
       }
       right.appendChild(el('span', 'grp-dots',
         `<span class="grp-dot${mem.setlist ? '' : ' off'}" title="setlist ${mem.setlist ? 'saved' : 'not saved'}"></span>` +
-        `<span class="grp-dot${mem.bingo ? '' : ' off'}" title="bingo ${mem.bingo ? 'saved' : 'not saved'}"></span>`));
+        `<span class="grp-dot${mem.bingo ? '' : ' off'}" title="bingo ${mem.bingo ? 'saved' : 'not saved'}"></span>` +
+        `<span class="grp-dot${mem.wombat ? '' : ' off'}" title="wombat ${mem.wombat ? 'saved' : 'not saved'}"></span>`));
       row.appendChild(right);
       row.addEventListener('click', () => showPublicProfile(profilePanel, mem.handle));
       wrap.appendChild(row);
     }
-    wrap.appendChild(el('div', 'hint', '● setlist · ● bingo — saved for the open show. Tap a name for their record.'));
+    wrap.appendChild(el('div', 'hint', '● setlist · ● bingo · ● wombat — saved for the open show. Tap a name for their record.'));
     wrap.appendChild(profilePanel);
   }
 
@@ -2231,7 +2418,18 @@ function initPredictor(mount, A, opts = {}) {
     const calls = new Map();
     const nameOf = new Map();
     const hitSlugs = new Set(); // from scored results — empty until the cron grades
+    // Wombat rows stay OUT of the chalk and overlap counts — ownership is its own
+    // section below, and counting a ranked list as "calls" would double-speak a song
+    // the resolution says someone else owns. Their names and played-facts still feed in.
+    const wombatEntries = [];
     for (const p of open) {
+      if (p.type === 'wombat') {
+        const ranks = p.payload.ranks || [];
+        for (const r of ranks) if (r && r.slug && !nameOf.has(r.slug)) nameOf.set(r.slug, r.name);
+        wombatEntries.push({ handle: p.userHandle, slugs: ranks.map(r => r.slug), result: p.result });
+        if (p.result?.played) for (const [slug, hit] of Object.entries(p.result.played)) if (hit) hitSlugs.add(slug);
+        continue;
+      }
       const set = calls.get(p.userHandle) || new Set();
       const add = s => { if (s && s.slug) { set.add(s.slug); if (!nameOf.has(s.slug)) nameOf.set(s.slug, s.name); } };
       if (p.type === 'setlist') for (const k of ['set1', 'set2', 'encore']) (p.payload[k] || []).forEach(add);
@@ -2323,6 +2521,42 @@ function initPredictor(mount, A, opts = {}) {
           + `<span class="menu-stats">${bg.length} card${bg.length === 1 ? '' : 's'}</span>`));
       }
       card.appendChild(el('div', 'hint', 'Tap a name in the roster below for their full scored card.'));
+    }
+
+    // ---- Wombat: the draft results (WOMBAT.md). Resolution is computed HERE, per
+    // crew, from the sealed lists the lock just opened — never stored, because the same
+    // global list resolves differently in every crew. Needs two players to be a game.
+    if (wombatEntries.length >= 2) {
+      const W = resolveWombat(wombatEntries);
+      const playedByOwner = new Map(wombatEntries.map(e => [e.handle, e.result?.played || null]));
+      const anyScored = wombatEntries.some(e => e.result?.played);
+      card.appendChild(el('div', 'crew-reveal-h', 'Wombat — the draft'));
+      for (const e of wombatEntries) {
+        const mine = W.cards[e.handle] || [];
+        const played = playedByOwner.get(e.handle);
+        const pts = played ? mine.filter(slug => played[slug]).length : null;
+        const songs = mine.length
+          ? mine.map(slug => `${played && played[slug] ? '✅ ' : ''}${esc(nameOf.get(slug) || slug)}`).join(' · ')
+          : '<i>everything contested away</i>';
+        card.appendChild(el('div', 'crew-reveal-row',
+          `<span><b>@${esc(e.handle)}</b> — ${songs}</span>`
+          + `<span class="menu-stats">${pts != null ? `${pts} pt${pts === 1 ? '' : 's'}` : `${mine.length} song${mine.length === 1 ? '' : 's'}`}</span>`));
+      }
+      const steals = Object.entries(W.outbid).slice(0, 8);
+      if (steals.length) {
+        card.appendChild(el('div', 'crew-reveal-h', 'The steals'));
+        for (const [slug, losers] of steals) {
+          card.appendChild(el('div', 'crew-reveal-row',
+            `<span>${esc(nameOf.get(slug) || slug)}</span>`
+            + `<span class="menu-stats">@${esc(W.owners[slug])} over ${losers.map(h => '@' + esc(h)).join(', ')}</span>`));
+        }
+      }
+      if (W.dead.length) {
+        card.appendChild(el('div', 'crew-reveal-row',
+          `<span>💀 Cancelled out</span>`
+          + `<span class="menu-stats">${W.dead.map(slug => esc(nameOf.get(slug) || slug)).join(' · ')}</span>`));
+      }
+      if (!anyScored) card.appendChild(el('div', 'hint', 'Points land when the show is graded.'));
     }
 
     // ---- the share card. The group chat lives off-app by design (reach.md), so this

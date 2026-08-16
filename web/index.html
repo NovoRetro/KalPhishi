@@ -53,6 +53,30 @@
        actually is, with green and cyan as the counterpoints. */
     --beam-1: #8b5cf6; --beam-2: #a855f7; --beam-3: #6d4fd6;
     --beam-4: #2ee6a8; --beam-5: #38bdf8; --beam-6: #ddd0ff;
+    /* The haze tint and the title's glow follow the beam palette — they are the same
+       light, diffused. Defaulted here to the violet rig; the per-game blocks below
+       retint all three together so the wall never disagrees with its own air. */
+    --haze: rgba(160,125,255,0.30);
+    --glow: rgba(168,85,247,0.45);
+  }
+  /* ---- The rig plays the game (data-rig on <html>, set by renderTabs). Bingo is the
+     house violet above. Setlist Bets goes sunset — red, orange, yellow, Carini vibes —
+     and Wombat goes green, yellow, indigo. Deliberately NOT theme-scoped: the hall is
+     dark in both themes, so one palette per game serves light and dark alike, and these
+     stay out of the two dark token blocks the identity test guards. Note --beam-2 also
+     tints the active tab underline, the Play pill and the crew bar — the accent follows
+     the game on purpose, one light source for the whole page. */
+  :root[data-rig="setlist"] {
+    --beam-1: #f97316; --beam-2: #ef4444; --beam-3: #dc2626;
+    --beam-4: #fbbf24; --beam-5: #fb923c; --beam-6: #fde68a;
+    --haze: rgba(249,115,22,0.28);
+    --glow: rgba(239,68,68,0.45);
+  }
+  :root[data-rig="wombat"] {
+    --beam-1: #22c55e; --beam-2: #eab308; --beam-3: #6366f1;
+    --beam-4: #4ade80; --beam-5: #818cf8; --beam-6: #fef08a;
+    --haze: rgba(99,102,241,0.28);
+    --glow: rgba(34,197,94,0.45);
   }
   /* ---- Dark, declared TWICE on purpose, and the two blocks must stay identical.
      The theme control has three states. "Auto" stamps nothing on <html> and is the default,
@@ -144,7 +168,7 @@
      is what stops the cones reading as hard-edged geometry. Its own layer so the peak can
      bloom it — a gradient cannot be transitioned, an opacity can. */
   .hall::after { content: ''; position: absolute; inset: 0; opacity: 0.55;
-    background: radial-gradient(70% 36% at 50% 4%, rgba(160,125,255,0.30), transparent 72%);
+    background: radial-gradient(70% 36% at 50% 4%, var(--haze), transparent 72%);
     transition: opacity 380ms ease; }
 
   .stage { padding: 30px 18px 34px; }
@@ -163,7 +187,7 @@
     background: radial-gradient(56% 60% at 50% 50%, rgba(4,3,10,0.88), transparent 74%); }
   .stage header { position: relative; z-index: 2; }
   .stage h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; color: #fff;
-    text-shadow: 0 0 22px rgba(168,85,247,0.45), 0 2px 14px rgba(0,0,0,0.65); }
+    text-shadow: 0 0 22px var(--glow), 0 2px 14px rgba(0,0,0,0.65); }
   /* Set above the stats line, not below: it is the one sentence that says what the page
      is, and it has to land before the reader starts parsing tour numbers. */
   /* Capped and centred so it cannot run underneath the banner actions on the right. The
@@ -250,7 +274,21 @@
   @media (max-width: 560px) {
     .stage-actions { position: static; align-items: center; margin-top: 10px; }
     .stage { padding: 16px 14px 18px; }
-    .stage h1 { font-size: 22px; }
+    /* The banner text vs the rig, on a phone (2026-08-15 direction). At 375px the beams
+       converge exactly where the title sits, and the brighter per-game palettes — the
+       sunset's yellows especially — can wash white text out entirely at full beam. Two
+       defences, both here and not on desktop, which has the width to keep text and
+       beams apart: the scrim under the words deepens and widens, and the text carries a
+       hard dark contact shadow UNDER its coloured glow, so legibility never depends on
+       what colour the light behind it happens to be at that moment. */
+    .stage::before { background: radial-gradient(62% 66% at 50% 50%, rgba(6,5,12,0.86), transparent 76%); }
+    .hall.peak ~ .stage::before {
+      background: radial-gradient(62% 66% at 50% 50%, rgba(4,3,10,0.94), transparent 78%); }
+    .stage h1 { font-size: 22px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 18px var(--glow), 0 2px 12px rgba(0,0,0,0.85); }
+    .stage .tagline {
+      text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 1px 10px rgba(0,0,0,0.85); }
+    .tab, .subtab, .stamp { text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 1px 6px rgba(0,0,0,0.85); }
     /* min-height still reserves the wrap, so rotating from a short tagline to a long one
        does not shove the page down — it just reserves two lines now instead of three. */
     .stage .tagline { font-size: 13px; margin-top: 6px; min-height: 2.4em; max-width: 300px; }
@@ -557,6 +595,13 @@
   .p-sets { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   @media (max-width: 900px) { .p-sets { grid-template-columns: 1fr; } }
   .p-songrow { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--grid); }
+  /* Wombat's rank column. The first five rows are the card-if-nothing-is-lost, the rest
+     are the bench — the heavier rule under row five draws that line without a label, and
+     the mint numbers above it say which ranks are doing the bidding. */
+  .wb-rank { min-width: 20px; text-align: right; font-weight: 700;
+    font-variant-numeric: tabular-nums; color: var(--muted); }
+  .wb-list .p-songrow:nth-child(-n+5) .wb-rank { color: var(--chip); }
+  .wb-list .p-songrow:nth-child(5) { border-bottom: 2px solid var(--baseline); }
   .p-songmain { display: flex; flex-direction: column; gap: 1px; }
   /* The badge column, ranged right against the ×. margin-left:auto claims the row's free
      space; the × behind it must then give up its own auto margin or flexbox splits the
@@ -3032,6 +3077,10 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
   const GAME_TABS = [
     { name: 'Phish Bingo', mode: 'bingo' },
     { name: 'Setlist Bets', mode: 'setlist' },
+    // The draft-crossed-with-ranked-choice crew game — see WOMBAT.md for the rules and
+    // the simulation that shaped them. Third and last: the row holds four items at
+    // 320px only because Data left it for the menu.
+    { name: 'Wombat', mode: 'wombat' },
   ];
   // Six now. The mobile grid is repeat(3, 1fr), so six pills fill it 3+3 with no trailing
   // gap — measured, no CSS change needed. These strings are matched character-for-character
@@ -3089,6 +3138,14 @@ fetch('/data/analysis.json').then(r => r.json()).then(A => {
     // History and profile come from the account menu and belong to no tab, so while one is
     // open the card shows and no game reads as selected.
     const showingGames = !!game || !!menuMode;
+
+    // The rig plays the game you're in (2026-08-15 direction): bingo keeps the violet
+    // wall, Setlist Bets goes sunset (Carini), Wombat goes green/yellow/indigo. The
+    // attribute drives CSS variable overrides — the beams reference var(--beam-N) live,
+    // so the wall re-colours without touching a single element. Set only when a game is
+    // active: menu views keep whatever was playing, which reads as the lights holding
+    // between songs rather than the rig noticing you opened a menu.
+    if (game) document.documentElement.dataset.rig = game.mode;
 
     tabBar.innerHTML = '';
     for (const { name } of GAME_TABS) {
