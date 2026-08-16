@@ -1120,6 +1120,18 @@
   .m-chip-seal { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; color: var(--lock);
     border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; white-space: nowrap; }
   .crew-roster-label { margin-top: 16px; }
+  /* The delete-account panel. Bordered and washed in the lock red — the only place in
+     the app where that colour means "you cannot undo this" rather than "this square is
+     locked". It borrows --lock rather than --miss because --miss is fenced to results,
+     and the confirm button is FILLED where every other destructive control in the app is
+     outlined: this is the one action with no way back. */
+  .p-danger { margin-top: 8px; padding: 12px 14px; border: 1px solid var(--lock);
+    border-radius: 10px; background: var(--lock-wash); max-width: 620px;
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .p-danger .ta-input { max-width: 280px; }
+  .p-danger-note { font-size: 13px; line-height: 1.45; }
+  .p-danger-btn { background: var(--lock); color: #fff; }
+  .p-danger-btn:disabled { opacity: 0.6; cursor: default; }
   /* Reveal night. Bordered in the beam colour like the old intro card was — it is the one
      section of the room that is an EVENT rather than furniture, and it only exists while
      the show is locked. */

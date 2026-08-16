@@ -202,6 +202,44 @@ async function api(request, env, ctx, { p, m, q, url }) {
     return json({ ok: true });
   }
 
+  // Delete the account, for real and on the spot. Required by Apple for anything with
+  // registration (Guideline 5.1.1(v)) and simply owed to anyone who asks — nobody should
+  // have to email a stranger to leave.
+  //
+  // Re-authenticated, because a session alone is the wrong bar for something irreversible:
+  // the realistic threat is an unlocked phone in somebody else's hand, and that hand
+  // already has the session. A legacy account with no password has nothing to check
+  // against and only its session to offer, so it is allowed through on that.
+  //
+  // Deletion is real deletion, not a banned flag or a tombstone: the row goes, and every
+  // table that references it declares ON DELETE CASCADE, which D1 enforces (foreign_keys
+  // is on — verified, not assumed). password_resets is the one exception in the schema
+  // — it carries a bare user_id with no constraint — so it is cleared explicitly here.
+  // test/account.test.mjs asserts that pairing holds for every table, so a future table
+  // that references users without cascading fails the suite instead of quietly orphaning
+  // rows through this route.
+  //
+  // Crews the account OWNS are deleted with it, for everyone in them. That is the existing
+  // ownership model rather than a new rule — an owner can already delete a group from the
+  // drawer — but it is destructive to other people, so the UI names those crews before
+  // the button is pressed rather than after.
+  if (p === '/api/me' && m === 'DELETE') {
+    const user = await currentUser(request, env);
+    if (!user) return err(401, 'not signed in');
+    const { password } = await body(request);
+    if (user.passhash && !await verifyPassword(password || '', user.passhash)) {
+      return err(403, 'wrong password');
+    }
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM password_resets WHERE user_id = ?1').bind(user.id),
+      env.DB.prepare('DELETE FROM users WHERE id = ?1').bind(user.id),
+    ]);
+    // The cookie goes too. The sessions row is already gone by cascade, so the cookie is
+    // dead either way — but leaving a stale one in the browser means the next load spends
+    // a request discovering that.
+    return json({ ok: true }, 200, { 'set-cookie': clearedSessionCookie() });
+  }
+
   // Redeem a reset link. Unauthenticated by necessity — the whole point is that the caller
   // cannot sign in — so the token is the entire proof, and everything below exists to keep
   // it from being worth more than one use.

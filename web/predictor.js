@@ -1766,6 +1766,64 @@ function initPredictor(mount, A, opts = {}) {
     box.appendChild(nw);
     box.appendChild(pwSave);
     box.appendChild(pwMsg);
+
+    // ---- leaving. Below the password because it is rarer still, and folded behind a
+    // press because an irreversible control does not belong sitting open in a form
+    // people came here to edit their avatar in. The one place in the app allowed to
+    // explain itself at length: everywhere else brevity costs nothing, here it would
+    // cost somebody their history.
+    box.appendChild(el('div', 'setlabel', 'Leaving'));
+    const delHost = el('div');
+    const delOpen = el('button', 'p-btn p-btn-alt', 'Delete my account');
+    delOpen.addEventListener('click', async () => {
+      delOpen.remove();
+      const panel = el('div', 'p-danger');
+      panel.appendChild(el('div', null,
+        '<b>This deletes your account, your cards, your scores and your history.</b> '
+        + 'It cannot be undone.'));
+      // Owned crews die with the account, for everyone in them. Named before the button,
+      // not after — the people affected are not the person pressing it.
+      try {
+        const groups = (await api('/api/groups')).groups.filter(g => g.isOwner);
+        const shared = groups.filter(g => g.memberCount > 1);
+        if (shared.length) {
+          panel.appendChild(el('div', 'p-danger-note',
+            `⚠ It also deletes ${shared.map(g => `<b>${esc(g.name)}</b>`).join(', ')} for `
+            + `everyone in ${shared.length === 1 ? 'it' : 'them'}. `
+            + 'Hand the crew to someone else first if you want it to survive.'));
+        }
+      } catch { /* the warning is a courtesy; its absence must not block leaving */ }
+      const pw = el('input', 'ta-input');
+      pw.type = 'password'; pw.placeholder = 'your password'; pw.autocomplete = 'current-password';
+      const msg = el('div', 'hint');
+      const go = el('button', 'p-btn p-danger-btn', 'Delete my account permanently');
+      go.addEventListener('click', async () => {
+        go.disabled = true;
+        msg.textContent = '';
+        try {
+          await api('/api/me', 'DELETE', { password: pw.value });
+          // Everything local goes with it — the stored user is what makes the sign-in
+          // form open on "Sign in" instead of "Create account", and a deleted account
+          // leaving that behind would greet its own owner as a returning player.
+          try { localStorage.removeItem('kalphish-user'); } catch { /* private mode */ }
+          user = null; authPrompt = null; attendedDates = new Set();
+          savedSetlist = null; livePrediction = null; savedWombat = null;
+          mode = 'setlist';
+          notifyMode();
+          render();
+          flash('Account deleted. Thanks for playing.');
+        } catch (e) { go.disabled = false; msg.textContent = e.message; }
+      });
+      const cancel = el('button', 'p-mode', 'Never mind');
+      cancel.addEventListener('click', () => render());
+      panel.appendChild(pw);
+      panel.appendChild(go);
+      panel.appendChild(cancel);
+      panel.appendChild(msg);
+      delHost.appendChild(panel);
+    });
+    delHost.appendChild(delOpen);
+    box.appendChild(delHost);
   }
 
   async function showPublicProfile(container, userId) {
