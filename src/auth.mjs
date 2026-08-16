@@ -2,6 +2,17 @@
 
 export const SESSION_COOKIE = 'kalphishi_session';
 export const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
+// Sessions SLIDE (2026-08-16): using the app inside the last half of a session's window
+// pushes the expiry back out to a full TTL, so an active player is never logged out —
+// only 30 days of true absence ends a session. The half-window guard is what keeps this
+// from being a write per request: at most one UPDATE per session per 15 days.
+export const SESSION_RENEW_BELOW_MS = SESSION_TTL_MS / 2;
+// The cookie outlives the server-side window on purpose. The browser's copy is not the
+// authority on anything — the sessions row is, checked on every request — so the cookie
+// only needs to still EXIST when a sliding session is still valid. Tied to the server
+// TTL it silently died at day 30 from login no matter how active the player was, which
+// is exactly the logout the slide exists to prevent.
+export const SESSION_COOKIE_MAX_AGE_S = 365 * 24 * 3600;
 // Long enough that an operator can mint a link, find the person and get it to them without
 // racing a clock; short enough that one left in a chat log stops working the next day.
 export const RESET_TTL_MS = 24 * 3600 * 1000;
@@ -63,7 +74,7 @@ export function getCookie(request, name) {
 }
 
 export function sessionCookie(token) {
-  return `${SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_TTL_MS / 1000}`;
+  return `${SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_COOKIE_MAX_AGE_S}`;
 }
 
 export function clearedSessionCookie() {
@@ -92,11 +103,23 @@ export async function currentUser(request, env) {
   // A banned account resolves to no user, so an existing cookie stops working on the very
   // next request. Sessions are deleted when a ban is applied too, but this is the check
   // that cannot be forgotten: every authenticated route goes through here.
-  return await env.DB.prepare(
-    `SELECT u.id, u.name, u.created, u.passhash, u.profile, u.email, u.handle
+  const now = Date.now();
+  const tokenHash = await sha256hex(token);
+  const user = await env.DB.prepare(
+    `SELECT u.id, u.name, u.created, u.passhash, u.profile, u.email, u.handle, s.expires
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = ?1 AND s.expires > ?2 AND u.banned_at IS NULL`
-  ).bind(await sha256hex(token), Date.now()).first();
+  ).bind(tokenHash, now).first();
+  if (!user) return null;
+  // The slide. Awaited rather than fire-and-forget — Workers may cancel a dangling
+  // promise when the response ends, and a renewal that silently never lands is this
+  // bug's favourite disguise. The guard keeps it to one write per session per 15 days.
+  if (user.expires - now < SESSION_RENEW_BELOW_MS) {
+    await env.DB.prepare('UPDATE sessions SET expires = ?1 WHERE token_hash = ?2')
+      .bind(now + SESSION_TTL_MS, tokenHash).run();
+  }
+  delete user.expires; // callers get the same shape they always got
+  return user;
 }
 
 export function timingSafeEqualStr(a, b) {
