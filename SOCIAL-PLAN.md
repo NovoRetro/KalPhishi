@@ -151,7 +151,7 @@ Each stands alone; none blocks another. Ordered by fun-per-effort as I see it:
 | **Rivalry records** | Head-to-head W-L vs each friend across scored shows, shown on their roster row. "You lead @robbie 4–2." | none — derived |
 | **Donut reactions** | One tap on a friend's revealed/scored card: 🍩 ⚡ 🎯 🤡 from a fixed set. Counts only. | one small table (reactor, target user+show+game, emoji, unique per reactor/target) |
 | **Streaks** | Consecutive shows predicted, per member; crew participation % per run. | none — derived |
-| **Live-night presence** | During a locked show, "3 of 7 checking squares" from `live_checked` write timestamps. Poll-based; no push. | reuse `live_checked`, maybe add an updated-at |
+| **Live-night presence** — **SHIPPED 2026-08-16** | "1 of 5 checking squares right now" on the crew page during a locked show, plus a pulse on each present member's roster row. Migration 0010 adds `predictions.live_at`, stamped on every tick; the members route returns a derived `live` boolean (15-minute window) and never the raw timestamp. Polls every 45s, only on a show locked within 24h, skipped while the tab is hidden, and the handle is cleared by `render()` so it cannot leak. | migration 0010 |
 | **Who's going** | Surface the attendance flag (`SHOW_ATTENDANCE_TOGGLE`, currently off) as a 🎪 chip on roster rows and the status strip. | exists |
 
 The reactions table is the only migration in the entire plan, and it is deferrable

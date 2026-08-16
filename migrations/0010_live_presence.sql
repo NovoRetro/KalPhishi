@@ -1,0 +1,17 @@
+-- When somebody last ticked a square (SOCIAL-PLAN.md, Phase 4 — live-night presence).
+--
+-- A plain ADD COLUMN, not the table rebuild 0009 needed: nothing about the existing
+-- schema changes, so SQLite can widen the row in place and every existing prediction
+-- simply carries NULL, which reads correctly as "has never checked anything".
+--
+-- Its own column rather than reusing `updated`, deliberately. `updated` means "the
+-- prediction was edited", and editing stops at the lock while checking only STARTS
+-- there — so the two never overlap in time and it is tempting to share one column. But
+-- they answer different questions, and the moment anything wants "when did they last
+-- change their picks" alongside "are they at the show right now", a shared column can
+-- only answer one of them. Same reasoning as --miss and --lock being separate tokens for
+-- the same red.
+--
+-- No index: presence is only ever read for the handful of members of one crew on one
+-- showdate, and idx_pred_showdate already narrows that to a single night.
+ALTER TABLE predictions ADD COLUMN live_at TEXT;

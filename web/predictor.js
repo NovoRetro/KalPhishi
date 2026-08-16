@@ -83,6 +83,15 @@ function initPredictor(mount, A, opts = {}) {
   let crewId = null;
   let crewBoardGame = 'setlist'; // which of the two boards the crew page is on
   let crewRenaming = false;      // owner's inline rename, survives the re-render it triggers
+  // Live-night presence polling. One handle, cleared unconditionally at the top of every
+  // render() and re-armed only by renderCrew — which is what makes a leak impossible
+  // rather than merely unlikely: every path that leaves the crew page goes through
+  // render(), and none of them has to remember this exists.
+  let livePollTimer = null;
+  const stopLivePoll = () => { if (livePollTimer) { clearInterval(livePollTimer); livePollTimer = null; } };
+  // 45s: a show is three hours, squares get ticked between songs, and the presence window
+  // is fifteen minutes — polling faster would spend requests to redraw the same dot.
+  const LIVE_POLL_MS = 45000;
   // The applied-prediction tag. Set when Our Prediction fills a board under whatever
   // approach is selected, and shown only while the board still IS that prediction —
   // compared against a snapshot on every render, so the first edit takes the tag off
@@ -286,6 +295,7 @@ function initPredictor(mount, A, opts = {}) {
   }
 
   function render() {
+    stopLivePoll();
     mount.innerHTML = '';
     if (window.KalphishiMenu) window.KalphishiMenu.update(user, menuActions);
     // Names the game and stops. The tab above says the same thing, and this audience does
@@ -2497,7 +2507,46 @@ function initPredictor(mount, A, opts = {}) {
     fill.style.width = `${members.length ? Math.round((inFor / members.length) * 100) : 0}%`;
     bar.appendChild(fill);
     strip.appendChild(bar);
+    // Live-night presence: who is at the show right now, ticking squares. Only while the
+    // show is locked and ungraded — before the downbeat there is nothing to check off,
+    // and once it is scored everybody has gone home.
+    const liveLine = el('div', 'crew-live');
+    strip.appendChild(liveLine);
     wrap.appendChild(strip);
+
+    // The line appears only when somebody actually is live, which means the fifteen-minute
+    // window doubles as the "is this happening right now" test — no separate check for
+    // whether the show has ended, and nothing to say when there is nothing happening.
+    const paintPresence = list => {
+      const live = list.filter(m => m.live);
+      liveLine.style.display = live.length ? '' : 'none';
+      liveLine.innerHTML = live.length
+        ? `<span class="live-pulse"></span> <b>${live.length} of ${list.length}</b> checking squares right now`
+        : '';
+    };
+    paintPresence(members);
+
+    // Poll only on a show that is locked and RECENT. Without the 24h bound this would sit
+    // polling on any locked show in history, forever, for a line that can never appear.
+    const tonight = L.known && L.locked && (Date.now() - L.at) < 24 * 3600 * 1000;
+    if (tonight) {
+      const signature = list => list.filter(m => m.live).map(m => m.handle).sort().join(',');
+      const before = signature(members);
+      livePollTimer = setInterval(async () => {
+        // A backgrounded tab is not watching anything. Skipping rather than tearing down
+        // means it resumes on its own when the phone comes back out of a pocket.
+        if (document.visibilityState === 'hidden') return;
+        try {
+          const fresh = (await api(
+            `/api/groups/${encodeURIComponent(crewId)}/members?showdate=${encodeURIComponent(showdate)}`)).members;
+          // Only redraw the page when WHO is live actually changed — the roster rows carry
+          // pulses too, so a change needs a full render, and an unchanged crew should cost
+          // nothing on screen.
+          if (signature(fresh) !== before) render();
+          else paintPresence(fresh);
+        } catch { /* a dropped poll is just a dropped poll; the next one is 45s away */ }
+      }, LIVE_POLL_MS);
+    }
 
     // ---- reveal night (SOCIAL-PLAN.md, Phase 3). At the lock the page flips: everyone's
     // calls, compared. Reads the same predictions route everything else reads — Phase 0
@@ -2538,6 +2587,14 @@ function initPredictor(mount, A, opts = {}) {
         `<span class="p-avatar">${esc(mem.profile.avatar || '🎣')}</span> <b>${esc(mem.name)}</b> ` +
         `<span class="menu-stats">@${esc(mem.handle)}${mem.isOwner ? ' 👑' : ''}</span>`);
       const right = el('span', 'crew-member-right');
+      // Present right now, ticking squares. Sits ahead of the titles because it is the
+      // only thing on this row that is true THIS SECOND.
+      if (mem.live) {
+        const dot = el('span', 'live-pulse');
+        dot.title = 'Checking squares right now';
+        dot.setAttribute('aria-label', 'at the show now');
+        right.appendChild(dot);
+      }
       // Titles first — they are the only thing on this row that took doing.
       for (const sup of wonBy.get(mem.handle) || []) {
         const chip = el('span', 'sup-chip', `${sup.emoji} ${esc(sup.title)}`);

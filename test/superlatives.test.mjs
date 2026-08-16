@@ -153,3 +153,43 @@ test('setlist hits are read from breakdown.rows, where they actually live', () =
   const ret = scoring.slice(scoring.indexOf('  return {', scoring.indexOf('function scoreSetlistPrediction')));
   assert.match(ret, /breakdown: \{[\s\S]*?\n      rows,/, 'rows must still be nested under breakdown');
 });
+
+// ---- live-night presence (SOCIAL-PLAN.md, Phase 4) ----
+
+test('presence is derived server-side and never ships a raw timestamp', () => {
+  const worker = readFileSync(join(root, 'src/worker.mjs'), 'utf8').replace(/\r\n/g, '\n');
+  const members = worker.match(
+    /if \(p\.startsWith\('\/api\/groups\/'\) && p\.endsWith\('\/members'\) && m === 'GET'\) \{[\s\S]*?\n  \}/)[0];
+  const code = members.replace(/\/\/[^\n]*/g, '');
+  assert.match(code, /LIVE_PRESENCE_MS/, 'the window must be a named constant, not a literal');
+  assert.match(code, /cur\.live = true/);
+  // A timestamp says when somebody was on their phone, which is more than "are they at
+  // the show" needs to answer — and the client would only re-derive the same boolean.
+  assert.ok(!/live_at:/.test(code), 'the raw live_at timestamp must not leave the server');
+  // And the tick has to stamp it, or presence is always false.
+  const tick = worker.match(/if \(p === '\/api\/live-check' && m === 'POST'\) \{[\s\S]*?\n  \}/)[0];
+  assert.match(tick, /SET live_checked = \?1, live_at = \?2/, 'every tick must refresh presence');
+});
+
+test('the presence poll cannot leak and does not run in a background tab', () => {
+  // One handle, cleared unconditionally by render() and re-armed only by renderCrew: every
+  // path that leaves the crew page goes through render(), so no caller has to remember.
+  assert.match(predictor, /function render\(\) \{\s*\n\s*stopLivePoll\(\);/,
+    'render must clear the poll before anything else');
+  assert.match(predictor, /const stopLivePoll = \(\) => \{ if \(livePollTimer\) \{ clearInterval\(livePollTimer\)/);
+  const crew = predictor.match(/async function renderCrew\([\s\S]*?\n  \}/)[0];
+  assert.match(crew, /if \(document\.visibilityState === 'hidden'\) return;/,
+    'a backgrounded tab must not poll');
+  // Without the recency bound this would poll forever on any locked show in history.
+  assert.match(crew, /L\.locked && \(Date\.now\(\) - L\.at\) < 24 \* 3600 \* 1000/,
+    'polling must be bounded to a recent show');
+  // Redraw only when WHO is live changed — the roster rows carry pulses too.
+  assert.match(crew, /if \(signature\(fresh\) !== before\) render\(\);/);
+});
+
+test('migration 0010 adds a column rather than rebuilding the table', () => {
+  const mig = readFileSync(join(root, 'migrations/0010_live_presence.sql'), 'utf8');
+  assert.match(mig, /ALTER TABLE predictions ADD COLUMN live_at TEXT;/);
+  assert.ok(!/CREATE TABLE|DROP TABLE/.test(mig),
+    'nothing about the existing schema changes, so no rebuild is warranted');
+});

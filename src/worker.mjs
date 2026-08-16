@@ -39,6 +39,12 @@ const PROFILE_FLAGS = ['wizardSeen'];
 const DEFAULT_INVITE_USES = 10;
 const DEFAULT_INVITE_DAYS = 30;
 
+// How long after ticking a square somebody still counts as "at the show". Squares get
+// checked in bursts between songs rather than continuously, so a tighter window would
+// blink people out mid-jam; a much wider one would still be showing a crew as live an
+// hour after the encore.
+const LIVE_PRESENCE_MS = 15 * 60 * 1000;
+
 // An omitted limit takes the default; an explicit 0 means no limit. Distinguishing the two
 // is the whole point — defaulting a missing field to unlimited is how every link ends up
 // unlimited, which is where this started.
@@ -560,15 +566,23 @@ async function api(request, env, ctx, { p, m, q, url }) {
     let inFor = new Map();
     if (showdate) {
       const { results: preds } = await env.DB.prepare(
-        `SELECT pr.user_id, pr.type FROM predictions pr
+        `SELECT pr.user_id, pr.type, pr.live_at FROM predictions pr
            JOIN friend_group_members pm ON pm.user_id = pr.user_id
           WHERE pm.group_id = ?1 AND pr.showdate = ?2`
       ).bind(gid, showdate).all();
+      // Present = ticked a square inside the window. Fifteen minutes is tuned to how the
+      // game is actually played: squares get checked in bursts between songs, not
+      // continuously, so a tighter window would blink people out mid-jam. Computed here
+      // rather than shipping raw timestamps — the client would only have to re-derive it,
+      // and a timestamp says when somebody was on their phone, which is more than the
+      // question needs answering.
+      const liveFloor = Date.now() - LIVE_PRESENCE_MS;
       for (const pr of preds) {
-        const cur = inFor.get(pr.user_id) || { setlist: false, bingo: false, wombat: false };
+        const cur = inFor.get(pr.user_id) || { setlist: false, bingo: false, wombat: false, live: false };
         if (pr.type === 'setlist') cur.setlist = true;
         if (pr.type === 'bingo') cur.bingo = true;
         if (pr.type === 'wombat') cur.wombat = true;
+        if (pr.live_at && Date.parse(pr.live_at) >= liveFloor) cur.live = true;
         inFor.set(pr.user_id, cur);
       }
     }
@@ -576,7 +590,7 @@ async function api(request, env, ctx, { p, m, q, url }) {
       members: results.map(r => ({
         handle: r.handle, name: publicName(r),
         profile: JSON.parse(r.profile || '{}'), isOwner: !!r.isOwner,
-        ...(showdate ? (inFor.get(r.uid) || { setlist: false, bingo: false, wombat: false }) : {}),
+        ...(showdate ? (inFor.get(r.uid) || { setlist: false, bingo: false, wombat: false, live: false }) : {}),
       })),
     });
   }
@@ -857,8 +871,11 @@ async function api(request, env, ctx, { p, m, q, url }) {
       'SELECT id, type FROM predictions WHERE user_id = ?1 AND showdate = ?2 AND type = ?3'
     ).bind(user.id, showdate, type).first();
     if (!row) return err(404, 'not found');
-    await env.DB.prepare('UPDATE predictions SET live_checked = ?1 WHERE id = ?2')
-      .bind(JSON.stringify(checked), row.id).run();
+    // live_at is the presence signal: the crew page reads its recency to say who is at
+    // the show right now. Stamped on every tick rather than only the first, so somebody
+    // who checked in at 8pm and again at 11 reads as present at 11 and not at 8.
+    await env.DB.prepare('UPDATE predictions SET live_checked = ?1, live_at = ?2 WHERE id = ?3')
+      .bind(JSON.stringify(checked), new Date().toISOString(), row.id).run();
     const line = row.type === 'bingo' ? bingoLine(checked) : null;
     return json({ ok: true, bingo: !!line, line });
   }

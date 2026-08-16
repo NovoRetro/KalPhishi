@@ -1177,6 +1177,16 @@
     gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--grid); font-size: 13px; }
   .crew-reveal-row:last-of-type { border-bottom: 0; }
   .crew-share { margin-top: 10px; }
+  /* Live-night presence. Red because it is the one thing on the page that is true only
+     right now — every other colour here encodes a standing fact. */
+  .crew-live { font-size: 12px; color: var(--ink-2); margin-top: 6px;
+    display: flex; align-items: center; gap: 6px; }
+  .live-pulse { width: 8px; height: 8px; border-radius: 99px; background: var(--lock);
+    flex-shrink: 0; animation: livepulse 2s ease-in-out infinite; }
+  @keyframes livepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+  /* A blinking dot is exactly the kind of motion this setting exists to stop; the dot
+     still reads as present, it just stops moving. */
+  @media (prefers-reduced-motion: reduce) { .live-pulse { animation: none; } }
   /* Superlative chips. Gold rather than any palette colour: --chip green already means
      "in for this show" on the dots two pixels away, and a title is not a status. Same
      shape as the bustout badges so the two read as one family of "this is notable". */
