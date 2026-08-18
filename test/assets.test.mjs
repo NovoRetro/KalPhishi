@@ -412,7 +412,7 @@ test('the Data view is reachable from the menu now that the tab is gone', () => 
   // menu calls it in both signed-in and signed-out states (dataItem is appended twice).
   assert.ok(!/dataBtn/.test(html), 'the Data tab button is back in the row');
   assert.match(html, /window\.KalphishiGoData = subtab =>/, 'the menu needs this hook to reach Data');
-  assert.match(html, /const dataItem = \(\) => item\('📊 Data'/, 'the menu item is gone');
+  assert.match(html, /const dataItem = \(\) => item\('Data'/, 'the menu item is gone');
   const uses = html.match(/panel\.appendChild\(dataItem\(\)\);/g) || [];
   assert.equal(uses.length, 2, 'Data must be in the menu for signed-in AND signed-out visitors');
 });

@@ -1536,7 +1536,7 @@ window.fmtDate = fmtDate; // predictor.js renders dates too
 
     // Data rides both states of the menu: it is reference material, it asks for no account,
     // and a signed-out visitor is exactly who arrives wanting to see the predicted setlist.
-    const dataItem = () => item('📊 Data', () => { close(); window.KalphishiGoData?.(); });
+    const dataItem = () => item('Data', () => { close(); window.KalphishiGoData?.(); });
 
     if (!user) {
       panel.appendChild(el('div', 'menu-note', 'Not signed in.'));
