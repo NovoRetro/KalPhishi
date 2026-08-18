@@ -2512,6 +2512,17 @@ function initPredictor(mount, A, opts = {}) {
     // and once it is scored everybody has gone home.
     const liveLine = el('div', 'crew-live');
     strip.appendChild(liveLine);
+    // Wombat has no board below like the other two — its score stays null by design
+    // (WOMBAT.md), resolved fresh per crew at the reveal, never aggregated across shows.
+    // So instead of a standings tab it can't support, this is the one thing worth saying
+    // pre-lock: how many of us are even in. The full draft — who owns what, the steals,
+    // what got cancelled out — still lands in the reveal below once the lock opens it.
+    if (!L.locked) {
+      const wombatIn = members.filter(m => m.wombat).length;
+      if (wombatIn) {
+        strip.appendChild(el('div', 'crew-strip-sub', `${wombatIn} of ${members.length} have a Wombat pick in`));
+      }
+    }
     wrap.appendChild(strip);
 
     // The line appears only when somebody actually is live, which means the fifteen-minute
