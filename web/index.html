@@ -260,6 +260,22 @@
                                 rgba(255,255,255,0) 78%); }
   .hall.peak::after { opacity: 1; }
 
+  /* ---- The strobe (Ask Diego?). CK5's other look: hard white pops fired from anywhere
+     in the dark, nothing bolted to the truss. The heads go dark and HOLD their sweep
+     phase — paused, not torn down — so they pick up exactly where they froze when the
+     pops stop. Declared after .peak on purpose: same specificity, so source order is
+     what keeps a save landing mid-strobe from relighting the heads halfway through. */
+  .hall.strobing .beam { animation-play-state: paused; opacity: 0; }
+  .hall.strobing::after { opacity: 0.22; } /* thinner air, so the pops own the dark */
+  .strobes { position: absolute; inset: 0; }
+  .strobe-flash { position: absolute; border-radius: 50%; mix-blend-mode: screen;
+    background: radial-gradient(circle, #fff 0%, #fff 20%,
+                rgba(255,255,255,0.85) 32%, transparent 56%);
+    animation: strobepop var(--sdur, 130ms) linear forwards; }
+  /* Instant on, a brief hold at full, then a hard cut. The hold is what makes it punch:
+     a flash that starts fading the moment it lands reads as a glow, not a hit. */
+  @keyframes strobepop { 0% { opacity: 1; } 55% { opacity: 1; } 100% { opacity: 0; } }
+
   /* Reduced motion keeps the rig — it is colour and shape, not just movement — but the
      heads stop panning and the peak becomes a brightness change only. */
   @media (prefers-reduced-motion: reduce) {
@@ -1425,6 +1441,77 @@ function rigPeak() {
     }
   }, PEAK_GATHER_MS + PEAK_UP_MS + PEAK_DOWN_MS);
 }
+// ---- the strobe (Ask Diego?). The rig's other look — see the .strobing CSS block for
+// what the classes do. Pops are scattered anywhere in the hall on purpose: the rig is
+// symmetric because its fixtures are bolted, and a strobe is exactly the light that
+// isn't. Repeated presses are the expected use (roll until you like it), so each press
+// takes ownership of the run: the generation counter cancels the pending pops and the
+// restore of every press before it, and the heads come back only after the last one.
+// Photosensitivity is a real constraint on a real strobe, so it is one here: the two
+// hall-wide pops sit at fixed beats 820ms apart — under the three-large-flashes-a-second
+// line — and reduced motion skips the whole thing, because a strobe is the exact effect
+// that setting exists to refuse.
+let strobeGen = 0;
+let strobeLayer = null;
+const STROBE_MS = 1500; // the pepper window; the heads return just after it closes
+function rigStrobe() {
+  if (!hallEl || reducedMotion()) return;
+  const gen = ++strobeGen;
+  if (!strobeLayer) {
+    // After #rig in the hall, so the pops render over the darkened heads.
+    strobeLayer = el('div', 'strobes');
+    hallEl.appendChild(strobeLayer);
+  }
+  hallEl.classList.add('strobing');
+  const W = hallEl.offsetWidth, H = hallEl.offsetHeight;
+  // The pops stay above the game tabs — the strobe belongs to the stage, not the app.
+  // Measured at press time rather than as a fraction of the hall: the header stacks and
+  // the tab row moves with viewport width, and the hall is 760px against a 420px phone.
+  const tabsEl = document.querySelector('.tabs');
+  const floor = tabsEl
+    ? tabsEl.getBoundingClientRect().top - hallEl.getBoundingClientRect().top
+    : H * 0.3;
+  const pop = (x, y, size, blur) => {
+    const dur = Math.round(rand(90, 170));
+    const s = el('span', 'strobe-flash');
+    s.style.cssText = `left:${Math.round(x - size / 2)}px;top:${Math.round(y - size / 2)}px;`
+      + `width:${Math.round(size)}px;height:${Math.round(size)}px;`
+      + `filter:blur(${blur}px);--sdur:${dur}ms;`;
+    strobeLayer.appendChild(s);
+    // Removal is on a timer, NOT animationend: a page that is not painting (background
+    // tab, hidden pane) never fires animationend, and the pops would pile up forever.
+    setTimeout(() => s.remove(), dur + 100);
+  };
+  // The vertical band a pop of this size may occupy: bottom edge on or above the floor,
+  // and no lower than preferLo if the band allows it. The CEILING is the invariant and
+  // is computed first; the floor of the band bends to it, never the other way around —
+  // getting that backwards is exactly how the first cut poked into the tab row.
+  const yFor = (size, preferLo) => {
+    const hi = floor - size / 2;
+    return rand(Math.min(preferLo, hi), hi);
+  };
+  // Twelve small bursts at random beats, whole pop above the floor.
+  for (let i = 0; i < 12; i++) {
+    setTimeout(() => {
+      if (gen !== strobeGen) return; // a newer press owns the run now
+      const size = rand(40, 130);
+      pop(rand(0, W), yFor(size, size / 2), size, 1);
+    }, rand(0, STROBE_MS - 260));
+  }
+  // …and two broad washes at fixed, separated beats. These are the ones that count
+  // against the flash-rate line, which is why they are not on the random schedule.
+  // Capped at 1.4× the floor so hi above stays positive at any viewport.
+  for (const at of [180, 1000]) {
+    setTimeout(() => {
+      if (gen !== strobeGen) return;
+      const size = Math.min(rand(W * 0.28, W * 0.42), floor * 1.4);
+      pop(rand(W * 0.25, W * 0.75), yFor(size, size * 0.25), size, 6);
+    }, at);
+  }
+  setTimeout(() => {
+    if (gen === strobeGen) hallEl.classList.remove('strobing');
+  }, STROBE_MS + 200);
+}
 seedRig();
 // The header scrolls out of sight within the first screen, and a paused-for-nobody rig is
 // 22 blurred, screen-blended layers still being composited every frame. Browsers throttle
@@ -1437,7 +1524,7 @@ if (rigEl && hallEl && 'IntersectionObserver' in window) {
 }
 // predictor.js reaches the rig through this — it is loaded before this script runs, so it
 // reads the handle at call time rather than at load time.
-window.KalphishiRig = { peak: rigPeak };
+window.KalphishiRig = { peak: rigPeak, strobe: rigStrobe };
 
 // Show dates are stored and compared as ISO (YYYY-MM-DD) everywhere — sorting, object
 // keys, API params and search all depend on that — so this is display-only. Parsed from

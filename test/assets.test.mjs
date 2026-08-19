@@ -133,6 +133,20 @@ test('the hall stays dark in both themes', () => {
     'the hall must not follow the page background');
 });
 
+test('the strobe holds the rig rather than tearing it down, and refuses reduced motion', () => {
+  // Two constraints that will not announce themselves if they drift. The heads must be
+  // PAUSED under .strobing — killing the animation would snap every head home and the
+  // sweep would restart from zero instead of resuming where it froze. And rigStrobe must
+  // bail on prefers-reduced-motion before doing anything: a strobe is the exact effect
+  // that setting exists to refuse, and it is a photosensitivity hazard, not a preference.
+  const strobing = html.match(/\.hall\.strobing \.beam \{[^}]*\}/);
+  assert.ok(strobing, '.hall.strobing .beam rule not found');
+  assert.match(strobing[0], /animation-play-state:\s*paused/,
+    'the sweep must hold its phase under the strobe, not tear down');
+  assert.match(html, /function rigStrobe\(\) \{\s*if \(!hallEl \|\| reducedMotion\(\)\) return;/,
+    'rigStrobe must refuse reduced motion before spawning any flash');
+});
+
 test('the hall fades out instead of ending on an edge', () => {
   // Without the mask the layer stops at a hard horizontal line partway down the page and
   // reads as a banner with a bottom border, not as light running out. Both the darkness

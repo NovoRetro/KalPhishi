@@ -1128,7 +1128,9 @@ function initPredictor(mount, A, opts = {}) {
     // actions at once.
     const pick = el('button', 'p-btn' + (songCount ? ' p-btn-alt' : ''), '✨ Ask Diego?');
     pick.title = 'Roll a random setlist — press again for a different one';
-    pick.addEventListener('click', randomizeSetlist);
+    // The strobe belongs to the BUTTON, not to randomizeSetlist — the Actions menu can
+    // reach the same shuffle, and a menu pick is not the moment the light show is for.
+    pick.addEventListener('click', () => { window.KalphishiRig?.strobe(); randomizeSetlist(); });
     controls.appendChild(pick);
 
     // The way back from a mis-press, matching the board's. Only offered when there is a
@@ -1639,7 +1641,7 @@ function initPredictor(mount, A, opts = {}) {
         : 'Fill the unlocked squares at random — press again for a different card';
       pick.addEventListener('click', lockMode
         ? () => { lockMode = false; render(); }
-        : randomize);
+        : () => { window.KalphishiRig?.strobe(); randomize(); });
       controls.appendChild(pick);
 
       // The way out of a mis-click. Clear and Randomize both overwrite the board in one
@@ -2341,7 +2343,7 @@ function initPredictor(mount, A, opts = {}) {
     }
     const pick = el('button', 'p-btn' + (wombatRanks.length ? ' p-btn-alt' : ''), '✨ Ask Diego?');
     pick.title = 'Roll a random ranked 10 — press again for a different one';
-    pick.addEventListener('click', randomizeWombat);
+    pick.addEventListener('click', () => { window.KalphishiRig?.strobe(); randomizeWombat(); });
     controls.appendChild(pick);
 
     const wombatDiffers = () => {
