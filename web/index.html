@@ -1490,11 +1490,13 @@ function rigStrobe() {
     const hi = floor - size / 2;
     return rand(Math.min(preferLo, hi), hi);
   };
-  // Twelve small bursts at random beats, whole pop above the floor.
-  for (let i = 0; i < 12; i++) {
+  // Twenty small bursts at random beats, whole pop above the floor. Tight radii, more
+  // of them — the scene is a lot of little hits, not a few big ones; the two washes
+  // below carry the big moments.
+  for (let i = 0; i < 20; i++) {
     setTimeout(() => {
       if (gen !== strobeGen) return; // a newer press owns the run now
-      const size = rand(40, 130);
+      const size = rand(25, 80);
       pop(rand(0, W), yFor(size, size / 2), size, 1);
     }, rand(0, STROBE_MS - 260));
   }
