@@ -13,17 +13,16 @@
 > `'kalphishi'` also stays in the reserved-handle list — a retired brand is exactly what
 > somebody would register to look official.
 
-**Written:** 2026-08-16, midday (replaces the 2026-08-15 evening version)
+**Written:** 2026-08-20 (replaces the 2026-08-16 midday version)
 
-> **Production is current and nothing is unmerged.** `main` is at `dd30b7e`, everything on
-> it is deployed and green, **359 tests pass**, the working tree is clean, and **no
-> migrations are pending** — `0010_live_presence.sql` is applied to remote (verified by
-> querying `pragma_table_info`).
+> **Production is current and nothing is unmerged.** `main` is at `9cd6f0c`, deployed to
+> production today (Worker version `59b341cc`), **360 tests pass**, the working tree is
+> clean, and **no migrations are pending** — `0010_live_presence.sql` is still the latest,
+> applied to remote.
 >
-> Nine commits landed today, in order: the invite door + copy pass (`8da9aff`), account
-> deletion (`0e7898f`), the PWA foundation (`4508f34`), superlatives (`cb14296`), and
-> live-night presence (`dd30b7e`), plus two review docs (`53766ed`) and a doc update
-> (`5afe7ee`). Yesterday's five rounds (#56–#61) are all in too.
+> Four commits since the 08-16 version: the Data menu de-emoji (`5f75e2f`), Wombat's
+> pre-lock line in the crew room (`871014d`), and the Ask Diego strobe (`bac44ca`, tuned
+> in `9cd6f0c`). Everything from the big 08-15/16 push is in underneath.
 
 Still **closed beta** (~30 testers). The URL is public and registration is open, but this
 is not a public launch — say "in beta," never "launched."
@@ -32,18 +31,47 @@ is not a public launch — say "in beta," never "launched."
 
 ## Current goal
 
-**Dick's, 2026-09-04 to 09-06 — 19 days out.** Everything social now exists: crews, sealed
+**Dick's, 2026-09-04 to 09-06 — 15 days out.** Everything social now exists: crews, sealed
 picks, reveal night, Wombat, superlatives and live presence. The track record still holds
 **one graded show**, and three nights in September are the first real chance to change
 that.
 
-**The blocker has not been code for two days and still is not.** `reach.md`'s message 1
-has never been sent. It now has Wombat, the crew room, reveal night, superlatives and
-live-night presence to point at, and it needs no code at all.
+**The blocker has not been code since the 14th and still is not.** `reach.md`'s message 1
+was still unsent as of the 08-16 version, and nothing in the 08-20 session sent it either.
+It has Wombat, the crew room, reveal night, superlatives, live-night presence and now a
+light show to point at, and it needs no code at all.
 
 ## Done
 
-### Today (2026-08-16)
+### Today (2026-08-20)
+
+- **The Ask Diego strobe** (`bac44ca`, tuned `9cd6f0c`). Pressing ✨ Ask Diego? in any
+  game halts the conical rig — the heads go dark and **hold their sweep phase** (paused,
+  not torn down) — while hard white pops pepper the banner: twenty 25–80px bursts on
+  random beats plus two broad washes, all confined to the strip **above the game tabs**.
+  Constraints that are load-bearing and pinned by the 360th test: the two washes sit at
+  fixed beats 820ms apart (under the three-large-flashes-a-second photosensitivity line),
+  and **reduced motion skips the strobe entirely**. The strobe belongs to the BUTTON —
+  the Actions-menu shuffle doesn't fire it, and Save keeps its existing white peak.
+  Iterated three rounds against the deployed app on a phone; the knobs (count, size
+  range, `STROBE_MS`, wash beats, envelope) all sit at the top of `rigStrobe()` /
+  `.strobe-flash` in `web/index.html`.
+- **Wombat's pre-lock line in the crew room** (`871014d`). "N of M have a Wombat pick
+  in" rides the status strip, pre-lock only. Deliberately NOT a third board tab: Wombat's
+  score stays `null` by design (resolved fresh per crew at the reveal, never aggregated),
+  so there is no standings board to give it — the strip line answers the one thing worth
+  asking before the lock, and the reveal's draft section still owns the rest.
+- **Data menu de-emoji** (`5f75e2f`). The 📊 was the only icon in the account menu; the
+  test that greps for the menu item now matches `item('Data'`.
+- **Verified, no code needed** (worth not re-investigating): the **setlist closer bonus
+  is already length-independent** — 10 called songs against a 6-song set closing on the
+  same song pays call + closer (5 pts) and nothing for the unplayed middle, confirmed by
+  running `scoreSetlistPrediction` on the exact scenario. And the **crew room reads
+  correctly from a non-owner member** (signed in as crew-b): owner tools hidden, sealed
+  picks invisible, roster and boards identical.
+- **Two production deploys** — prod is `9cd6f0c` exactly (Worker version `59b341cc`).
+
+### 2026-08-16
 
 - **The invite door** (`8da9aff`). New `GET /api/invites/:code/preview` — deliberately the
   only invite route with no session check, because the reader has no account yet and
@@ -85,7 +113,7 @@ live-night presence to point at, and it needs no code at all.
   Verified end to end including the poll clearing itself with no interaction.
 - **Two review docs** (`53766ed`): `APP-STORE.md` and `VOICE.md`. See below.
 
-### Yesterday (2026-08-15), still current
+### 2026-08-15, still current
 
 Mobile MVP overhaul (#56), Crew Night phases 0–1 (#57), the Crew page + arm renames +
 provenance tag (#58), reveal night (#59), Wombat (#60), sliding sessions (#61). The
@@ -167,12 +195,12 @@ Anchors, not line numbers.
 | `lib/showtime.mjs` | `lockStateFor` — the ONE lock authority. Unknown show ⇒ not locked ⇒ sealed. |
 | `src/worker.mjs` | Every route. The seal in GET `/api/predictions`; invite preview; `DELETE /api/me`; live-check stamping `live_at`; `LIVE_PRESENCE_MS`. |
 | `src/auth.mjs` | Hashing, sessions. Sessions **slide**; the cookie outlives the server window on purpose. |
-| `web/index.html` | Tokens (dark declared twice), PWA head, safe-area insets, menu IIFE, dashboard, Nerd Zone. Find by symbol. |
+| `web/index.html` | Tokens (dark declared twice), PWA head, safe-area insets, menu IIFE, the rig (`rigPeak`/`rigStrobe`), dashboard, Nerd Zone. Find by symbol. |
 | `web/predictor.js` | Games + crew. `renderCrew`, `renderReveal`, `computeSuperlatives`, `resolveWombat`, `shareRevealCard`, `redeemPendingInvite`, `stopLivePoll`, `WIZARD_ENABLED`. |
 | `web/sw.js` | Cache-only worker. Mirrors `_headers` deliberately. `__BUILD__` is stamped by the build. |
 | `scripts/build-icons.js` | Draws the icon and encodes PNG with stdlib only. Output is gitignored and regenerated in CI. |
 | `scripts/build-public.js` | Publish allowlist, content-hash stamping, SW cache-name stamping. |
-| `test/` | 359 tests. `social`, `wombat`, `superlatives`, `account`, `pwa` are the newest. |
+| `test/` | 360 tests. `social`, `wombat`, `superlatives`, `account`, `pwa`, and the strobe constraints in `assets` are the newest. |
 
 ## Open decisions / questions
 
@@ -194,6 +222,16 @@ Anchors, not line numbers.
 
 ### The newest ones
 
+- **The strobe's floor is the tab row, measured live at press time** — never a fraction
+  of the hall (the header stacks on phones and the hall is 760px against 420px). The
+  clamp is on each pop's **bottom edge** and the ceiling is the invariant the band bends
+  to; bending the ceiling to the band is exactly how the first cut poked into the tabs.
+- **Strobe pop removal is on a timer, NOT `animationend`** — a page that isn't painting
+  (background tab, hidden pane) never fires animationend, and the pops pile up forever.
+  Same family as the compositing gotcha below.
+- **The test accounts all have emails now** (`crew-X@test.local`, password `crewtest1`).
+  The legacy name+password login path is dead for them — `anyUserLacksEmail` is false —
+  so sign in with the email, not the handle.
 - **Setlist rows are at `result.breakdown.rows`, NOT `result.rows`.** `hits`/`stressors`
   stay at the top level so older results still render. Reading `result.rows` is a silent
   no-op that shipped once already and went unnoticed for a day.
@@ -254,7 +292,17 @@ Anchors, not line numbers.
 
 - **`node --test` uses the spec reporter** — read `ℹ fail`, never grep "not ok".
 - **Do a whole browser check in ONE evaluation**; the pane can stop compositing mid-session
-  (screenshots fail, DOM reads keep working).
+  (screenshots fail, DOM reads keep working). Worse: a fresh pane tab can sit at a
+  **0×0 viewport with no layout at all** — `offsetWidth` reads 0 and every geometry
+  number is garbage. Check `innerWidth` before trusting measurements, and know that CSS
+  transitions/animations do not advance while nothing is painting, so animation-driven
+  events never fire there.
+- **The pane's launcher caches `.claude/launch.json` per session** — edits and even
+  renamed configurations do not take; it keeps running the first command it saw. And
+  `npm run dev -- --ip 0.0.0.0` does not get the flag through to wrangler (still binds
+  127.0.0.1). For phone testing, run `npx wrangler dev --ip 0.0.0.0` in a real terminal
+  and hit the machine's Wi-Fi IP (was `192.168.1.11`); `.claude/launch.json` is untracked
+  and holds a url-attach entry so the pane can hook onto that server.
 - **A stale service worker can serve an old bundle during local testing.** Unregister and
   clear caches at the start of a browser check after any rebuild.
 - **Port 8787**: a killed wrangler leaves `workerd` orphans; kill the `node …wrangler`
@@ -280,6 +328,12 @@ Anchors, not line numbers.
 - **The share card must stay dependency-free and fetch-free** — a test enforces it.
 - **Superlatives are all positive.** A wooden spoon was considered and cut; a test blocks
   the obvious names.
+- **The strobe's two washes stay on fixed beats 820ms apart and reduced motion refuses
+  the whole effect** — a test enforces both. The beats are the photosensitivity budget;
+  putting the washes on the random schedule spends it blind.
+- **Only the Ask Diego? button strobes.** The Actions-menu shuffle is the same function
+  without the light show, and Save keeps the white peak — three different moments, three
+  different lights.
 
 ## TODO list (verbatim)
 
@@ -312,17 +366,21 @@ Anchors, not line numbers.
 27. [completed] Apply the VOICE.md copy pass
 28. [completed] Account deletion: DELETE /api/me with re-auth
 29. [completed] Live-night presence: who's checking squares
+30. [completed] Investigate: add Wombat to group/crew view
+31. [completed] Investigate: setlist closer scoring vs song count
+32. [completed] Verify crew member view as invited/authenticated user
+33. [completed] Strobe effect on Ask Diego press
 
 ## Branches
 
 ```
-main   dd30b7e   ← production, current, deployed green, 359 tests
+main   9cd6f0c   ← production, current, deployed green, 360 tests
 ```
 
 Nothing is ahead of `main`. Branch from it for the next piece of work.
 
 Merged and deleted recently: `mvp-mobile` (#56), `crew-phase-0-1` (#57), `crew-phase-2`
-(#58), `crew-phase-3` (#59), `wombat` (#60), `session-slide` (#61). Today's five commits
+(#58), `crew-phase-3` (#59), `wombat` (#60), `session-slide` (#61). Everything since
 went straight to `main`. Older squash-merge residue is unchanged from the last inventory:
 `backup-pre-rewrite`, `bingo-cell-icons`, `cache-policy`, `cloudflare-migration`,
 `controls-and-taglines`, `drop-tagline`, `explain-soft-cap`, `first-run-mobile`,
