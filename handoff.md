@@ -393,10 +393,25 @@ Anchors, not line numbers.
   testing. Use `adb reverse tcp:8787 tcp:8787` over USB and browse `http://localhost:8787`
   **on the phone** — that is a secure context, so the worker registers and the app is
   installable. Same trick works in the Android emulator (`10.0.2.2` is NOT secure either).
-- **This machine has no Android tooling and no Chrome** — only Edge (Chromium/Blink), which
-  is a valid engine proxy for a modern Android Chrome. Virtualization is on, so an Android
-  Studio AVD would work if it is ever worth the install. Use a **Google Play** system image
-  or there is no real Chrome on it.
+- **There is no Chrome on this machine** — only Edge (Chromium/Blink), a valid engine proxy
+  for a modern Android Chrome.
+- **An Android emulator IS installed** (2026-08-21), without Android Studio: SDK at
+  `C:\Users\rguem\Android\Sdk`, portable JDK 17 at `C:\Users\rguem\Android\jdk17`, AVD named
+  **`bathtub`** (Pixel 7, Android 16 / API 36, Google Play image, so it has real Chrome).
+  Boot with `Sdk\emulator\emulator.exe -avd bathtub`; `adb` is in `Sdk\platform-tools`.
+  **Keep the paths short** — the SDK will not extract under the long scratchpad path
+  (Windows MAX_PATH). **Give it more than 2GB** if you drive it hard: Chrome was killed by
+  memory pressure mid-session at `hw.ramSize=2048` (`~\.android\avd\bathtub.avd\config.ini`).
+- **Reading the real Android console.** This is how `b6b77ad` was confirmed on device, and it
+  beats every form of inference this project has relied on so far. `adb forward tcp:9222
+  localabstract:chrome_devtools_remote`, `curl http://localhost:9222/json/list` for the
+  target's `webSocketDebuggerUrl`, then drive CDP from Node (v24 has a global `WebSocket`):
+  `Runtime.evaluate` for DOM/cache state, `Page.getAppManifest` for install validity.
+  **The page and the service worker are SEPARATE CDP targets** — emulating offline on the
+  page does NOT make the worker's own `fetch` fail, so to exercise the worker's fallback you
+  must emulate it on the *service worker* target. Airplane mode works too but killed Chrome.
+  And defeat the HTTP cache with a unique query string, or an "offline" fetch still succeeds
+  from it and you conclude nothing.
 - **A stale service worker can serve an old bundle during local testing.** Unregister and
   clear caches at the start of a browser check after any rebuild.
 - **Port 8787**: a killed wrangler leaves `workerd` orphans; kill the `node …wrangler`
