@@ -240,7 +240,13 @@
     clip-path: polygon(47% 0, 53% 0, 100% 100%, 0% 100%);
     background: linear-gradient(to bottom, var(--c) 0%, transparent 72%);
     opacity: var(--o); filter: blur(3.5px); mix-blend-mode: screen;
-    will-change: transform, opacity;
+    /* Deliberately NO will-change. It asks the compositor to promote each beam to its own
+       layer, and mix-blend-mode immediately cancels that: blending has to read what is
+       behind the beam, so the beam can never composite independently of it. Measured on a
+       Pixel 7 / Android 16 — removing it moved neither the layer count (84) nor the layer
+       area, so it bought nothing while advertising an intent the blend mode contradicts.
+       If you are here to speed the rig up, the lever is the beam COUNT (see seedRig), not
+       this. */
     animation: sweep var(--dur) ease-in-out var(--delay) infinite alternate;
     /* transform is transitioned here rather than under .peak so the descent still eases
        after the peak class comes off. While the sweep is running the animation wins and
@@ -1460,7 +1466,25 @@ const BEAMS = ['var(--beam-1)', 'var(--beam-2)', 'var(--beam-3)',
 // real one is bolted symmetrically and the symmetry survives even when the heads are
 // panning independently.
 const FIXTURES = [0, 11, 21, 31, 41, 50];
-const BEAMS_PER_FIXTURE = 2; // a head throws a fan, not a single shaft
+// A head throws a fan, not a single shaft — but every beam is its own compositor RENDER
+// SURFACE, because mix-blend-mode must read the backdrop and so defeats layer promotion.
+// Measured on a Pixel 7 / Android 16: 22 beams produce 84 layers and 93 megapixels of layer
+// area against a 2.6-megapixel screen, and blend alone accounts for 22 of those layers and
+// half of that area. Halving the fan halves the surfaces while keeping what the symmetry is
+// actually for — every fixture position and its mirror survive, each head just throws one
+// shaft instead of two, so it still reads as a rig rather than as noise.
+//
+// Gated on capability, never on platform. deviceMemory and hardwareConcurrency are absent
+// in Safari, so iOS can only ever take the full-fidelity path — false BY CONSTRUCTION
+// rather than by anyone remembering to exclude it — and no user-agent string is read here
+// or anywhere else. An unknown signal means "assume capable": the reduced rig is opt-in for
+// devices that say they are small, not a default that silently degrades everyone.
+const constrainedDevice = (() => {
+  const mem = navigator.deviceMemory;              // undefined outside Chromium
+  if (mem === undefined) return false;
+  return mem <= 4 || (navigator.hardwareConcurrency || 8) <= 4;
+})();
+const BEAMS_PER_FIXTURE = constrainedDevice ? 1 : 2;
 const rigEl = document.getElementById('rig');
 const hallEl = document.getElementById('hall');
 const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;

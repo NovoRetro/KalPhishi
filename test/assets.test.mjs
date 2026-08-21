@@ -120,6 +120,40 @@ test('crossing beams add rather than occlude', () => {
     'the hall must isolate its blend group');
 });
 
+test('the beams are not asked for a layer that blending cannot give them', () => {
+  // will-change: transform on a mix-blend-mode element is self-cancelling — blending reads
+  // the backdrop, so the beam can never composite independently, and the hint just states
+  // an intent the blend mode contradicts. Measured on Android it moved neither layer count
+  // nor layer area. Pinned because it reads like an obvious optimisation to add back.
+  //
+  // Comments are stripped first. The rule now carries a comment explaining why the hint is
+  // absent, and that comment necessarily names it — this is the THIRD test in this repo to
+  // trip over its own prose. Strip before grepping source, always.
+  const beam = html.match(/\.rig \.beam \{[^}]*\}/);
+  assert.ok(beam, '.rig .beam rule not found');
+  const decls = beam[0].replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.ok(!/will-change/.test(decls),
+    'will-change on a blended element buys nothing — the lever is the beam count');
+});
+
+test('rig density is gated on capability, never on platform', () => {
+  // The reduced rig exists for constrained Android. It must never be reachable by sniffing
+  // a user agent, and an ABSENT signal must mean full fidelity: deviceMemory does not exist
+  // in Safari, so this is what keeps iOS on the untouched path by construction rather than
+  // by anyone remembering to exclude it. Invert that default and every iPhone silently
+  // drops to half a rig.
+  const gate = html.match(/const constrainedDevice = \(\(\) => \{[\s\S]*?\}\)\(\);/);
+  assert.ok(gate, 'constrainedDevice gate not found');
+  assert.match(gate[0], /if \(mem === undefined\) return false;/,
+    'an unknown signal must mean "assume capable", or Safari loses half the rig');
+  assert.match(gate[0], /navigator\.deviceMemory/, 'the gate must read a capability signal');
+  for (const banned of ['userAgent', 'platform', 'Android', 'iPhone', 'vendor']) {
+    assert.ok(!gate[0].includes(banned), `the gate must not sniff ${banned}`);
+  }
+  assert.match(html, /const BEAMS_PER_FIXTURE = constrainedDevice \? 1 : 2;/,
+    'the gate must drive the beam count');
+});
+
 test('the hall stays dark in both themes', () => {
   // Beams only exist against darkness. The hall deliberately does not follow --page: if it
   // ever picks up the light theme's near-white the beams wash out completely, which reads
