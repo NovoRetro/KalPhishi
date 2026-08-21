@@ -18,10 +18,12 @@
 > **🔥 READ THE ANDROID SECTION FIRST — a tester reports most of the app does not render
 > on Android, and the splash that shipped today is the prime suspect.**
 >
-> `main` is at `33a4ebd`, **361 tests pass**, the working tree is clean, and **no
+> `main` is at `1a59b5e`, **361 tests pass**, the working tree is clean, and **no
 > migrations are pending** — `0010_live_presence.sql` is still the latest. **Production
-> is ONE COMMIT BEHIND git**: the live Worker is version `4b094683` (= `139e7aa`, the
-> splash); the roll-button personas commit `33a4ebd` is pushed but NOT deployed.
+> tracks `main` automatically**: `.github/workflows/deploy.yml` deploys EVERY push to
+> `main` (verified green all day, personas included). An earlier draft of this handoff
+> said prod was a commit behind — it was not; the CI deploy was forgotten. **A push to
+> `main` IS a production deploy. There is no "just push it, deploy later."**
 >
 > The 08-20 sessions landed, in order: the Data menu de-emoji (`5f75e2f`), Wombat's
 > pre-lock crew line (`871014d`), the Ask Diego strobe (`bac44ca`, `9cd6f0c`), ten new
@@ -65,13 +67,14 @@ still just correlation.
 3. **Cheap kill-switch experiment**: deploy a build with the splash `display:none`d.
    If Android comes back, the splash is guilty and the fix is targeted; if not, the
    suspect list resets and the splash is exonerated.
-4. **If it needs to be fixed faster than it can be diagnosed**: `npx wrangler rollback`
-   to version `d0c23780` (the taglines build — last pre-splash deploy). Nothing is lost:
-   the personas commit was never deployed anyway, and the splash can return once it is
-   understood.
+4. **If it needs to be fixed faster than it can be diagnosed**: revert the splash commits
+   on `main` (`git revert 139e7aa f84d0d1`) and push — CI ships the revert. A bare
+   `npx wrangler rollback` also works short-term but is OVERWRITTEN by the next push to
+   `main`, because:
 
-**One rule while this is open: no reach, no new features onto prod.** Beta testers with
-broken phones churn silently.
+**CI deploys every push to `main`** (`.github/workflows/deploy.yml`). So the rule while
+this is open is not "don't deploy" — it is **"don't push to `main`"** except for the fix
+itself. Work on branches. And no reach: beta testers with broken phones churn silently.
 
 ## Current goal
 
@@ -124,13 +127,14 @@ light show to point at, and it needs no code at all.
   skip, timer-driven lift (never animationend), and the overlay's own animation ending
   `visibility:hidden`. Reduced motion display:nones it in CSS before first paint.
   **⚠ Prime suspect in the Android breakage above.**
-- **Per-game roll-button personas** (`33a4ebd`, **NOT yet deployed**): Ask Diego? stays
+- **Per-game roll-button personas** (`33a4ebd`, live via CI): Ask Diego? stays
   on bingo, Setlist Bets rolls with **Marco Esquandolas?**, Wombat consults the
   **Neurologist?** — same control, same slot, same strobe. The shared pre-lock nudge
   names whichever is on the row below it. Also fixed the lawyer tagline's tense
   (wouldn't, not won't).
-- **Three production deploys** — `59b341cc` (strobe), `d0c23780` (taglines),
-  `4b094683` (splash, **current**; = `139e7aa`).
+- **Deploys**: three manual (`59b341cc` strobe, `d0c23780` taglines, `4b094683` splash)
+  — but the manual runs were redundant belt-and-braces: **CI deploys every push to
+  `main`** and its runs were green all day, so prod simply tracks `main`.
 
 ### 2026-08-16
 
@@ -347,7 +351,11 @@ Anchors, not line numbers.
   against the DOM before touching source.
 - **Regenerating `data/analysis.json`** (arm label edits) needs the ~79MB gitignored year
   caches — this machine only.
-- **No CI on branches or PRs.** Local `npm test` is the only pre-merge signal.
+- **No CI on branches or PRs — but pushes to `main` DO trigger the deploy workflow**
+  (`.github/workflows/deploy.yml`: test → build → deploy, red suite blocks). Local
+  `npm test` is the only pre-merge signal; a push to `main` is a production deploy.
+  This exact sentence's older wording caused one session to believe prod was a commit
+  behind when it wasn't.
 
 ### Environment
 
@@ -435,7 +443,7 @@ Anchors, not line numbers.
 ## Branches
 
 ```
-main   33a4ebd   ← pushed, 361 tests; prod is ONE BEHIND at 139e7aa (Worker 4b094683)
+main   1a59b5e   ← 361 tests; prod TRACKS main (CI deploys every push to main)
 ```
 
 Nothing is ahead of `main`. Branch from it for the next piece of work.
