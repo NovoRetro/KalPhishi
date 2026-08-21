@@ -147,6 +147,25 @@ test('the strobe holds the rig rather than tearing it down, and refuses reduced 
     'rigStrobe must refuse reduced motion before spawning any flash');
 });
 
+test('the splash always leaves, and reduced motion never sees it', () => {
+  // The splash is a fixed overlay over the entire app, so a splash that fails to leave
+  // is an app that cannot be opened. Three exits are load-bearing: the JS lift is on a
+  // TIMER (animation events never fire on a page that isn't painting — same lesson as
+  // the strobe pops), the overlay's own animation ends in visibility:hidden so total
+  // script failure still hands the app back, and reduced motion display:nones it in
+  // CSS before first paint — a splash is nothing but motion, and the flash of showing
+  // it for even one frame is exactly what that setting refuses.
+  assert.match(html, /#splash \{ position: fixed;[^}]*animation: sp-self/,
+    'the overlay must carry its own self-clearing animation');
+  assert.match(html, /@keyframes sp-self \{[^}]*\{[^}]*\}[^}]*visibility: hidden/,
+    'sp-self must end in visibility:hidden, not just opacity 0');
+  assert.match(html, /const splashTimer = setTimeout\(liftSplash, SPLASH_MS\)/,
+    'the splash lift must be timer-driven, never animationend');
+  const reduce = html.match(/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\n  \}/);
+  assert.ok(reduce && /#splash \{ display: none; \}/.test(reduce[0]),
+    'reduced motion must skip the splash in CSS, before first paint');
+});
+
 test('the hall fades out instead of ending on an edge', () => {
   // Without the mask the layer stops at a hard horizontal line partway down the page and
   // reads as a banner with a bottom border, not as light running out. Both the darkness

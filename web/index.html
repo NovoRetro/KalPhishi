@@ -276,12 +276,106 @@
      a flash that starts fading the moment it lands reads as a glow, not a hit. */
   @keyframes strobepop { 0% { opacity: 1; } 55% { opacity: 1; } 100% { opacity: 0; } }
 
+  /* ---- The splash (2026-08-20). The approved cut, one shot per load: eight heads wake
+     in pairs from the outside in, converging on the centre; the name lands as the rig
+     dims; the strobe hit runs and the byline signs it; the overlay lifts into the app.
+     The choreography rides ONE shared 3.8s timeline — every long animation here is
+     3.8s/forwards and the beats are percentages of it — except the pops, which are
+     short one-shots placed by delay. The overlay's own sp-self animation ends in
+     visibility:hidden, so if every script on this page dies the splash still gets out
+     of the way. Palette rides the game vars on purpose: a Wombat reload opens green.
+     z-index 90: above the auth modal (70) — nothing signs in during a light show. */
+  #splash { position: fixed; inset: 0; z-index: 90; overflow: hidden;
+    background: radial-gradient(120% 60% at 50% 0%, #17122a 0%, #0b0a12 55%, #08070d 100%);
+    animation: sp-self 4.4s ease forwards; }
+  #splash.lift { animation: sp-lift 380ms ease forwards; }
+  @keyframes sp-self { 0%, 90% { opacity: 1; visibility: visible; }
+    100% { opacity: 0; visibility: hidden; } }
+  @keyframes sp-lift { to { opacity: 0; visibility: hidden; } }
+  .sp-haze { position: absolute; inset: 0; opacity: 0;
+    background: radial-gradient(75% 45% at 50% 0%, var(--haze), transparent 72%);
+    animation: sp-haze 3.8s ease-in-out forwards; }
+  @keyframes sp-haze { 0% { opacity: 0; } 10.9% { opacity: 0.35; } 46.5% { opacity: 1; }
+    62.9% { opacity: 0.3; } 84.8% { opacity: 0.3; } 93%, 100% { opacity: 0; } }
+  .sp-beam { position: absolute; top: 0; height: 115%;
+    --w: clamp(96px, 14vw, 200px); width: var(--w); margin-left: calc(var(--w) / -2);
+    clip-path: polygon(46% 0, 54% 0, 100% 100%, 0% 100%);
+    filter: blur(3.5px); mix-blend-mode: screen; transform-origin: 50% 0;
+    opacity: 0; animation: 3.8s ease-in-out forwards; }
+  /* Mirrored pairs share a keyframes block via --sgn; the right side flips the sign. */
+  .sb1 { left: 8%;  background: linear-gradient(to bottom, var(--beam-1), transparent 72%); animation-name: sp-pair1; }
+  .sb8 { left: 92%; background: linear-gradient(to bottom, var(--beam-5), transparent 72%); animation-name: sp-pair1; --sgn: -1; }
+  .sb2 { left: 22%; background: linear-gradient(to bottom, var(--beam-4), transparent 72%); animation-name: sp-pair2; }
+  .sb7 { left: 78%; background: linear-gradient(to bottom, var(--beam-2), transparent 72%); animation-name: sp-pair2; --sgn: -1; }
+  .sb3 { left: 34%; background: linear-gradient(to bottom, var(--beam-6), transparent 72%); animation-name: sp-pair3; }
+  .sb6 { left: 66%; background: linear-gradient(to bottom, var(--beam-1), transparent 72%); animation-name: sp-pair3; --sgn: -1; }
+  .sb4 { left: 45%; background: linear-gradient(to bottom, var(--beam-2), transparent 72%); animation-name: sp-pair4; }
+  .sb5 { left: 55%; background: linear-gradient(to bottom, var(--beam-4), transparent 72%); animation-name: sp-pair4; --sgn: -1; }
+  /* Outermost pair first, centre pair last — the wake converges on where the name lands. */
+  @keyframes sp-pair1 {
+    0%, 6.8% { opacity: 0; transform: rotate(calc(var(--sgn, 1) * -42deg)); }
+    21.9% { opacity: 0.6; transform: rotate(calc(var(--sgn, 1) * -14deg)); }
+    49.2% { opacity: 0.8; transform: rotate(calc(var(--sgn, 1) * -18deg)); }
+    62.9%, 100% { opacity: 0; transform: rotate(calc(var(--sgn, 1) * -18deg)); } }
+  @keyframes sp-pair2 {
+    0%, 12.3% { opacity: 0; transform: rotate(calc(var(--sgn, 1) * -34deg)); }
+    27.4% { opacity: 0.55; transform: rotate(calc(var(--sgn, 1) * -9deg)); }
+    49.2% { opacity: 0.8; transform: rotate(calc(var(--sgn, 1) * -12deg)); }
+    62.9%, 100% { opacity: 0; transform: rotate(calc(var(--sgn, 1) * -12deg)); } }
+  @keyframes sp-pair3 {
+    0%, 17.8% { opacity: 0; transform: rotate(calc(var(--sgn, 1) * -26deg)); }
+    32.8% { opacity: 0.55; transform: rotate(calc(var(--sgn, 1) * -5deg)); }
+    49.2% { opacity: 0.8; transform: rotate(calc(var(--sgn, 1) * -7deg)); }
+    62.9%, 100% { opacity: 0; transform: rotate(calc(var(--sgn, 1) * -7deg)); } }
+  @keyframes sp-pair4 {
+    0%, 23.3% { opacity: 0; transform: rotate(calc(var(--sgn, 1) * -18deg)); }
+    38.3% { opacity: 0.55; transform: rotate(calc(var(--sgn, 1) * -2deg)); }
+    49.2% { opacity: 0.85; transform: rotate(calc(var(--sgn, 1) * -3deg)); }
+    62.9%, 100% { opacity: 0; transform: rotate(calc(var(--sgn, 1) * -3deg)); } }
+  .sp-title { position: absolute; left: 0; right: 0; top: 40%; text-align: center;
+    color: #fff; font-size: clamp(30px, 5vw, 42px); font-weight: 600;
+    letter-spacing: -0.01em; opacity: 0; animation: sp-title 3.8s ease-out forwards; }
+  @keyframes sp-title {
+    0%, 46.5% { opacity: 0; transform: translateY(14px); text-shadow: none; }
+    57.5% { opacity: 1; transform: translateY(0); text-shadow: 0 0 24px var(--glow); }
+    100% { opacity: 1; transform: translateY(0); text-shadow: 0 0 20px var(--glow); } }
+  /* The strobe hit: six flashes placed by DELAY — short one-shots whose `both` fill
+     keeps them dark until their beat — then the wash. Same envelope as Ask Diego's. */
+  .sp-pop { position: absolute; border-radius: 50%; mix-blend-mode: screen; opacity: 0;
+    background: radial-gradient(circle, #fff 0%, #fff 20%, rgba(255,255,255,0.85) 32%, transparent 56%);
+    animation: sp-flash 160ms linear both; }
+  .sp1 { left: 6%;  top: 10%; width: 18vmin; height: 18vmin; animation-delay: 2.39s; }
+  .sp2 { left: 70%; top: 6%;  width: 14vmin; height: 14vmin; animation-delay: 2.55s; }
+  .sp3 { left: 26%; top: 24%; width: 11vmin; height: 11vmin; animation-delay: 2.71s; }
+  .sp4 { left: 78%; top: 30%; width: 15vmin; height: 15vmin; animation-delay: 2.86s; }
+  .sp5 { left: 10%; top: 52%; width: 12vmin; height: 12vmin; animation-delay: 3.02s; }
+  .sp6 { left: 58%; top: 58%; width: 10vmin; height: 10vmin; animation-delay: 3.17s; }
+  @keyframes sp-flash { 0% { opacity: 0; } 35% { opacity: 1; } 100% { opacity: 0; } }
+  /* The wash is CENTRED ON THE NAME, not on the screen: the title's top edge sits at
+     40%, so its optical centre is ~42% once the line height is under it. At 36% the
+     name sat in the wash's lower half and the hit read as landing above it. */
+  .sp-wash { position: absolute; left: 50%; top: 42%; width: 88vmin; height: 88vmin;
+    margin: -44vmin; border-radius: 50%; mix-blend-mode: screen; filter: blur(8px); opacity: 0;
+    background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0.7) 26%, transparent 58%);
+    animation: sp-flash 360ms linear both; animation-delay: 3.33s; }
+  /* The signature arrives WITH the strobe sequence — same 2.39s beat as the first pop —
+     and stays for the lift. */
+  .sp-by { position: absolute; left: 0; right: 0;
+    bottom: max(28px, env(safe-area-inset-bottom)); text-align: center;
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); opacity: 0; animation: sp-by 3.8s ease-out forwards; }
+  @keyframes sp-by { 0%, 62.9% { opacity: 0; } 71% { opacity: 0.9; } 100% { opacity: 0.9; } }
+
   /* Reduced motion keeps the rig — it is colour and shape, not just movement — but the
      heads stop panning and the peak becomes a brightness change only. */
   @media (prefers-reduced-motion: reduce) {
     .rig .beam { animation: none; transform: rotate(var(--a1)); }
     .hall.peak .beam { animation: none; }
     .stage .tagline { transition: none; }
+    /* A splash is nothing BUT motion, so display:none is the only honest translation —
+       and it has to happen here in CSS, before first paint, not in the script that runs
+       after the overlay has already flashed up. The JS removal is just the tidy-up. */
+    #splash { display: none; }
   }
 
   .tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid rgba(255,255,255,0.15); flex-wrap: wrap; align-items: center; }
@@ -1245,6 +1339,19 @@
 </style>
 </head>
 <body>
+<!-- The splash. Decorative and self-clearing — aria-hidden because it says nothing the
+     h1 below doesn't. First in the body so it paints before anything it is covering.
+     See the #splash CSS block for the choreography and the splash script for the exits. -->
+<div id="splash" aria-hidden="true">
+  <div class="sp-haze"></div>
+  <span class="sp-beam sb1"></span><span class="sp-beam sb2"></span><span class="sp-beam sb3"></span><span class="sp-beam sb4"></span>
+  <span class="sp-beam sb5"></span><span class="sp-beam sb6"></span><span class="sp-beam sb7"></span><span class="sp-beam sb8"></span>
+  <div class="sp-title">Bathtub Bets</div>
+  <span class="sp-pop sp1"></span><span class="sp-pop sp2"></span><span class="sp-pop sp3"></span>
+  <span class="sp-pop sp4"></span><span class="sp-pop sp5"></span><span class="sp-pop sp6"></span>
+  <span class="sp-wash"></span>
+  <div class="sp-by">Powered by NovoRetro</div>
+</div>
 <button class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu-panel" aria-label="Account menu">☰</button>
 <div class="menu-backdrop" id="menu-backdrop"></div>
 <div class="menu-panel" id="menu-panel" role="menu" aria-label="Account"></div>
@@ -1537,6 +1644,25 @@ if (rigEl && hallEl && 'IntersectionObserver' in window) {
 // predictor.js reaches the rig through this — it is loaded before this script runs, so it
 // reads the handle at call time rather than at load time.
 window.KalphishiRig = { peak: rigPeak, strobe: rigStrobe };
+
+// ---- the splash. The approved cut plays once per load — see the #splash CSS block for
+// the choreography. Three ways out, in order of paranoia: a tap skips it, the timer
+// below lifts it, and the overlay's own sp-self animation ends in visibility:hidden so
+// even a page whose scripts all died still hands the app back. Timers, never animation
+// events — see the strobe note above. Reduced motion never sees it at all: the CSS
+// display:nones it before first paint, and the removal here is just the tidy-up.
+const SPLASH_MS = 3800;
+const splashEl = document.getElementById('splash');
+if (splashEl) {
+  if (reducedMotion()) {
+    splashEl.remove();
+  } else {
+    const liftSplash = () => { splashEl.classList.add('lift'); setTimeout(() => splashEl.remove(), 400); };
+    const splashTimer = setTimeout(liftSplash, SPLASH_MS);
+    // A splash you cannot skip is an ad. One tap ends it.
+    splashEl.addEventListener('click', () => { clearTimeout(splashTimer); liftSplash(); }, { once: true });
+  }
+}
 
 // Show dates are stored and compared as ISO (YYYY-MM-DD) everywhere — sorting, object
 // keys, API params and search all depend on that — so this is display-only. Parsed from
