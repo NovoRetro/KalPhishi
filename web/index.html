@@ -335,10 +335,16 @@
   .sp-title { position: absolute; left: 0; right: 0; top: 40%; text-align: center;
     color: #fff; font-size: clamp(30px, 5vw, 42px); font-weight: 600;
     letter-spacing: -0.01em; opacity: 0; animation: sp-title 3.8s ease-out forwards; }
+  /* The exit is timed to the wash: the name holds until the flash peaks (the wash runs
+     87.6%→97.1%, peaking ~91%), then drops to nothing before the flash finishes — the
+     fade hides inside the brightest light, so the strobe reads as CONSUMING the name
+     rather than the name politely leaving. No translate on the way out for the same
+     reason: consumed things don't walk off. */
   @keyframes sp-title {
     0%, 46.5% { opacity: 0; transform: translateY(14px); text-shadow: none; }
     57.5% { opacity: 1; transform: translateY(0); text-shadow: 0 0 24px var(--glow); }
-    100% { opacity: 1; transform: translateY(0); text-shadow: 0 0 20px var(--glow); } }
+    90% { opacity: 1; transform: translateY(0); text-shadow: 0 0 20px var(--glow); }
+    96%, 100% { opacity: 0; transform: translateY(0); text-shadow: none; } }
   /* The strobe hit: six flashes placed by DELAY — short one-shots whose `both` fill
      keeps them dark until their beat — then the wash. Same envelope as Ask Diego's. */
   .sp-pop { position: absolute; border-radius: 50%; mix-blend-mode: screen; opacity: 0;
