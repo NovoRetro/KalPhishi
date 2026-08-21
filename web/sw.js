@@ -1,4 +1,8 @@
-// The service worker. Cache only — no push, ever.
+// The service worker. No push, ever.
+//
+// It was once described as "cache only", meaning only-caching-never-pushing. That reads as
+// a caching strategy and it is not one: index.html and the data files are NETWORK first.
+// The distinction matters — the network-first path is where the Android bug lived.
 //
 // "No service worker" was a deliberate rule (reach.md), adopted to rule out push
 // notifications and background reach, and that reasoning still stands. This file honours
@@ -25,13 +29,25 @@
 //   · everything else (the API)    → NOT INTERCEPTED AT ALL. A cached POST or a stale
 //     /api/me is a category of bug worth refusing outright. The handler returns early.
 //
+// And one rule that is not about which cache to read: when everything misses, only a
+// NAVIGATION may fall back to the shell. Serving index.html to a subresource is worse than
+// serving nothing, because it succeeds.
+//
 // CACHE bumps on every deploy through the build (see scripts/build-public.js), which is
 // what evicts the previous version — a fixed name would serve last week's shell forever.
 const CACHE = 'bathtub-__BUILD__';
 
 // Enough to render something with no network at all. Not the data files: an empty app
 // that says so beats an app confidently showing last week's setlist as this week's.
-const SHELL = ['/', '/icons/icon-192.png'];
+//
+// The hashed script URLs are stamped in by scripts/build-public.js, because the worker
+// cannot know them — they change with every build. They belong here rather than in the
+// opportunistic /web/* cache below: `activate` deletes the previous cache outright, so
+// without them every deploy left a returning device holding a shell that could not build
+// the app, and the first flaky request after that deploy rendered a page with nothing on
+// it. addAll is atomic and these three are in the publish allowlist, so a missing one is
+// a build error long before it is a device error.
+const SHELL = ['/', '/icons/icon-192.png'].concat('__SHELL__'.split(',').filter(Boolean));
 
 self.addEventListener('install', event => {
   // addAll is atomic — one 404 and nothing installs, which is the right failure. skipWaiting
@@ -85,6 +101,16 @@ self.addEventListener('fetch', event => {
         }
         return res;
       })
-      .catch(() => caches.match(request).then(hit => hit || caches.match('/')))
+      .catch(() => caches.match(request).then(hit => {
+        if (hit) return hit;
+        // Last resort is the shell, and ONLY for a navigation. index.html is a fine answer
+        // to "give me a page"; it is a catastrophic answer to "give me /data/analysis.json",
+        // because it arrives as a 200 with text/html and `r.json()` turns that into a
+        // SyntaxError. The page cannot tell that from corrupt data, and the whole Data side
+        // hangs off that one fetch — so a dropped request rendered a header and an error
+        // card instead of an app. A real network error is the honest answer, and index.html
+        // already handles it.
+        return request.mode === 'navigate' ? caches.match('/') : Response.error();
+      }))
   );
 });

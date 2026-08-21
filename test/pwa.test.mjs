@@ -90,6 +90,29 @@ test('the worker never serves a stale page, and never touches the API', () => {
     'the page must be network-first with cache as the fallback');
 });
 
+test('only a navigation may fall back to the shell', () => {
+  // The shell is index.html. Handing it to a request for /data/analysis.json answers a JSON
+  // fetch with a 200 and text/html, and r.json() turns that into a SyntaxError the page
+  // cannot distinguish from corrupt data. The entire Data side hangs off that one fetch, so
+  // a single dropped request rendered a header and an error card instead of an app — on
+  // Android only, because Chrome on iOS has no service worker to do it. A subresource must
+  // fail as a network error, which index.html already handles.
+  assert.match(sw, /request\.mode === 'navigate' \? caches\.match\('\/'\) : Response\.error\(\)/,
+    'the shell fallback must be fenced to navigations');
+});
+
+test('the offline shell holds everything the page needs to boot', () => {
+  // ['/', icon] was never enough: index.html immediately pulls three hashed scripts, and
+  // `activate` deletes the previous cache, so every deploy stripped a returning device down
+  // to a shell that could not build the app.
+  assert.match(sw, /'__SHELL__'\.split\(','\)\.filter\(Boolean\)/,
+    'the hashed script URLs must be stamped in, not typed');
+  assert.match(buildPublic, /if \(!sw\.includes\('__SHELL__'\)\) throw new Error/,
+    'an unstamped shell would try to fetch the literal placeholder and fail the install');
+  assert.match(buildPublic, /hashedScripts\.push\(`\/\$\{rel\}\?v=\$\{hash\}`\)/,
+    'the precache list must reuse the hashes that stamped the script tags, not recompute them');
+});
+
 test('the cache name is derived from the bundle, not typed', () => {
   // A fixed cache name is the classic stale-forever bug: the browser fetches an identical
   // sw.js, never activates it, and the old cache is never evicted.

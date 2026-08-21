@@ -68,11 +68,16 @@ for (const [rel, published] of ALLOW) {
 // The hash only changes when the file does, so a rebuild that changes nothing re-serves
 // from cache exactly as before.
 const SCRIPTS = ['web/reorder.js', 'web/relisten.js', 'web/predictor.js'];
+// The same stamped URLs the worker precaches, collected as they are computed. Deriving
+// them twice would be two sources of truth for one hash, and the failure mode of a
+// disagreement is a shell that precaches a URL the page never asks for.
+const hashedScripts = [];
 const indexPath = path.join(pub, 'index.html');
 let index = fs.readFileSync(indexPath, 'utf8');
 for (const rel of SCRIPTS) {
   const hash = crypto.createHash('sha256')
     .update(fs.readFileSync(path.join(pub, rel))).digest('hex').slice(0, 10);
+  hashedScripts.push(`/${rel}?v=${hash}`);
   const before = index;
   index = index.replace(`src="/${rel}"`, `src="/${rel}?v=${hash}"`);
   // A silent no-op here would quietly reinstate the staleness this exists to prevent.
@@ -90,7 +95,11 @@ const swPath = path.join(pub, 'sw.js');
 const build = crypto.createHash('sha256').update(index).digest('hex').slice(0, 10);
 const sw = fs.readFileSync(swPath, 'utf8');
 if (!sw.includes('__BUILD__')) throw new Error('sw.js has no __BUILD__ placeholder to stamp');
-fs.writeFileSync(swPath, sw.replace('__BUILD__', build));
+// The precache list, for the same reason the cache name is stamped: the worker cannot know
+// the hashed URLs, and an unstamped placeholder would make addAll try to fetch the literal
+// string "__SHELL__" and fail the install outright.
+if (!sw.includes('__SHELL__')) throw new Error('sw.js has no __SHELL__ placeholder to stamp');
+fs.writeFileSync(swPath, sw.replace('__BUILD__', build).replace('__SHELL__', hashedScripts.join(',')));
 
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e =>
   e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
