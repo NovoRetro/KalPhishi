@@ -378,6 +378,34 @@
     color: var(--muted); opacity: 0; animation: sp-by 3.8s ease-out forwards; }
   @keyframes sp-by { 0%, 62.9% { opacity: 0; } 71% { opacity: 0.9; } 100% { opacity: 0.9; } }
 
+  /* ---- Android: the cut is HELD, not played.
+     Every element in this splash carries mix-blend-mode, and a blended element cannot
+     composite independently of its backdrop — so animating them re-rasterises the whole
+     group every frame. On Android Chrome that stutters badly enough to read as breakage.
+     Rather than degrade the choreography into a worse version of itself, hold the single
+     frame it was built around: 49.2%, where the beams have settled and the name lands.
+     Same angles, same opacities, no motion — so this is the cut's own resting pose, not a
+     new composition someone has to art-direct.
+     The pops and the wash go entirely. They ARE the stutter, and one held flash reads as a
+     rendering mistake rather than as a hit. The name and the signature come up front:
+     there is no longer a wake for them to arrive after.
+     #splash keeps its own sp-self fade — that is one of the three exits, and it is a plain
+     opacity fade on the container rather than motion inside the blend group. */
+  :root[data-plat="android"] .sp-beam {
+    animation: none;
+    transform: rotate(calc(var(--sgn, 1) * var(--sp-hold, -8deg)));
+    opacity: 0.8; }
+  :root[data-plat="android"] .sb1, :root[data-plat="android"] .sb8 { --sp-hold: -18deg; }
+  :root[data-plat="android"] .sb2, :root[data-plat="android"] .sb7 { --sp-hold: -12deg; }
+  :root[data-plat="android"] .sb3, :root[data-plat="android"] .sb6 { --sp-hold: -7deg; }
+  :root[data-plat="android"] .sb4, :root[data-plat="android"] .sb5 { --sp-hold: -3deg; opacity: 0.85; }
+  :root[data-plat="android"] .sp-title {
+    animation: none; opacity: 1; transform: none; text-shadow: 0 0 24px var(--glow); }
+  :root[data-plat="android"] .sp-by { animation: none; opacity: 0.9; }
+  :root[data-plat="android"] .sp-haze { animation: none; opacity: 0.55; }
+  :root[data-plat="android"] .sp-pop,
+  :root[data-plat="android"] .sp-wash { display: none; }
+
   /* Reduced motion keeps the rig — it is colour and shape, not just movement — but the
      heads stop panning and the peak becomes a brightness change only. */
   @media (prefers-reduced-motion: reduce) {
@@ -1349,6 +1377,20 @@
   /* The content is the existing .p-login.card box; just bound its height on short viewports. */
   .auth-modal-backdrop > .p-login { max-height: 90vh; overflow-y: auto; margin-bottom: 0; }
 </style>
+<script>
+  // Platform flag, set BEFORE first paint — the splash is in the markup below and must never
+  // render its animated cut and then swap to the held one.
+  //
+  // userAgentData.platform is a structured API, not a user-agent string parse. It is
+  // undefined in Safari and reports "Windows"/"macOS" on desktop Chromium, so iOS and
+  // desktop are false here BY CONSTRUCTION — the same protection the rig's capability gate
+  // gives, rather than a regex someone has to get right. Absent ⇒ full experience.
+  try {
+    if (navigator.userAgentData && navigator.userAgentData.platform === 'Android') {
+      document.documentElement.dataset.plat = 'android';
+    }
+  } catch { /* no flag, full experience — exactly how this worked before the flag existed */ }
+</script>
 </head>
 <body>
 <!-- The splash. Decorative and self-clearing — aria-hidden because it says nothing the
@@ -1601,8 +1643,14 @@ function rigPeak() {
 let strobeGen = 0;
 let strobeLayer = null;
 const STROBE_MS = 1500; // the pepper window; the heads return just after it closes
+// Android gets no strobe. The pops are blended, blurred elements fired twenty-two at a time
+// over an already-blended rig; on Android Chrome they clip hard enough that the effect reads
+// as the app breaking rather than as a light show. Declining to run it is better than running
+// it badly — the roll itself is unaffected, only its fanfare. Same flag as the held splash,
+// so iOS and desktop are untouched by construction.
+const HELD_PLATFORM = document.documentElement.dataset.plat === 'android';
 function rigStrobe() {
-  if (!hallEl || reducedMotion()) return;
+  if (!hallEl || reducedMotion() || HELD_PLATFORM) return;
   const gen = ++strobeGen;
   if (!strobeLayer) {
     // After #rig in the hall, so the pops render over the darkened heads.

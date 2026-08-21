@@ -154,6 +154,44 @@ test('rig density is gated on capability, never on platform', () => {
     'the gate must drive the beam count');
 });
 
+test('the Android flag is a structured signal, not a user-agent string parse', () => {
+  // Comments stripped first — this file has tripped over its own prose three times, and the
+  // explanation here necessarily discusses the thing it forbids.
+  const code = html.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/[^\n]*$/gm, '');
+  assert.match(code, /navigator\.userAgentData && navigator\.userAgentData\.platform === 'Android'/,
+    'the platform flag must read userAgentData.platform');
+  assert.ok(!/navigator\.userAgent[^D]/.test(code),
+    'never parse the UA string — userAgentData is undefined in Safari, which is what keeps iOS out');
+  // The flag must be set before the splash markup, or Android renders the played cut and
+  // then swaps to the held one — a visible flash, which is the whole thing being avoided.
+  assert.ok(html.indexOf("dataset.plat = 'android'") < html.indexOf('id="splash"'),
+    'the flag must be set before first paint, not after the splash is in the DOM');
+});
+
+test('Android holds the splash rather than playing it', () => {
+  // Every splash element is blended, and a blended element cannot composite independently of
+  // its backdrop, so animating them re-rasterises the whole group per frame. The held pose is
+  // the cut's own 49.2% keyframe, not a new composition.
+  assert.match(html, /:root\[data-plat="android"\] \.sp-beam \{\s*animation: none;/,
+    'the beams must be held, not swept');
+  for (const held of ['-18deg', '-12deg', '-7deg', '-3deg']) {
+    assert.ok(html.includes(`--sp-hold: ${held}`), `the held pose must keep the ${held} rest angle`);
+  }
+  assert.match(html, /:root\[data-plat="android"\] \.sp-pop,\s*\n\s*:root\[data-plat="android"\] \.sp-wash \{ display: none; \}/,
+    'the strobe hit and wash must not run on Android — they are the stutter');
+  assert.match(html, /:root\[data-plat="android"\] \.sp-by \{ animation: none; opacity: 0\.9; \}/,
+    'the signature comes up front — there is no wake for it to arrive after');
+  // The three exits must survive: the container keeps its own fade.
+  assert.ok(!/:root\[data-plat="android"\] #splash \{[^}]*animation: none/.test(html),
+    'the splash container must keep sp-self — it is one of the three exits');
+});
+
+test('Ask Diego declines to strobe on Android rather than strobing badly', () => {
+  assert.match(html, /const HELD_PLATFORM = document\.documentElement\.dataset\.plat === 'android';/);
+  assert.match(html, /if \(!hallEl \|\| reducedMotion\(\) \|\| HELD_PLATFORM\) return;/,
+    'rigStrobe must return before building any pop');
+});
+
 test('the hall stays dark in both themes', () => {
   // Beams only exist against darkness. The hall deliberately does not follow --page: if it
   // ever picks up the light theme's near-white the beams wash out completely, which reads
@@ -177,7 +215,11 @@ test('the strobe holds the rig rather than tearing it down, and refuses reduced 
   assert.ok(strobing, '.hall.strobing .beam rule not found');
   assert.match(strobing[0], /animation-play-state:\s*paused/,
     'the sweep must hold its phase under the strobe, not tear down');
-  assert.match(html, /function rigStrobe\(\) \{\s*if \(!hallEl \|\| reducedMotion\(\)\) return;/,
+  // Widened when Android gained its own bail: the guard may carry MORE conditions, but
+  // reducedMotion() must still be in the very first statement. Pinning the exact string
+  // meant any new guard looked like a regression; pinning the position keeps the actual
+  // constraint — nothing may run before the refusal.
+  assert.match(html, /function rigStrobe\(\) \{\s*if \([^)]*reducedMotion\(\)[^{]*\) return;/,
     'rigStrobe must refuse reduced motion before spawning any flash');
 });
 
