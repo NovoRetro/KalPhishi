@@ -13,12 +13,13 @@
 > `'kalphishi'` also stays in the reserved-handle list — a retired brand is exactly what
 > somebody would register to look official.
 
-**Written:** 2026-08-20 (replaces the 2026-08-16 midday version)
+**Written:** 2026-08-21 (replaces the 2026-08-20 version)
 
-> **🔥 READ THE ANDROID SECTION FIRST — a tester reports most of the app does not render
-> on Android, and the splash that shipped today is the prime suspect.**
+> **The Android breakage is diagnosed, fixed and deployed** (`b6b77ad`). It was the
+> service worker, not the splash — the splash is exonerated. The only thing still open
+> is tester confirmation. See the section below.
 >
-> `main` is at `1a59b5e`, **361 tests pass**, the working tree is clean, and **no
+> `main` is at `b6b77ad`, **363 tests pass**, the working tree is clean, and **no
 > migrations are pending** — `0010_live_presence.sql` is still the latest. **Production
 > tracks `main` automatically**: `.github/workflows/deploy.yml` deploys EVERY push to
 > `main` (verified green all day, personas included). An earlier draft of this handoff
@@ -29,56 +30,64 @@
 > pre-lock crew line (`871014d`), the Ask Diego strobe (`bac44ca`, `9cd6f0c`), ten new
 > taglines (`cd136e7`), the splash (`f84d0d1`, `139e7aa`), and the per-game roll-button
 > personas (`33a4ebd`). Three production deploys: `59b341cc` (strobe), `d0c23780`
-> (taglines), `4b094683` (splash — current).
+> (taglines), `4b094683` (splash). The 08-21 session added one commit: the service worker fix
+> (`b6b77ad`), deployed green as the current production build.
 
 Still **closed beta** (~30 testers). The URL is public and registration is open, but this
 is not a public launch — say "in beta," never "launched."
 
 ---
 
-## 🔥 Top priority: Android rendering breakage (2026-08-20, UNRESOLVED)
+## Android rendering breakage (2026-08-20 — FIXED 2026-08-21, awaiting confirmation)
 
-**The report, verbatim in spirit:** a tester on Android hit "significant UI issues which
-prevent a large portion of the app from rendering." That is the entire known fact set —
-no device model, no Android or browser version, no screenshot, not yet reproduced, and
-it arrived at the end of the 08-20 session with no context left to chase it. **Fix this
-before anything else on this list, including reach** — sending message 1 to a crowd of
-phone users while the app does not render on Android inverts the entire point.
+**The report:** a tester on Android hit "significant UI issues which prevent a large
+portion of the app from rendering." No device model, no version, no screenshot.
 
-**Prime suspect (unproven): the splash.** It shipped TODAY (`f84d0d1` + `139e7aa`,
-deployed as `4b094683`) and is a fixed overlay at z-index 90 covering the entire app —
-if it fails to clear, the symptom is exactly "most of the app does not render." It has
-three exits (tap, JS timer, and its own `sp-self` animation ending in
-`visibility:hidden`), but all three assume the browser copes with what the splash uses:
-`clamp()`, `calc(var(--sgn) * deg)` inside keyframes, `vmin`, `mix-blend-mode: screen`,
-and the script around it leans on optional chaining. An old Android WebView or a
-Samsung-Internet-class browser could fail some of that. Second-tier suspects: the strobe
-CSS (same feature family, shipped earlier the same day), or something much older the
-tester only just met — the timeline correlation with today's deploys is strong but is
-still just correlation.
+**Root cause: the service worker, not the splash.** Two defects, both fixed in `b6b77ad`:
 
-**Triage, in order:**
-1. **Get the facts from the tester**: device model, Android version, browser (and
-   whether it is the installed PWA or a browser tab), plus a screenshot. This single
-   step probably halves the search space.
-2. **Reproduce**: real device on the LAN (`npx wrangler dev --ip 0.0.0.0`, phone to
-   `http://192.168.1.11:8787`) with `chrome://inspect` remote debugging for console
-   errors. Desktop DevTools Android emulation will NOT catch WebView/vendor quirks.
-3. **Cheap kill-switch experiment**: deploy a build with the splash `display:none`d.
-   If Android comes back, the splash is guilty and the fix is targeted; if not, the
-   suspect list resets and the splash is exonerated.
-4. **If it needs to be fixed faster than it can be diagnosed**: revert the splash commits
-   on `main` (`git revert 139e7aa f84d0d1`) and push — CI ships the revert. A bare
-   `npx wrangler rollback` also works short-term but is OVERWRITTEN by the next push to
-   `main`, because:
+1. **The fallback served the shell to ANY failed non-API GET.** A dropped request for
+   `/data/analysis.json` came back as **200 with `text/html`**, so `r.json()` threw
+   `SyntaxError: Unexpected token '<'`. The whole Data side hangs off that one fetch
+   (`web/index.html:2264`), so one momentary blip rendered a header and the "data did not
+   load" card instead of an app — which is *exactly* "a large portion does not render."
+   The fallback is now fenced to `request.mode === 'navigate'`; a subresource fails as a
+   real network error, which the existing catch already handles.
+2. **`SHELL` could not boot the app.** It held `['/', icon]` while `index.html` needs three
+   hashed scripts, and `activate` deletes the previous cache outright — so **every deploy
+   stripped a returning device down to a shell missing the bundle.** The hashed script
+   URLs are now stamped into `SHELL` by `build-public.js` from the same hashes that stamp
+   the script tags.
 
-**CI deploys every push to `main`** (`.github/workflows/deploy.yml`). So the rule while
-this is open is not "don't deploy" — it is **"don't push to `main`"** except for the fix
-itself. Work on branches. And no reach: beta testers with broken phones churn silently.
+**Why the iPhone test looked clean:** Chrome on iOS is WKWebView and **runs no service
+worker at all** — it could not reach the failing code path. iOS *Safari* does run one and
+gets the same fix. The engine was never the variable; the service worker was.
+
+**Why it surfaced on 08-20:** five deploys that day, each bumping the cache name and
+wiping the asset cache on every returning device. The timeline correlation with the splash
+was real but incidental — **the splash is exonerated as code, and its three exits are
+sound** (the timer-driven lift cannot strand).
+
+**Verified** both directions on `main` vs the fix branch, under identical conditions
+(server killed, data file evicted from cache):
+
+| Build | `fetch('/data/analysis.json')` | Console |
+|---|---|---|
+| Pre-fix | resolves 200 `text/html` | `SyntaxError: Unexpected token '<'` |
+| Post-fix | rejects | `TypeError: Failed to fetch` |
+
+**The page looks identical in both cases** — the "data did not load" card is correct
+behaviour when genuinely offline. Do not use the card to tell the builds apart; use the
+console, or count the precache entries (2 pre-fix, 5 post-fix).
+
+**Still open — the only thing:** tester confirmation. They need **one clean load to install
+the new worker and a second for it to control the page.** Worth asking whether a reload
+used to fix it; under this mechanism it almost always would have. If it still breaks after
+two clean loads, this mechanism is ruled out and the next step is a global `window.onerror`
+surface — **the app currently has none**, which is why the first report was undiagnosable.
 
 ## Current goal
 
-**Dick's, 2026-09-04 to 09-06 — 15 days out.** Everything social now exists: crews, sealed
+**Dick's, 2026-09-04 to 09-06 — 14 days out.** Everything social now exists: crews, sealed
 picks, reveal night, Wombat, superlatives and live presence. The track record still holds
 **one graded show**, and three nights in September are the first real chance to change
 that.
@@ -126,7 +135,6 @@ light show to point at, and it needs no code at all.
   the wash's peak, gone before it decays). Three exits pinned by the 361st test: tap to
   skip, timer-driven lift (never animationend), and the overlay's own animation ending
   `visibility:hidden`. Reduced motion display:nones it in CSS before first paint.
-  **⚠ Prime suspect in the Android breakage above.**
 - **Per-game roll-button personas** (`33a4ebd`, live via CI): Ask Diego? stays
   on bingo, Setlist Bets rolls with **Marco Esquandolas?**, Wombat consults the
   **Neurologist?** — same control, same slot, same strobe. The shared pre-lock nudge
@@ -163,9 +171,11 @@ light show to point at, and it needs no code at all.
   them first.
 - **PWA foundation** (`4508f34`). Generated icon set (`scripts/build-icons.js` — a CRC,
   three chunks and zlib, no dependencies; the mark is the light rig), manifest,
-  theme-color per colour scheme, safe-area insets, apple-touch meta, and a **cache-only
-  service worker** with an offline shell. Verified by killing the dev server: the app
-  rendered fully offline and recovered cleanly.
+  theme-color per colour scheme, safe-area insets, apple-touch meta, and a service worker
+  with an offline shell. The "verified fully offline" claim recorded here was wrong — the
+  check passed only because the data files happened to be cached. Offline actually yields
+  the "data did not load" card by design, and the shell could not boot the app at all
+  until `b6b77ad`.
 - **Superlatives** (`cb14296`). Five auto-awarded titles from a scored show, derived —
   no migration, no route. **And the real find: a Phase 3 bug.** The reveal read
   `p.result.rows`, but rows live under `result.breakdown.rows`, so the setlist branch had
@@ -262,10 +272,10 @@ Anchors, not line numbers.
 | `src/auth.mjs` | Hashing, sessions. Sessions **slide**; the cookie outlives the server window on purpose. |
 | `web/index.html` | Tokens (dark declared twice), PWA head, safe-area insets, menu IIFE, the rig (`rigPeak`/`rigStrobe`), dashboard, Nerd Zone. Find by symbol. |
 | `web/predictor.js` | Games + crew. `renderCrew`, `renderReveal`, `computeSuperlatives`, `resolveWombat`, `shareRevealCard`, `redeemPendingInvite`, `stopLivePoll`, `WIZARD_ENABLED`. |
-| `web/sw.js` | Cache-only worker. Mirrors `_headers` deliberately. `__BUILD__` is stamped by the build. |
+| `web/sw.js` | **NOT a caching strategy called "cache-only"** — that phrase meant no-push. `index.html` and `/data/*.json` are **network first**; `/web/*` and `/icons/*` cache first; `/api/*` untouched. Only a **navigation** may fall back to the shell. `__BUILD__` and `__SHELL__` are stamped by the build. |
 | `scripts/build-icons.js` | Draws the icon and encodes PNG with stdlib only. Output is gitignored and regenerated in CI. |
-| `scripts/build-public.js` | Publish allowlist, content-hash stamping, SW cache-name stamping. |
-| `test/` | 361 tests. `social`, `wombat`, `superlatives`, `account`, `pwa`, and the strobe + splash constraints in `assets` are the newest. |
+| `scripts/build-public.js` | Publish allowlist, content-hash stamping, SW cache-name **and precache-list** stamping. |
+| `test/` | 363 tests. `social`, `wombat`, `superlatives`, `account`, `pwa`, and the strobe + splash constraints in `assets` are the newest. |
 
 ## Open decisions / questions
 
@@ -305,13 +315,17 @@ Anchors, not line numbers.
 - **The live poll must stay leak-proof**: one handle, cleared unconditionally at the top of
   `render()`, re-armed only by `renderCrew`, skipped while the tab is hidden, bounded to a
   show locked within 24h.
-- **The service worker must stay cache-only.** A test strips comments and greps for `push`,
+- **The service worker must stay push-free.** ("Cache-only" in older notes meant this, not a
+  caching strategy — it misled a whole session.) A test strips comments and greps for `push`,
   `notificationclick`, `showNotification`, `pushManager`, `periodicsync`, `Background`.
   Note the pattern: **two tests have now failed because their own explanatory comments
   contained the banned string** — strip comments before grepping source in a test.
 - **The SW cache name is a hash of the built `index.html`**, and local builds are CRLF while
   CI is LF — so the same commit yields different cache names locally and in production.
-  Harmless; do not treat it as a build fingerprint.
+  Harmless; do not treat it as a build fingerprint. **And it does not move when only
+  `sw.js` changes** — so flipping branches to compare worker behaviour reuses the SAME
+  cache and a still-registered worker, silently invalidating the test. Unregister and
+  clear caches on every flip.
 - **Cloudflare's edge lags a deploy by 1–2 minutes.** A brand-new path 404s briefly. Today
   that looked exactly like a broken deploy for `manifest.webmanifest`. Re-probe before
   diagnosing.
@@ -372,6 +386,17 @@ Anchors, not line numbers.
   127.0.0.1). For phone testing, run `npx wrangler dev --ip 0.0.0.0` in a real terminal
   and hit the machine's Wi-Fi IP (was `192.168.1.11`); `.claude/launch.json` is untracked
   and holds a url-attach entry so the pane can hook onto that server.
+- **⚠ That LAN-IP phone setup CANNOT test the PWA.** Service workers require a secure
+  context — HTTPS, `localhost` or `127.0.0.1`. `http://192.168.1.11:8787` is none of
+  those, so the phone registers **no service worker at all** and every such test silently
+  exercised the no-worker path. This is why the `b6b77ad` bug survived local phone
+  testing. Use `adb reverse tcp:8787 tcp:8787` over USB and browse `http://localhost:8787`
+  **on the phone** — that is a secure context, so the worker registers and the app is
+  installable. Same trick works in the Android emulator (`10.0.2.2` is NOT secure either).
+- **This machine has no Android tooling and no Chrome** — only Edge (Chromium/Blink), which
+  is a valid engine proxy for a modern Android Chrome. Virtualization is on, so an Android
+  Studio AVD would work if it is ever worth the install. Use a **Google Play** system image
+  or there is no real Chrome on it.
 - **A stale service worker can serve an old bundle during local testing.** Unregister and
   clear caches at the start of a browser check after any rebuild.
 - **Port 8787**: a killed wrangler leaves `workerd` orphans; kill the `node …wrangler`
@@ -443,12 +468,13 @@ Anchors, not line numbers.
 ## Branches
 
 ```
-main   1a59b5e   ← 361 tests; prod TRACKS main (CI deploys every push to main)
+main   b6b77ad   ← 363 tests; prod TRACKS main (CI deploys every push to main)
 ```
 
 Nothing is ahead of `main`. Branch from it for the next piece of work.
 
-Merged and deleted recently: `mvp-mobile` (#56), `crew-phase-0-1` (#57), `crew-phase-2`
+Merged and deleted recently: `android-sw-shell-fallback` (fast-forwarded, 08-21),
+`mvp-mobile` (#56), `crew-phase-0-1` (#57), `crew-phase-2`
 (#58), `crew-phase-3` (#59), `wombat` (#60), `session-slide` (#61). Everything since
 went straight to `main`. Older squash-merge residue is unchanged from the last inventory:
 `backup-pre-rewrite`, `bingo-cell-icons`, `cache-policy`, `cloudflare-migration`,
