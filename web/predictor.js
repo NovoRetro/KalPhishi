@@ -741,7 +741,9 @@ function initPredictor(mount, A, opts = {}) {
     row.appendChild(el('span', null,
       `${urgent ? '⏳ ' : ''}Nothing in for <b>${esc(fmtDate(showdate))}</b>`
       + (urgent ? ` — locks in <b>${esc(untilText(left))}</b>` : '')
-      + '. Ask Diego? fills one in a press.'));
+      // The roll button wears a different name per game, and the nudge has to name the
+      // one that is actually on the row below it.
+      + `. ${mode === 'bingo' ? 'Ask Diego?' : 'Marco Esquandolas?'} fills one in a press.`));
     const x = el('button', 'p-nudge-x', '×');
     x.setAttribute('aria-label', 'Dismiss');
     x.title = 'Dismiss for this show';
@@ -1069,7 +1071,7 @@ function initPredictor(mount, A, opts = {}) {
   function renderSetlistBuilder() {
     const usedSlugs = () => new Set([...build.set1, ...build.set2, ...build.encore].map(s => s.slug));
 
-    // Both named, because the Actions menu and the Ask Diego? button each run one.
+    // Both named, because the Actions menu and the Marco Esquandolas? button each run one.
     const randomizeSetlist = () => {
       const used = new Set();
       const s1n = 8 + Math.floor(Math.random() * 3);              // 8–10
@@ -1095,7 +1097,7 @@ function initPredictor(mount, A, opts = {}) {
       if (!lensIsDefault()) flash(`Filled from ${lensArm().label}.`);
     };
 
-    // Row order, left to right: Save, Ask Diego?, then Actions pinned to the far right.
+    // Row order, left to right: Save, Marco Esquandolas?, then Actions pinned to the far right.
     // Two buttons and a menu — Reload last save moved inside Actions, which is where the
     // occasional things live and which is what lets this hold one line on a phone. Actions
     // stays deliberately the furthest thing from Save, so the destructive items inside it
@@ -1104,7 +1106,7 @@ function initPredictor(mount, A, opts = {}) {
     const songCount = build.set1.length + build.set2.length + build.encore.length;
 
     // Save only appears once there is something to save. Saving three empty lists is not a
-    // thing anyone means to do, and Ask Diego? is the better answer to "how do I start".
+    // thing anyone means to do, and Marco Esquandolas? is the better answer to "how do I start".
     if (songCount > 0) {
       const save = el('button', 'p-btn', user ? 'Bag it, Tag it'
         : probablyHasAccount() ? 'Sign in to save' : 'Sign up to save');
@@ -1120,13 +1122,16 @@ function initPredictor(mount, A, opts = {}) {
       controls.appendChild(save);
     }
 
-    // Ask Diego? rolls a random setlist, and stays on the row afterwards — a first roll is
-    // rarely the one you want, and hiding it meant reopening Actions to roll again. It
-    // deliberately does NOT use the model: Our Prediction is one press away in the
+    // Marco Esquandolas? rolls a random setlist, and stays on the row afterwards — a first
+    // roll is rarely the one you want, and hiding it meant reopening Actions to roll again.
+    // It deliberately does NOT use the model: Our Prediction is one press away in the
     // menu and is a different offer, "show me the answer" rather than "give me a board".
     // Drops to secondary styling once Save is present, so the row never carries two primary
     // actions at once.
-    const pick = el('button', 'p-btn' + (songCount ? ' p-btn-alt' : ''), '✨ Ask Diego?');
+    // The roll button wears a different name per game — Ask Diego? on bingo, Neurologist
+    // on Wombat, Marco Esquandolas? here — but it is the same control in the same slot,
+    // and all three fire the same strobe.
+    const pick = el('button', 'p-btn' + (songCount ? ' p-btn-alt' : ''), '✨ Marco Esquandolas?');
     pick.title = 'Roll a random setlist — press again for a different one';
     // The strobe belongs to the BUTTON, not to randomizeSetlist — the Actions menu can
     // reach the same shuffle, and a menu pick is not the moment the light show is for.
@@ -2341,7 +2346,7 @@ function initPredictor(mount, A, opts = {}) {
       }));
       controls.appendChild(save);
     }
-    const pick = el('button', 'p-btn' + (wombatRanks.length ? ' p-btn-alt' : ''), '✨ Ask Diego?');
+    const pick = el('button', 'p-btn' + (wombatRanks.length ? ' p-btn-alt' : ''), '✨ Neurologist?');
     pick.title = 'Roll a random ranked 10 — press again for a different one';
     pick.addEventListener('click', () => { window.KalphishiRig?.strobe(); randomizeWombat(); });
     controls.appendChild(pick);
