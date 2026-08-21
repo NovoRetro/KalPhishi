@@ -15,19 +15,63 @@
 
 **Written:** 2026-08-20 (replaces the 2026-08-16 midday version)
 
-> **Production is current and nothing is unmerged.** `main` is at `9cd6f0c`, deployed to
-> production today (Worker version `59b341cc`), **360 tests pass**, the working tree is
-> clean, and **no migrations are pending** — `0010_live_presence.sql` is still the latest,
-> applied to remote.
+> **🔥 READ THE ANDROID SECTION FIRST — a tester reports most of the app does not render
+> on Android, and the splash that shipped today is the prime suspect.**
 >
-> Four commits since the 08-16 version: the Data menu de-emoji (`5f75e2f`), Wombat's
-> pre-lock line in the crew room (`871014d`), and the Ask Diego strobe (`bac44ca`, tuned
-> in `9cd6f0c`). Everything from the big 08-15/16 push is in underneath.
+> `main` is at `33a4ebd`, **361 tests pass**, the working tree is clean, and **no
+> migrations are pending** — `0010_live_presence.sql` is still the latest. **Production
+> is ONE COMMIT BEHIND git**: the live Worker is version `4b094683` (= `139e7aa`, the
+> splash); the roll-button personas commit `33a4ebd` is pushed but NOT deployed.
+>
+> The 08-20 sessions landed, in order: the Data menu de-emoji (`5f75e2f`), Wombat's
+> pre-lock crew line (`871014d`), the Ask Diego strobe (`bac44ca`, `9cd6f0c`), ten new
+> taglines (`cd136e7`), the splash (`f84d0d1`, `139e7aa`), and the per-game roll-button
+> personas (`33a4ebd`). Three production deploys: `59b341cc` (strobe), `d0c23780`
+> (taglines), `4b094683` (splash — current).
 
 Still **closed beta** (~30 testers). The URL is public and registration is open, but this
 is not a public launch — say "in beta," never "launched."
 
 ---
+
+## 🔥 Top priority: Android rendering breakage (2026-08-20, UNRESOLVED)
+
+**The report, verbatim in spirit:** a tester on Android hit "significant UI issues which
+prevent a large portion of the app from rendering." That is the entire known fact set —
+no device model, no Android or browser version, no screenshot, not yet reproduced, and
+it arrived at the end of the 08-20 session with no context left to chase it. **Fix this
+before anything else on this list, including reach** — sending message 1 to a crowd of
+phone users while the app does not render on Android inverts the entire point.
+
+**Prime suspect (unproven): the splash.** It shipped TODAY (`f84d0d1` + `139e7aa`,
+deployed as `4b094683`) and is a fixed overlay at z-index 90 covering the entire app —
+if it fails to clear, the symptom is exactly "most of the app does not render." It has
+three exits (tap, JS timer, and its own `sp-self` animation ending in
+`visibility:hidden`), but all three assume the browser copes with what the splash uses:
+`clamp()`, `calc(var(--sgn) * deg)` inside keyframes, `vmin`, `mix-blend-mode: screen`,
+and the script around it leans on optional chaining. An old Android WebView or a
+Samsung-Internet-class browser could fail some of that. Second-tier suspects: the strobe
+CSS (same feature family, shipped earlier the same day), or something much older the
+tester only just met — the timeline correlation with today's deploys is strong but is
+still just correlation.
+
+**Triage, in order:**
+1. **Get the facts from the tester**: device model, Android version, browser (and
+   whether it is the installed PWA or a browser tab), plus a screenshot. This single
+   step probably halves the search space.
+2. **Reproduce**: real device on the LAN (`npx wrangler dev --ip 0.0.0.0`, phone to
+   `http://192.168.1.11:8787`) with `chrome://inspect` remote debugging for console
+   errors. Desktop DevTools Android emulation will NOT catch WebView/vendor quirks.
+3. **Cheap kill-switch experiment**: deploy a build with the splash `display:none`d.
+   If Android comes back, the splash is guilty and the fix is targeted; if not, the
+   suspect list resets and the splash is exonerated.
+4. **If it needs to be fixed faster than it can be diagnosed**: `npx wrangler rollback`
+   to version `d0c23780` (the taglines build — last pre-splash deploy). Nothing is lost:
+   the personas commit was never deployed anyway, and the splash can return once it is
+   understood.
+
+**One rule while this is open: no reach, no new features onto prod.** Beta testers with
+broken phones churn silently.
 
 ## Current goal
 
@@ -69,7 +113,24 @@ light show to point at, and it needs no code at all.
   running `scoreSetlistPrediction` on the exact scenario. And the **crew room reads
   correctly from a non-owner member** (signed in as crew-b): owner tools hidden, sealed
   picks invisible, roster and boards identical.
-- **Two production deploys** — prod is `9cd6f0c` exactly (Worker version `59b341cc`).
+- **Ten new taglines** (`cd136e7`), the list at 35 — including the lawyer joke about the
+  old name and the Meatstick verse rewritten to keep `kalphishi` in the lyric. Flowing
+  commas, not line breaks: five rendered lines would blow the tagline's `min-height`
+  reservation.
+- **The splash** (`f84d0d1`, consume tweak `139e7aa`). Every open: eight heads wake in
+  pairs outside-in, the name lands as the rig dims, the strobe hit runs with the
+  "Powered by NovoRetro" byline, and the final wash CONSUMES the name (title holds to
+  the wash's peak, gone before it decays). Three exits pinned by the 361st test: tap to
+  skip, timer-driven lift (never animationend), and the overlay's own animation ending
+  `visibility:hidden`. Reduced motion display:nones it in CSS before first paint.
+  **⚠ Prime suspect in the Android breakage above.**
+- **Per-game roll-button personas** (`33a4ebd`, **NOT yet deployed**): Ask Diego? stays
+  on bingo, Setlist Bets rolls with **Marco Esquandolas?**, Wombat consults the
+  **Neurologist?** — same control, same slot, same strobe. The shared pre-lock nudge
+  names whichever is on the row below it. Also fixed the lawyer tagline's tense
+  (wouldn't, not won't).
+- **Three production deploys** — `59b341cc` (strobe), `d0c23780` (taglines),
+  `4b094683` (splash, **current**; = `139e7aa`).
 
 ### 2026-08-16
 
@@ -200,7 +261,7 @@ Anchors, not line numbers.
 | `web/sw.js` | Cache-only worker. Mirrors `_headers` deliberately. `__BUILD__` is stamped by the build. |
 | `scripts/build-icons.js` | Draws the icon and encodes PNG with stdlib only. Output is gitignored and regenerated in CI. |
 | `scripts/build-public.js` | Publish allowlist, content-hash stamping, SW cache-name stamping. |
-| `test/` | 360 tests. `social`, `wombat`, `superlatives`, `account`, `pwa`, and the strobe constraints in `assets` are the newest. |
+| `test/` | 361 tests. `social`, `wombat`, `superlatives`, `account`, `pwa`, and the strobe + splash constraints in `assets` are the newest. |
 
 ## Open decisions / questions
 
@@ -374,7 +435,7 @@ Anchors, not line numbers.
 ## Branches
 
 ```
-main   9cd6f0c   ← production, current, deployed green, 360 tests
+main   33a4ebd   ← pushed, 361 tests; prod is ONE BEHIND at 139e7aa (Worker 4b094683)
 ```
 
 Nothing is ahead of `main`. Branch from it for the next piece of work.
